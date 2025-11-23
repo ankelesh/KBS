@@ -1,6 +1,12 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "Components/DecalComponent.h"
+#include "Components/BoxComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
+#include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
+#include "GameplayTypes/GridCoordinates.h"
 
 ATacBattleGrid::ATacBattleGrid()
 {
@@ -10,14 +16,34 @@ ATacBattleGrid::ATacBattleGrid()
 	RootComponent = Root;
 	Root->SetMobility(EComponentMobility::Movable);
 
-	GroundLayer.Init(nullptr, TotalCells);
-	AirLayer.Init(nullptr, TotalCells);
+	// Create collision box for grid clicks
+	GridCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("GridCollision"));
+	GridCollision->SetupAttachment(Root);
+	GridCollision->SetBoxExtent(FVector(FGridCoordinates::GridSize * FGridCoordinates::CellSize * 0.5f,
+										 FGridCoordinates::GridSize * FGridCoordinates::CellSize * 0.5f, 10.0f));
+	GridCollision->SetRelativeLocation(FVector(FGridCoordinates::GridSize * FGridCoordinates::CellSize * 0.5f,
+												FGridCoordinates::GridSize * FGridCoordinates::CellSize * 0.5f, 0.0f));
+	GridCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	GridCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	GridCollision->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+
+	// Create data manager
+	DataManager = CreateDefaultSubobject<UGridDataManager>(TEXT("DataManager"));
+	DataManager->Initialize();
+
+	// Create component system
+	MovementComponent = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MovementComponent"));
+	TargetingComponent = CreateDefaultSubobject<UGridTargetingComponent>(TEXT("TargetingComponent"));
+	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
 
 	AttackerTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("AttackerTeam"));
 	AttackerTeam->SetTeamSide(ETeamSide::Attacker);
 
 	DefenderTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("DefenderTeam"));
 	DefenderTeam->SetTeamSide(ETeamSide::Defender);
+
+	// Enable click events on grid
+	SetActorEnableCollision(true);
 }
 
 void ATacBattleGrid::OnConstruction(const FTransform& Transform)
@@ -26,199 +52,180 @@ void ATacBattleGrid::OnConstruction(const FTransform& Transform)
 
 #if WITH_EDITOR
 	FlushPersistentDebugLines(GetWorld());
-
-	for (int32 Row = 0; Row < GridSize; ++Row)
+	if (bShowPreviewGizmos && GetWorld()->WorldType == EWorldType::Editor)
 	{
-		for (int32 Col = 0; Col < GridSize; ++Col)
+
+		for (const FUnitPlacement& Placement : EditorUnitPlacements)
 		{
-			if (IsRestrictedCell(Row, Col))
+			if (Placement.UnitClass)
+			{
+				FVector CellCenter = FGridCoordinates::CellToWorldLocation(Placement.Row, Placement.Col, Placement.Layer, GetActorLocation());
+				CellCenter.Z += 50;
+				DrawDebugSphere(GetWorld(), CellCenter, 50.f, 8, (Placement.bIsAttacker) ? FColor::Red : FColor::Green, true, -1.f, 0, 5.f);
+			}
+		}
+	}
+
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			if (FGridCoordinates::IsRestrictedCell(Row, Col))
 			{
 				continue;
 			}
 
-			const bool bIsFlank = IsFlankCell(Row, Col);
+			const bool bIsFlank = FGridCoordinates::IsFlankCell(Row, Col);
 
-			FVector CellCenter = GetCellWorldLocation(Row, Col, EBattleLayer::Ground);
+			FVector CellCenter = FGridCoordinates::CellToWorldLocation(Row, Col, EBattleLayer::Ground, GetActorLocation());
 			FColor GroundColor = bIsFlank ? FColor(138, 43, 226) : FColor::Green;
-			DrawDebugBox(GetWorld(), CellCenter, FVector(CellSize * 0.5f, CellSize * 0.5f, 5.0f),
+			DrawDebugBox(GetWorld(), CellCenter, FVector(FGridCoordinates::CellSize * 0.5f, FGridCoordinates::CellSize * 0.5f, 5.0f),
 				GroundColor, true, -1.0f, 0, 2.0f);
 
-			CellCenter = GetCellWorldLocation(Row, Col, EBattleLayer::Air);
-			DrawDebugBox(GetWorld(), CellCenter, FVector(CellSize * 0.5f, CellSize * 0.5f, 5.0f),
+			CellCenter = FGridCoordinates::CellToWorldLocation(Row, Col, EBattleLayer::Air, GetActorLocation());
+			DrawDebugBox(GetWorld(), CellCenter, FVector(FGridCoordinates::CellSize * 0.5f, FGridCoordinates::CellSize * 0.5f, 5.0f),
 				FColor::Cyan, true, -1.0f, 0, 1.0f);
 		}
 	}
 #endif
-
-	// Position units assigned in editor
-	for (int32 i = 0; i < GroundLayer.Num(); ++i)
-	{
-		if (GroundLayer[i])
-		{
-			const int32 Row = i / GridSize;
-			const int32 Col = i % GridSize;
-			if (IsValidCell(Row, Col, EBattleLayer::Ground))
-			{
-				GroundLayer[i]->SetActorLocation(GetCellWorldLocation(Row, Col, EBattleLayer::Ground));
-				GroundLayer[i]->SetGridPosition(Row, Col, EBattleLayer::Ground);
-			}
-			else
-			{
-				GroundLayer[i] = nullptr;
-			}
-		}
-	}
-
-	for (int32 i = 0; i < AirLayer.Num(); ++i)
-	{
-		if (AirLayer[i])
-		{
-			const int32 Row = i / GridSize;
-			const int32 Col = i % GridSize;
-			if (IsValidCell(Row, Col, EBattleLayer::Air))
-			{
-				AirLayer[i]->SetActorLocation(GetCellWorldLocation(Row, Col, EBattleLayer::Air));
-				AirLayer[i]->SetGridPosition(Row, Col, EBattleLayer::Air);
-			}
-			else
-			{
-				AirLayer[i] = nullptr;
-			}
-		}
-	}
 }
 
 void ATacBattleGrid::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for (int32 i = 0; i < TotalCells; ++i)
-	{
-		UDecalComponent* MoveDecal = NewObject<UDecalComponent>(this);
-		MoveDecal->RegisterComponent();
-		MoveDecal->AttachToComponent(Root, FAttachmentTransformRules::KeepRelativeTransform);
-		MoveDecal->SetDecalMaterial(MoveAllowedDecalMaterial);
-		MoveDecal->DecalSize = FVector(10.0f, CellSize * 0.5f, CellSize * 0.5f);
-		MoveDecal->SetVisibility(false);
-		MoveAllowedDecals.Add(MoveDecal);
+	// Initialize components
+	MovementComponent->Initialize(this, DataManager);
+	TargetingComponent->Initialize(this, DataManager);
+	HighlightComponent->Initialize(this, Root, Config->MoveAllowedDecalMaterial, Config->EnemyDecalMaterial);
 
-		UDecalComponent* EnemyDecal = NewObject<UDecalComponent>(this);
-		EnemyDecal->RegisterComponent();
-		EnemyDecal->AttachToComponent(Root, FAttachmentTransformRules::KeepRelativeTransform);
-		EnemyDecal->SetDecalMaterial(EnemyDecalMaterial);
-		EnemyDecal->DecalSize = FVector(10.0f, CellSize * 0.5f, CellSize * 0.5f);
-		EnemyDecal->SetVisibility(false);
-		EnemyDecals.Add(EnemyDecal);
+	// Create decal pool for highlights
+	HighlightComponent->CreateDecalPool();
+
+	// Create units from input data
+	for (const FUnitPlacement& Placement : EditorUnitPlacements)
+	{
+		if (!Placement.UnitClass)
+		{
+			continue;
+		}
+		if (!FGridCoordinates::IsValidCell(Placement.Row, Placement.Col))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Invalid cell [%d,%d] for unit placement"), Placement.Row, Placement.Col);
+			continue;
+		}
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		AUnit* NewUnit = GetWorld()->SpawnActor<AUnit>(Placement.UnitClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+		if (NewUnit)
+		{
+			const bool bPlaced = PlaceUnit(NewUnit, Placement.Row, Placement.Col, Placement.Layer);
+			if (bPlaced)
+			{
+				SpawnedUnits.Add(NewUnit);
+				// Assign to team based on row and flank status
+				const bool bIsFlank = FGridCoordinates::IsFlankCell(Placement.Row, Placement.Col);
+				UBattleTeam* Team = (Placement.bIsAttacker) ? AttackerTeam : DefenderTeam;
+				Team->AddUnit(NewUnit);
+				// Set rotation based on team (unless on flank, which gets handled separately)
+				if (!bIsFlank)
+				{
+					const float Yaw = (Team == AttackerTeam) ? 0.0f : 180.0f;
+					NewUnit->SetActorRotation(FRotator(0.0f, Yaw, 0.0f));
+				}
+				else
+				{
+					// Apply flank rotation immediately
+					const FRotator FlankRotation = FGridCoordinates::GetFlankRotation(Placement.Row, Placement.Col);
+					NewUnit->SetActorRotation(FlankRotation);
+					NewUnit->SetOnFlank(true);
+					NewUnit->SetOriginalRotation(FRotator(0.0f, (Team == AttackerTeam) ? 0.0f : 180.0f, 0.0f));
+				}
+				UE_LOG(LogTemp, Log, TEXT("Placed unit at [%d,%d] on layer %d"), Placement.Row, Placement.Col, (int32)Placement.Layer);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Failed to place unit at [%d,%d]"), Placement.Row, Placement.Col);
+				NewUnit->Destroy();
+			}
+		}
+	}
+
+	// Subscribe to all existing units' click events
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			const TArray<FGridRow>& GroundLayer = DataManager->GetLayer(EBattleLayer::Ground);
+			if (Row < GroundLayer.Num() && Col < GroundLayer[Row].Cells.Num() && GroundLayer[Row].Cells[Col])
+			{
+				AUnit* Unit = GroundLayer[Row].Cells[Col];
+				Unit->SetActorEnableCollision(true);
+
+				// Enable click events on unit mesh
+				if (Unit->MeshComponent)
+				{
+					Unit->MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+					Unit->MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+				}
+
+				Unit->OnUnitClicked.AddDynamic(this, &ATacBattleGrid::HandleUnitClicked);
+				UE_LOG(LogTemp, Log, TEXT("Grid subscribed to unit at [%d,%d] Ground"), Row, Col);
+			}
+
+			const TArray<FGridRow>& AirLayer = DataManager->GetLayer(EBattleLayer::Air);
+			if (Row < AirLayer.Num() && Col < AirLayer[Row].Cells.Num() && AirLayer[Row].Cells[Col])
+			{
+				AUnit* Unit = AirLayer[Row].Cells[Col];
+				Unit->SetActorEnableCollision(true);
+
+				// Enable click events on unit mesh
+				if (Unit->MeshComponent)
+				{
+					Unit->MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+					Unit->MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+				}
+
+				Unit->OnUnitClicked.AddDynamic(this, &ATacBattleGrid::HandleUnitClicked);
+				UE_LOG(LogTemp, Log, TEXT("Grid subscribed to unit at [%d,%d] Air"), Row, Col);
+			}
+		}
 	}
 }
 
 bool ATacBattleGrid::IsValidCell(int32 Row, int32 Col, EBattleLayer Layer) const
 {
-	if (Row < 0 || Row >= GridSize || Col < 0 || Col >= GridSize)
-	{
-		return false;
-	}
-
-	if (Row == CenterRow && (Col == ExcludedColLeft || Col == ExcludedColRight))
-	{
-		return false;
-	}
-
-	return true;
+	return FGridCoordinates::IsValidCell(Row, Col);
 }
 
 bool ATacBattleGrid::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer)
 {
-	if (!Unit || !IsValidCell(Row, Col, Layer))
-	{
-		return false;
-	}
-
-	const int32 Index = CoordsToIndex(Row, Col);
-	TArray<TObjectPtr<AUnit>>& LayerArray = GetLayer(Layer);
-
-	if (LayerArray[Index] != nullptr)
-	{
-		return false;
-	}
-
-	LayerArray[Index] = Unit;
-	Unit->SetGridPosition(Row, Col, Layer);
-	Unit->SetActorLocation(GetCellWorldLocation(Row, Col, Layer));
-
-	return true;
+	return DataManager->PlaceUnit(Unit, Row, Col, Layer, this);
 }
 
 AUnit* ATacBattleGrid::GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const
 {
-	if (!IsValidCell(Row, Col, Layer))
-	{
-		return nullptr;
-	}
-
-	const int32 Index = CoordsToIndex(Row, Col);
-	const TArray<TObjectPtr<AUnit>>& LayerArray = GetLayer(Layer);
-
-	return LayerArray[Index];
+	return DataManager->GetUnit(Row, Col, Layer);
 }
 
 bool ATacBattleGrid::RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer)
 {
-	if (!IsValidCell(Row, Col, Layer))
-	{
-		return false;
-	}
-
-	const int32 Index = CoordsToIndex(Row, Col);
-	TArray<TObjectPtr<AUnit>>& LayerArray = GetLayer(Layer);
-
-	if (LayerArray[Index] == nullptr)
-	{
-		return false;
-	}
-
-	LayerArray[Index] = nullptr;
-	return true;
-}
-
-int32 ATacBattleGrid::CoordsToIndex(int32 Row, int32 Col) const
-{
-	return Row + Col * GridSize;
-}
-
-TArray<TObjectPtr<AUnit>>& ATacBattleGrid::GetLayer(EBattleLayer Layer)
-{
-	return Layer == EBattleLayer::Ground ? GroundLayer : AirLayer;
-}
-
-const TArray<TObjectPtr<AUnit>>& ATacBattleGrid::GetLayer(EBattleLayer Layer) const
-{
-	return Layer == EBattleLayer::Ground ? GroundLayer : AirLayer;
+	return DataManager->RemoveUnit(Row, Col, Layer, this);
 }
 
 FVector ATacBattleGrid::GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const
 {
-	const FVector GridOrigin = GetActorLocation();
-	const float X = Col * CellSize + CellSize * 0.5f;
-	const float Y = Row * CellSize + CellSize * 0.5f;
-	const float Z = (Layer == EBattleLayer::Air) ? AirLayerHeight : 0.0f;
-
-	return GridOrigin + FVector(X, Y, Z);
+	return FGridCoordinates::CellToWorldLocation(Row, Col, Layer, GetActorLocation());
 }
 
 bool ATacBattleGrid::IsFlankCell(int32 Row, int32 Col) const
 {
-	if (Row == CenterRow)
-	{
-		return false;
-	}
-
-	return Col == ExcludedColLeft || Col == ExcludedColRight;
+	return FGridCoordinates::IsFlankCell(Row, Col);
 }
 
 bool ATacBattleGrid::IsRestrictedCell(int32 Row, int32 Col) const
 {
-	return Row == CenterRow && (Col == ExcludedColLeft || Col == ExcludedColRight);
+	return FGridCoordinates::IsRestrictedCell(Row, Col);
 }
 
 UBattleTeam* ATacBattleGrid::GetTeamForUnit(AUnit* Unit) const
@@ -260,235 +267,22 @@ UBattleTeam* ATacBattleGrid::GetEnemyTeam(AUnit* Unit) const
 
 TArray<FIntPoint> ATacBattleGrid::GetValidMoveCells(AUnit* Unit) const
 {
-	TArray<FIntPoint> ValidCells;
-
-	if (!Unit)
-	{
-		return ValidCells;
-	}
-
-	const int32 UnitRow = Unit->GetGridRow();
-	const int32 UnitCol = Unit->GetGridCol();
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
-	UBattleTeam* UnitTeam = GetTeamForUnit(Unit);
-	UBattleTeam* EnemyTeam = GetEnemyTeam(Unit);
-
-	if (UnitLayer == EBattleLayer::Air)
-	{
-		for (int32 Row = 0; Row < GridSize; ++Row)
-		{
-			for (int32 Col = 0; Col < GridSize; ++Col)
-			{
-				if (IsRestrictedCell(Row, Col))
-				{
-					continue;
-				}
-
-				AUnit* OccupyingUnit = GetUnit(Row, Col, UnitLayer);
-				if (!OccupyingUnit || (UnitTeam && UnitTeam->ContainsUnit(OccupyingUnit)))
-				{
-					ValidCells.Add(FIntPoint(Col, Row));
-				}
-			}
-		}
-	}
-	else
-	{
-		const TArray<FIntPoint> AdjacentOffsets = {
-			FIntPoint(0, -1), FIntPoint(0, 1), FIntPoint(-1, 0), FIntPoint(1, 0)
-		};
-
-		for (const FIntPoint& Offset : AdjacentOffsets)
-		{
-			const int32 TargetRow = UnitRow + Offset.Y;
-			const int32 TargetCol = UnitCol + Offset.X;
-
-			if (!IsValidCell(TargetRow, TargetCol, UnitLayer))
-			{
-				continue;
-			}
-
-			if (IsFlankCell(TargetRow, TargetCol))
-			{
-				if (UnitTeam == AttackerTeam && TargetRow <= 1)
-				{
-					continue;
-				}
-
-				if (UnitTeam == DefenderTeam && TargetRow >= 3)
-				{
-					continue;
-				}
-			}
-
-			AUnit* OccupyingUnit = GetUnit(TargetRow, TargetCol, UnitLayer);
-			if (!OccupyingUnit || (UnitTeam && UnitTeam->ContainsUnit(OccupyingUnit)))
-			{
-				ValidCells.Add(FIntPoint(TargetCol, TargetRow));
-			}
-		}
-	}
-
-	return ValidCells;
+	return MovementComponent->GetValidMoveCells(Unit);
 }
 
 bool ATacBattleGrid::MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol)
 {
-	if (!Unit)
-	{
-		return false;
-	}
-
-	const TArray<FIntPoint> ValidCells = GetValidMoveCells(Unit);
-	const FIntPoint TargetCell(TargetCol, TargetRow);
-
-	if (!ValidCells.Contains(TargetCell))
-	{
-		return false;
-	}
-
-	const int32 CurrentRow = Unit->GetGridRow();
-	const int32 CurrentCol = Unit->GetGridCol();
-	const EBattleLayer Layer = Unit->GetGridLayer();
-
-	AUnit* TargetOccupant = GetUnit(TargetRow, TargetCol, Layer);
-
-	if (TargetOccupant)
-	{
-		RemoveUnit(TargetRow, TargetCol, Layer);
-		RemoveUnit(CurrentRow, CurrentCol, Layer);
-
-		PlaceUnit(Unit, TargetRow, TargetCol, Layer);
-		PlaceUnit(TargetOccupant, CurrentRow, CurrentCol, Layer);
-	}
-	else
-	{
-		RemoveUnit(CurrentRow, CurrentCol, Layer);
-		PlaceUnit(Unit, TargetRow, TargetCol, Layer);
-	}
-
-	return true;
+	return MovementComponent->MoveUnit(Unit, TargetRow, TargetCol);
 }
 
 TArray<FIntPoint> ATacBattleGrid::GetValidTargetCells(AUnit* Unit, ETargetReach Reach) const
 {
-	TArray<FIntPoint> TargetCells;
-
-	if (!Unit)
-	{
-		return TargetCells;
-	}
-
-	const int32 UnitRow = Unit->GetGridRow();
-	const int32 UnitCol = Unit->GetGridCol();
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
-	UBattleTeam* EnemyTeam = GetEnemyTeam(Unit);
-
-	if (!EnemyTeam)
-	{
-		return TargetCells;
-	}
-
-	if (Reach == ETargetReach::ClosestEnemies)
-	{
-		int32 MinDistance = TNumericLimits<int32>::Max();
-
-		for (AUnit* EnemyUnit : EnemyTeam->GetUnits())
-		{
-			if (!EnemyUnit)
-			{
-				continue;
-			}
-
-			const int32 Distance = FMath::Abs(EnemyUnit->GetGridRow() - UnitRow) + FMath::Abs(EnemyUnit->GetGridCol() - UnitCol);
-
-			if (Distance < MinDistance)
-			{
-				MinDistance = Distance;
-				TargetCells.Empty();
-				TargetCells.Add(FIntPoint(EnemyUnit->GetGridCol(), EnemyUnit->GetGridRow()));
-			}
-			else if (Distance == MinDistance)
-			{
-				TargetCells.Add(FIntPoint(EnemyUnit->GetGridCol(), EnemyUnit->GetGridRow()));
-			}
-		}
-	}
-	else if (Reach == ETargetReach::Flank)
-	{
-		const TArray<int32> AdjacentCols = { UnitCol - 1, UnitCol + 1 };
-
-		for (int32 Col : AdjacentCols)
-		{
-			if (Col < 0 || Col >= GridSize)
-			{
-				continue;
-			}
-
-			for (int32 Row = 0; Row < GridSize; ++Row)
-			{
-				AUnit* TargetUnit = GetUnit(Row, Col, UnitLayer);
-
-				if (TargetUnit && EnemyTeam->ContainsUnit(TargetUnit))
-				{
-					const int32 DistanceToCenter = FMath::Abs(Row - CenterRow);
-					TargetCells.Add(FIntPoint(Col, Row));
-				}
-			}
-		}
-
-		TArray<FIntPoint> ClosestToCenterCells;
-		int32 MinDistToCenter = TNumericLimits<int32>::Max();
-
-		for (const FIntPoint& Cell : TargetCells)
-		{
-			const int32 Dist = FMath::Abs(Cell.Y - CenterRow);
-
-			if (Dist < MinDistToCenter)
-			{
-				MinDistToCenter = Dist;
-				ClosestToCenterCells.Empty();
-				ClosestToCenterCells.Add(Cell);
-			}
-			else if (Dist == MinDistToCenter)
-			{
-				ClosestToCenterCells.Add(Cell);
-			}
-		}
-
-		TargetCells = ClosestToCenterCells;
-	}
-	else if (Reach == ETargetReach::AnyEnemy)
-	{
-		for (AUnit* EnemyUnit : EnemyTeam->GetUnits())
-		{
-			if (EnemyUnit)
-			{
-				TargetCells.Add(FIntPoint(EnemyUnit->GetGridCol(), EnemyUnit->GetGridRow()));
-			}
-		}
-	}
-
-	return TargetCells;
+	return TargetingComponent->GetValidTargetCells(Unit, Reach);
 }
 
 TArray<AUnit*> ATacBattleGrid::GetValidTargetUnits(AUnit* Unit, ETargetReach Reach) const
 {
-	TArray<AUnit*> TargetUnits;
-
-	const TArray<FIntPoint> TargetCells = GetValidTargetCells(Unit, Reach);
-
-	for (const FIntPoint& Cell : TargetCells)
-	{
-		AUnit* TargetUnit = GetUnit(Cell.Y, Cell.X, Unit->GetGridLayer());
-
-		if (TargetUnit)
-		{
-			TargetUnits.Add(TargetUnit);
-		}
-	}
-
-	return TargetUnits;
+	return TargetingComponent->GetValidTargetUnits(Unit, Reach);
 }
 
 void ATacBattleGrid::SelectUnit(AUnit* Unit)
@@ -501,21 +295,19 @@ void ATacBattleGrid::SelectUnit(AUnit* Unit)
 
 	SelectedUnit = Unit;
 
-	const TArray<FIntPoint> ValidCells = GetValidMoveCells(Unit);
+	// Get valid movement cells and show them
+	const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(Unit);
+	HighlightComponent->ShowValidMoves(ValidCells);
 
-	for (int32 i = 0; i < MoveAllowedDecals.Num(); ++i)
+	// Get valid target cells and show them
+	const TArray<FIntPoint> TargetCells = TargetingComponent->GetValidTargetCells(Unit, ETargetReach::ClosestEnemies);
+	HighlightComponent->ShowValidTargets(TargetCells);
+
+	UE_LOG(LogTemp, Warning, TEXT("SelectUnit: Found %d target cells for unit at [%d,%d]"), TargetCells.Num(), Unit->GetGridRow(), Unit->GetGridCol());
+	for (const FIntPoint& Cell : TargetCells)
 	{
-		MoveAllowedDecals[i]->SetVisibility(false);
-	}
-
-	for (int32 i = 0; i < ValidCells.Num() && i < MoveAllowedDecals.Num(); ++i)
-	{
-		const FIntPoint& Cell = ValidCells[i];
-		const FVector CellLocation = GetCellWorldLocation(Cell.Y, Cell.X, Unit->GetGridLayer());
-
-		MoveAllowedDecals[i]->SetWorldLocation(CellLocation + FVector(0.0f, 0.0f, 10.0f));
-		MoveAllowedDecals[i]->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
-		MoveAllowedDecals[i]->SetVisibility(true);
+		const int32 Distance = FMath::Abs(Cell.Y - Unit->GetGridRow()) + FMath::Abs(Cell.X - Unit->GetGridCol());
+		UE_LOG(LogTemp, Warning, TEXT("  Target at [%d,%d], Distance: %d"), Cell.Y, Cell.X, Distance);
 	}
 }
 
@@ -523,14 +315,23 @@ bool ATacBattleGrid::TryMoveSelectedUnit(int32 TargetRow, int32 TargetCol)
 {
 	if (!SelectedUnit)
 	{
+		UE_LOG(LogTemp, Error, TEXT("TryMoveSelectedUnit: No unit selected!"));
 		return false;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("TryMoveSelectedUnit: Attempting to move unit from [%d,%d] to [%d,%d]"),
+		SelectedUnit->GetGridRow(), SelectedUnit->GetGridCol(), TargetRow, TargetCol);
 
 	const bool bSuccess = MoveUnit(SelectedUnit, TargetRow, TargetCol);
 
 	if (bSuccess)
 	{
+		UE_LOG(LogTemp, Log, TEXT("TryMoveSelectedUnit: Move successful, clearing selection"));
 		ClearSelection();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("TryMoveSelectedUnit: Move FAILED!"));
 	}
 
 	return bSuccess;
@@ -539,31 +340,126 @@ bool ATacBattleGrid::TryMoveSelectedUnit(int32 TargetRow, int32 TargetCol)
 void ATacBattleGrid::ClearSelection()
 {
 	SelectedUnit = nullptr;
-
-	for (UDecalComponent* Decal : MoveAllowedDecals)
-	{
-		if (Decal)
-		{
-			Decal->SetVisibility(false);
-		}
-	}
-
-	for (UDecalComponent* Decal : EnemyDecals)
-	{
-		if (Decal)
-		{
-			Decal->SetVisibility(false);
-		}
-	}
+	HighlightComponent->ClearHighlights();
 }
 
 FIntPoint ATacBattleGrid::GetCellFromWorldLocation(FVector WorldLocation) const
 {
-	const FVector GridOrigin = GetActorLocation();
-	const FVector LocalPos = WorldLocation - GridOrigin;
+	return FGridCoordinates::WorldLocationToCell(WorldLocation, GetActorLocation());
+}
 
-	const int32 Col = FMath::FloorToInt(LocalPos.X / CellSize);
-	const int32 Row = FMath::FloorToInt(LocalPos.Y / CellSize);
+void ATacBattleGrid::HandleUnitClicked(AUnit* Unit)
+{
+	if (!Unit)
+	{
+		return;
+	}
 
-	return FIntPoint(FMath::Clamp(Col, 0, GridSize - 1), FMath::Clamp(Row, 0, GridSize - 1));
+	UE_LOG(LogTemp, Warning, TEXT("Grid received click from unit at [%d,%d]"), Unit->GetGridRow(), Unit->GetGridCol());
+
+	// If we have a selected unit and clicked a different unit, check if it's a valid target
+	if (SelectedUnit && SelectedUnit != Unit)
+	{
+		TArray<AUnit*> ValidTargets = GetValidTargetUnits(SelectedUnit, ETargetReach::ClosestEnemies);
+		if (ValidTargets.Contains(Unit))
+		{
+			// Valid target clicked - trigger conflict
+			UnitConflict(SelectedUnit, Unit);
+			return;
+		}
+	}
+
+	// Otherwise select the unit normally
+	SelectUnit(Unit);
+}
+
+void ATacBattleGrid::NotifyActorOnClicked(FKey ButtonPressed)
+{
+	Super::NotifyActorOnClicked(ButtonPressed);
+
+	UE_LOG(LogTemp, Warning, TEXT("Grid NotifyActorOnClicked called!"));
+
+	if (!SelectedUnit)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Grid clicked but no unit selected"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Grid clicked with unit [%d,%d] selected"), SelectedUnit->GetGridRow(), SelectedUnit->GetGridCol());
+
+	// Get player controller
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Grid clicked: No PlayerController found!"));
+		return;
+	}
+
+	// Get mouse world position
+	FVector WorldLocation, WorldDirection;
+	PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+	// Raycast to find grid location
+	FHitResult Hit;
+	FVector Start = WorldLocation;
+	FVector End = Start + WorldDirection * 10000.0f;
+
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility))
+	{
+		FIntPoint CellCoords = GetCellFromWorldLocation(Hit.Location);
+		UE_LOG(LogTemp, Warning, TEXT("Grid clicked at cell [%d,%d], Hit actor: %s"), CellCoords.Y, CellCoords.X, *Hit.GetActor()->GetName());
+		TryMoveSelectedUnit(CellCoords.Y, CellCoords.X);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Grid clicked: Raycast did not hit anything!"));
+	}
+}
+
+void ATacBattleGrid::UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col)
+{
+	if (!Unit)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("UnitEntersFlank: Unit entered flank cell at [%d,%d]"), Row, Col);
+
+	// Store original rotation before applying flank rotation
+	if (!Unit->IsOnFlank())
+	{
+		Unit->SetOriginalRotation(Unit->GetActorRotation());
+	}
+
+	// Apply flank-specific rotation
+	const FRotator FlankRotation = FGridCoordinates::GetFlankRotation(Row, Col);
+	Unit->SetActorRotation(FlankRotation);
+	Unit->SetOnFlank(true);
+}
+
+void ATacBattleGrid::UnitExitsFlank(AUnit* Unit)
+{
+	if (!Unit || !Unit->IsOnFlank())
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("UnitExitsFlank: Unit exited flank cell"));
+
+	// Restore original rotation
+	Unit->SetActorRotation(Unit->GetOriginalRotation());
+	Unit->SetOnFlank(false);
+}
+
+void ATacBattleGrid::UnitConflict(AUnit* Attacker, AUnit* Defender)
+{
+	if (!Attacker || !Defender)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("UnitConflict: Attacker at [%d,%d] vs Defender at [%d,%d]"),
+		Attacker->GetGridRow(), Attacker->GetGridCol(),
+		Defender->GetGridRow(), Defender->GetGridCol());
+	// Future implementation: combat resolution, damage calculation, animations, etc.
 }

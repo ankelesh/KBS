@@ -22,6 +22,7 @@ public:
 	void AddUnit(AUnit* Unit);
 	void RemoveUnit(AUnit* Unit);
 	bool ContainsUnit(AUnit* Unit) const;
+	void ClearUnits();
 
 	ETeamSide GetTeamSide() const { return TeamSide; }
 	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }

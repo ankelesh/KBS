@@ -83,3 +83,11 @@ void AUnit::LevelUp()
 
 	RecalculateModifiedStats();
 }
+
+void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
+{
+	Super::NotifyActorOnClicked(ButtonPressed);
+
+	UE_LOG(LogTemp, Warning, TEXT("Unit clicked at [%d,%d]"), GridRow, GridCol);
+	OnUnitClicked.Broadcast(this);
+}

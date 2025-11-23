@@ -20,3 +20,8 @@ bool UBattleTeam::ContainsUnit(AUnit* Unit) const
 {
 	return Units.Contains(Unit);
 }
+
+void UBattleTeam::ClearUnits()
+{
+	Units.Empty();
+}

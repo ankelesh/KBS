@@ -4,10 +4,64 @@
 #include "GameFramework/Actor.h"
 #include "GameMechanics/Units/Unit.h"
 #include "BattleTeam.h"
+#include "GameplayTypes/GridCoordinates.h"
 #include "TacBattleGrid.generated.h"
 
 enum class ETargetReach : uint8;
 class UDecalComponent;
+class UGridDataManager;
+class UGridMovementComponent;
+class UGridTargetingComponent;
+class UGridHighlightComponent;
+
+USTRUCT()
+struct FGridRow
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TArray<TObjectPtr<AUnit>> Cells;
+
+	FGridRow()
+	{
+		Cells.Init(nullptr, 5);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FUnitPlacement
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Unit Placement")
+	TSubclassOf<AUnit> UnitClass;
+
+	UPROPERTY(EditAnywhere, Category="UnitPlacement")
+	bool bIsAttacker = false;
+
+	UPROPERTY(EditAnywhere, Category = "Unit Placement", meta = (ClampMin = "0", ClampMax = "4"))
+	int32 Row = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Unit Placement", meta = (ClampMin = "0", ClampMax = "4"))
+	int32 Col = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Unit Placement")
+	EBattleLayer Layer = EBattleLayer::Ground;
+};
+
+UCLASS(BlueprintType)
+class KBS_API UGridConfig : public UPrimaryDataAsset
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
+	TObjectPtr<UMaterialInterface> MoveAllowedDecalMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
+	TObjectPtr<UMaterialInterface> EnemyDecalMaterial;
+
+};
 
 UCLASS()
 class KBS_API ATacBattleGrid : public AActor
@@ -40,50 +94,56 @@ public:
 	FIntPoint GetCellFromWorldLocation(FVector WorldLocation) const;
 	AUnit* GetSelectedUnit() const { return SelectedUnit; }
 
+	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
+
+	UFUNCTION()
+	void HandleUnitClicked(AUnit* Unit);
+
+	void UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col);
+	void UnitExitsFlank(AUnit* Unit);
+	void UnitConflict(AUnit* Attacker, AUnit* Defender);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 private:
-	static constexpr int32 GridSize = 5;
-	static constexpr int32 TotalCells = 25;
-	static constexpr float CellSize = 200.0f;
-	static constexpr float AirLayerHeight = 300.0f;
-	static constexpr int32 CenterRow = 2;
-	static constexpr int32 ExcludedColLeft = 0;
-	static constexpr int32 ExcludedColRight = 4;
-
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> Root;
 
-	UPROPERTY(EditAnywhere, Category = "Grid")
-	TArray<TObjectPtr<AUnit>> GroundLayer;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UBoxComponent> GridCollision;
 
-	UPROPERTY(EditAnywhere, Category = "Grid")
-	TArray<TObjectPtr<AUnit>> AirLayer;
+	UPROPERTY(EditAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UGridDataManager> DataManager;
 
-	UPROPERTY(VisibleAnywhere, Category = "Teams")
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UGridMovementComponent> MovementComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UGridTargetingComponent> TargetingComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UGridHighlightComponent> HighlightComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Teams")
 	TObjectPtr<UBattleTeam> AttackerTeam;
 
-	UPROPERTY(VisibleAnywhere, Category = "Teams")
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Teams")
 	TObjectPtr<UBattleTeam> DefenderTeam;
 
-	UPROPERTY(EditAnywhere, Category = "Highlighting")
-	TObjectPtr<UMaterialInterface> MoveAllowedDecalMaterial;
+	UPROPERTY(EditAnywhere, Category = "BattleGrid")
+	TObjectPtr<UGridConfig> Config;
 
-	UPROPERTY(EditAnywhere, Category = "Highlighting")
-	TObjectPtr<UMaterialInterface> EnemyDecalMaterial;
-
-	UPROPERTY(EditAnywhere, Category = "Selection")
+	UPROPERTY(EditAnywhere, Category = "BattleGrid|Selection")
 	TObjectPtr<AUnit> SelectedUnit;
 
-	UPROPERTY(EditAnywhere, Category = "Highlighting")
-	TArray<TObjectPtr<UDecalComponent>> MoveAllowedDecals;
+	UPROPERTY(EditAnywhere, Category = "BattleGrid|Editor Setup")
+	TArray<FUnitPlacement> EditorUnitPlacements;
 
-	UPROPERTY(EditAnywhere, Category = "Highlighting")
-	TArray<TObjectPtr<UDecalComponent>> EnemyDecals;
+	UPROPERTY(EditAnywhere, Category = "BattleGrid|ShowPreview")
+	bool bShowPreviewGizmos = true;
 
-	int32 CoordsToIndex(int32 Row, int32 Col) const;
-	TArray<TObjectPtr<AUnit>>& GetLayer(EBattleLayer Layer);
-	const TArray<TObjectPtr<AUnit>>& GetLayer(EBattleLayer Layer) const;
+	UPROPERTY()
+	TArray<TObjectPtr<AUnit>> SpawnedUnits;
 };

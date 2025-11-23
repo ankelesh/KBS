@@ -14,6 +14,8 @@ enum class EBattleLayer : uint8
 	Air = 1 UMETA(DisplayName = "Air")
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitClicked, AUnit*, ClickedUnit);
+
 UCLASS()
 class KBS_API AUnit : public AActor
 {
@@ -22,11 +24,21 @@ class KBS_API AUnit : public AActor
 public:
 	AUnit();
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitClicked OnUnitClicked;
+
+	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
+
 	int32 GetGridRow() const { return GridRow; }
 	int32 GetGridCol() const { return GridCol; }
 	EBattleLayer GetGridLayer() const { return GridLayer; }
 
 	void SetGridPosition(int32 Row, int32 Col, EBattleLayer Layer);
+
+	bool IsOnFlank() const { return bIsOnFlank; }
+	void SetOnFlank(bool bOnFlank) { bIsOnFlank = bOnFlank; }
+	FRotator GetOriginalRotation() const { return OriginalRotation; }
+	void SetOriginalRotation(const FRotator& Rotation) { OriginalRotation = Rotation; }
 
 	void RecalculateModifiedStats();
 	void RecalculateAllWeaponStats();
@@ -50,6 +62,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	EBattleLayer GridLayer = EBattleLayer::Ground;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
+	bool bIsOnFlank = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
+	FRotator OriginalRotation = FRotator::ZeroRotator;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStats;
