@@ -75,6 +75,7 @@ public:
 	bool PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer);
 	AUnit* GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const;
 	bool RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer);
+	bool GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
 	FVector GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const;
 
 	bool IsFlankCell(int32 Row, int32 Col) const;
@@ -102,6 +103,11 @@ public:
 	void UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col);
 	void UnitExitsFlank(AUnit* Unit);
 	void UnitConflict(AUnit* Attacker, AUnit* Defender);
+
+	bool IsUnitOnFlank(const AUnit* Unit) const;
+	void SetUnitOnFlank(AUnit* Unit, bool bOnFlank);
+	FRotator GetUnitOriginalRotation(const AUnit* Unit) const;
+	void SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation);
 
 protected:
 	virtual void BeginPlay() override;
@@ -146,4 +152,10 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<AUnit>> SpawnedUnits;
+
+	// Track unit flank states (externalized from AUnit)
+	TMap<AUnit*, bool> UnitFlankStates;
+
+	// Track unit original rotations before entering flank (externalized from AUnit)
+	TMap<AUnit*, FRotator> UnitOriginalRotations;
 };

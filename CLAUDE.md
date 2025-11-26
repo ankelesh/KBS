@@ -3,6 +3,7 @@
 Strategy turn-based game. Learning developer.
 
 ## Paths
+$CMD = E:\Projects\KBS_tasks\Tasks
 $SRC = ./Source/KBS/
 $AST = ./Content/
 $H = Classes/
@@ -35,3 +36,6 @@ Only when requested or proposing solution
 
 ## Error handling
 Try alternatives automatically. If 2+ repeats fail, stop and report
+
+## After task complete
+Copy task file to $CMD/task_logs/

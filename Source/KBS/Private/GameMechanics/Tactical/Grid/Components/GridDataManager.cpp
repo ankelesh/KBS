@@ -28,7 +28,6 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer
 	}
 
 	LayerArray[Row].Cells[Col] = Unit;
-	Unit->SetGridPosition(Row, Col, Layer);
 	Unit->SetActorLocation(FGridCoordinates::CellToWorldLocation(Row, Col, Layer, Grid->GetActorLocation()));
 	Unit->SetActorEnableCollision(true);
 
@@ -99,4 +98,44 @@ TArray<FGridRow>& UGridDataManager::GetLayer(EBattleLayer Layer)
 const TArray<FGridRow>& UGridDataManager::GetLayer(EBattleLayer Layer) const
 {
 	return Layer == EBattleLayer::Ground ? GroundLayer : AirLayer;
+}
+
+bool UGridDataManager::GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const
+{
+	if (!Unit)
+	{
+		return false;
+	}
+
+	// Search ground layer
+	for (int32 Row = 0; Row < GroundLayer.Num(); ++Row)
+	{
+		for (int32 Col = 0; Col < GroundLayer[Row].Cells.Num(); ++Col)
+		{
+			if (GroundLayer[Row].Cells[Col] == Unit)
+			{
+				OutRow = Row;
+				OutCol = Col;
+				OutLayer = EBattleLayer::Ground;
+				return true;
+			}
+		}
+	}
+
+	// Search air layer
+	for (int32 Row = 0; Row < AirLayer.Num(); ++Row)
+	{
+		for (int32 Col = 0; Col < AirLayer[Row].Cells.Num(); ++Col)
+		{
+			if (AirLayer[Row].Cells[Col] == Unit)
+			{
+				OutRow = Row;
+				OutCol = Col;
+				OutLayer = EBattleLayer::Air;
+				return true;
+			}
+		}
+	}
+
+	return false;
 }

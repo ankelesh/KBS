@@ -6,6 +6,7 @@
 #include "BattleEffect.generated.h"
 
 class AUnit;
+class UBattleEffectDataAsset;
 
 UENUM(BlueprintType)
 enum class EEffectTarget : uint8
@@ -20,15 +21,26 @@ class KBS_API UBattleEffect : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void ApplyEffect(AUnit* Target) PURE_VIRTUAL(UBattleEffect::ApplyEffect, );
+	void InitializeFromDataAsset(UBattleEffectDataAsset* InConfig);
 
-	EDamageSource GetDamageSource() const { return DamageSource; }
-	EEffectTarget GetEffectTarget() const { return EffectTarget; }
+	virtual void OnTurnStart(AUnit* Owner) {}
+	virtual void OnTurnEnd(AUnit* Owner) {}
+	virtual void OnUnitAttacked(AUnit* Owner, AUnit* Attacker) {}
+	virtual void OnUnitAttacks(AUnit* Owner, AUnit* Target) {}
+	virtual void OnUnitMoved(AUnit* Owner) {}
+	virtual void OnUnitDied(AUnit* Owner) {}
+	virtual void OnApplied(AUnit* Owner) {}
+	virtual void OnRemoved(AUnit* Owner) {}
+
+	EDamageSource GetDamageSource() const;
+	EEffectTarget GetEffectTarget() const;
+	int32 GetRemainingTurns() const { return RemainingTurns; }
+	void DecrementTurns() { if (RemainingTurns > 0) RemainingTurns--; }
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	EDamageSource DamageSource = EDamageSource::Physical;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
+	TObjectPtr<UBattleEffectDataAsset> Config;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	EEffectTarget EffectTarget = EEffectTarget::Enemy;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
+	int32 RemainingTurns = 0;
 };

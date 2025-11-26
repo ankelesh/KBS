@@ -6,6 +6,7 @@
 #include "Weapon.generated.h"
 
 class UBattleEffect;
+class UWeaponDataAsset;
 
 UENUM(BlueprintType)
 enum class ETargetReach : uint8
@@ -57,19 +58,23 @@ class KBS_API UWeapon : public UActorComponent
 public:
 	UWeapon();
 
+	void InitializeFromDataAsset();
 	void RecalculateModifiedStats();
 	void Restore();
 
 	const FWeaponStats& GetStats() const { return ModifiedStats; }
-	const TArray<TObjectPtr<UBattleEffect>>& GetEffects() const { return BattleEffects; }
+	const TArray<TObjectPtr<UBattleEffect>>& GetEffects() const { return ActiveEffects; }
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UWeaponDataAsset> Config;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FWeaponStats BaseStats;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FWeaponStats ModifiedStats;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TArray<TObjectPtr<UBattleEffect>> BattleEffects;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TArray<TObjectPtr<UBattleEffect>> ActiveEffects;
 };

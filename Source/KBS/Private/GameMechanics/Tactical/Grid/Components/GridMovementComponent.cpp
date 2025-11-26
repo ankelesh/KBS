@@ -25,7 +25,12 @@ TArray<FIntPoint> UGridMovementComponent::GetValidMoveCells(AUnit* Unit) const
 		return ValidCells;
 	}
 
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return ValidCells;
+	}
 
 	if (UnitLayer == EBattleLayer::Air)
 	{
@@ -42,9 +47,13 @@ TArray<FIntPoint> UGridMovementComponent::GetValidMoveCells(AUnit* Unit) const
 
 void UGridMovementComponent::GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
 {
-	const int32 UnitRow = Unit->GetGridRow();
-	const int32 UnitCol = Unit->GetGridCol();
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+
 	UBattleTeam* UnitTeam = Grid->GetTeamForUnit(Unit);
 
 	const TArray<FIntPoint> AdjacentOffsets = {
@@ -87,9 +96,13 @@ void UGridMovementComponent::GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>
 
 void UGridMovementComponent::GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
 {
-	const int32 UnitRow = Unit->GetGridRow();
-	const int32 UnitCol = Unit->GetGridCol();
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+
 	UBattleTeam* UnitTeam = Grid->GetTeamForUnit(Unit);
 	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(Unit);
 
@@ -165,7 +178,13 @@ void UGridMovementComponent::GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& O
 
 void UGridMovementComponent::GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
 {
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+
 	UBattleTeam* UnitTeam = Grid->GetTeamForUnit(Unit);
 
 	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
@@ -211,9 +230,13 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 
 	UE_LOG(LogTemp, Log, TEXT("MoveUnit: Target is valid, executing move..."));
 
-	const int32 CurrentRow = Unit->GetGridRow();
-	const int32 CurrentCol = Unit->GetGridCol();
-	const EBattleLayer Layer = Unit->GetGridLayer();
+	int32 CurrentRow, CurrentCol;
+	EBattleLayer Layer;
+	if (!Grid->GetUnitPosition(Unit, CurrentRow, CurrentCol, Layer))
+	{
+		UE_LOG(LogTemp, Error, TEXT("MoveUnit: Could not find unit position!"));
+		return false;
+	}
 
 	const bool bLeavingFlank = Grid->IsFlankCell(CurrentRow, CurrentCol);
 	const bool bEnteringFlank = Grid->IsFlankCell(TargetRow, TargetCol);

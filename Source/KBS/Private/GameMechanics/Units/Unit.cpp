@@ -1,5 +1,8 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
+#include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Units/EffectManagerComponent.h"
 
 AUnit::AUnit()
 {
@@ -8,32 +11,58 @@ AUnit::AUnit()
 	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
 
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("/Game/Fab/Hand_Painted_Paladin_Knight_-_Rigged___Game_Ready/paintpoly_humanoid_paladin_knight.paintpoly_humanoid_paladin_knight"));
-	if (MeshAsset.Succeeded())
-	{
-		MeshComponent->SetSkeletalMesh(MeshAsset.Object);
-	}
-
-	static ConstructorHelpers::FObjectFinder<UMaterialInstance> Material(TEXT("/Game/Fab/Hand_Painted_Paladin_Knight_-_Rigged___Game_Ready/m_paladin_knight.m_paladin_knight"));
-	if (Material.Succeeded())
-	{
-		MeshComponent->SetMaterial(0, Material.Object);
-	}
-
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> AnimSequence(TEXT("/Game/Fab/Hand_Painted_Paladin_Knight_-_Rigged___Game_Ready/paintpoly_humanoid_paladin_knight_Anim.paintpoly_humanoid_paladin_knight_Anim"));
-	if (AnimSequence.Succeeded())
-	{
-		MeshComponent->SetAnimation(AnimSequence.Object);
-		MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-		MeshComponent->Play(false);
-	}
+	EffectManager = CreateDefaultSubobject<UEffectManagerComponent>(TEXT("EffectManager"));
 }
 
-void AUnit::SetGridPosition(int32 Row, int32 Col, EBattleLayer Layer)
+void AUnit::BeginPlay()
 {
-	GridRow = Row;
-	GridCol = Col;
-	GridLayer = Layer;
+	Super::BeginPlay();
+
+	if (!UnitDefinition)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Unit has no UnitDefinition assigned!"));
+		return;
+	}
+
+	// Initialize mesh and animation
+	if (UnitDefinition->Mesh)
+	{
+		MeshComponent->SetSkeletalMesh(UnitDefinition->Mesh);
+	}
+
+	if (UnitDefinition->AnimationClass)
+	{
+		MeshComponent->SetAnimInstanceClass(UnitDefinition->AnimationClass);
+	}
+
+	// Initialize base stats and progression from template
+	BaseStats = UnitDefinition->BaseStatsTemplate;
+	Progression = UnitDefinition->BaseProgressionTemplate;
+	CurrentHealth = BaseStats.MaxHealth;
+
+	// Apply initial leveling (stub for now)
+	for (int32 i = 1; i < InitialLevel; ++i)
+	{
+		// TODO: Implement proper levelup logic
+		LevelUp();
+	}
+
+	// Create weapon components from definition
+	for (UWeaponDataAsset* WeaponData : UnitDefinition->DefaultWeapons)
+	{
+		if (WeaponData)
+		{
+			UWeapon* NewWeapon = NewObject<UWeapon>(this, UWeapon::StaticClass());
+			if (NewWeapon)
+			{
+				NewWeapon->RegisterComponent();
+				Weapons.Add(NewWeapon);
+				// Note: Weapon initialization should be called after spawn
+			}
+		}
+	}
+
+	RecalculateModifiedStats();
 }
 
 void AUnit::RecalculateModifiedStats()
@@ -88,6 +117,6 @@ void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	Super::NotifyActorOnClicked(ButtonPressed);
 
-	UE_LOG(LogTemp, Warning, TEXT("Unit clicked at [%d,%d]"), GridRow, GridCol);
+	UE_LOG(LogTemp, Warning, TEXT("Unit clicked"));
 	OnUnitClicked.Broadcast(this);
 }

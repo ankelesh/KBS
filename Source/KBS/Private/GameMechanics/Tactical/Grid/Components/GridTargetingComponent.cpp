@@ -44,9 +44,13 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 
 void UGridTargetingComponent::GetClosestEnemyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
 {
-	const int32 UnitRow = Unit->GetGridRow();
-	const int32 UnitCol = Unit->GetGridCol();
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+
 	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(Unit);
 
 	if (!EnemyTeam)
@@ -82,9 +86,13 @@ void UGridTargetingComponent::GetClosestEnemyCells(AUnit* Unit, TArray<FIntPoint
 
 void UGridTargetingComponent::GetFlankTargetCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
 {
-	const int32 UnitRow = Unit->GetGridRow();
-	const int32 UnitCol = Unit->GetGridCol();
-	const EBattleLayer UnitLayer = Unit->GetGridLayer();
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+
 	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(Unit);
 
 	if (!EnemyTeam)
@@ -149,7 +157,12 @@ void UGridTargetingComponent::GetAnyEnemyCells(AUnit* Unit, TArray<FIntPoint>& O
 	{
 		if (EnemyUnit)
 		{
-			OutCells.Add(FIntPoint(EnemyUnit->GetGridCol(), EnemyUnit->GetGridRow()));
+			int32 Row, Col;
+			EBattleLayer Layer;
+			if (Grid->GetUnitPosition(EnemyUnit, Row, Col, Layer))
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
 		}
 	}
 }
@@ -163,11 +176,18 @@ TArray<AUnit*> UGridTargetingComponent::GetValidTargetUnits(AUnit* Unit, ETarget
 		return TargetUnits;
 	}
 
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return TargetUnits;
+	}
+
 	const TArray<FIntPoint> TargetCells = GetValidTargetCells(Unit, Reach);
 
 	for (const FIntPoint& Cell : TargetCells)
 	{
-		AUnit* TargetUnit = DataManager->GetUnit(Cell.Y, Cell.X, Unit->GetGridLayer());
+		AUnit* TargetUnit = DataManager->GetUnit(Cell.Y, Cell.X, UnitLayer);
 
 		if (TargetUnit)
 		{

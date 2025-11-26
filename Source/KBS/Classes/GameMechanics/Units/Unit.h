@@ -6,6 +6,8 @@
 #include "Unit.generated.h"
 
 class UWeapon;
+class UUnitDefinition;
+class UEffectManagerComponent;
 
 UENUM(BlueprintType)
 enum class EBattleLayer : uint8
@@ -24,21 +26,12 @@ class KBS_API AUnit : public AActor
 public:
 	AUnit();
 
+	virtual void BeginPlay() override;
+
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitClicked OnUnitClicked;
 
 	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
-
-	int32 GetGridRow() const { return GridRow; }
-	int32 GetGridCol() const { return GridCol; }
-	EBattleLayer GetGridLayer() const { return GridLayer; }
-
-	void SetGridPosition(int32 Row, int32 Col, EBattleLayer Layer);
-
-	bool IsOnFlank() const { return bIsOnFlank; }
-	void SetOnFlank(bool bOnFlank) { bIsOnFlank = bOnFlank; }
-	FRotator GetOriginalRotation() const { return OriginalRotation; }
-	void SetOriginalRotation(const FRotator& Rotation) { OriginalRotation = Rotation; }
 
 	void RecalculateModifiedStats();
 	void RecalculateAllWeaponStats();
@@ -53,21 +46,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USkeletalMeshComponent> MeshComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UEffectManagerComponent> EffectManager;
+
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	int32 GridRow = -1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
+	TObjectPtr<UUnitDefinition> UnitDefinition;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	int32 GridCol = -1;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	EBattleLayer GridLayer = EBattleLayer::Ground;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	bool bIsOnFlank = false;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
-	FRotator OriginalRotation = FRotator::ZeroRotator;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
+	int32 InitialLevel = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStats;

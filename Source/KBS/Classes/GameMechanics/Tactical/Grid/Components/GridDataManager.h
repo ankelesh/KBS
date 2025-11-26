@@ -48,6 +48,12 @@ public:
 	 */
 	const TArray<FGridRow>& GetLayer(EBattleLayer Layer) const;
 
+	/**
+	 * Find unit position in grid
+	 * Returns true if found, fills Row, Col, Layer with position
+	 */
+	bool GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
+
 private:
 	UPROPERTY()
 	TArray<FGridRow> GroundLayer;

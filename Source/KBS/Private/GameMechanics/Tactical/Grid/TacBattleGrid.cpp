@@ -138,8 +138,6 @@ void ATacBattleGrid::BeginPlay()
 					// Apply flank rotation immediately
 					const FRotator FlankRotation = FGridCoordinates::GetFlankRotation(Placement.Row, Placement.Col);
 					NewUnit->SetActorRotation(FlankRotation);
-					NewUnit->SetOnFlank(true);
-					NewUnit->SetOriginalRotation(FRotator(0.0f, (Team == AttackerTeam) ? 0.0f : 180.0f, 0.0f));
 				}
 				UE_LOG(LogTemp, Log, TEXT("Placed unit at [%d,%d] on layer %d"), Placement.Row, Placement.Col, (int32)Placement.Layer);
 			}
@@ -211,6 +209,11 @@ AUnit* ATacBattleGrid::GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const
 bool ATacBattleGrid::RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer)
 {
 	return DataManager->RemoveUnit(Row, Col, Layer, this);
+}
+
+bool ATacBattleGrid::GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const
+{
+	return DataManager->GetUnitPosition(Unit, OutRow, OutCol, OutLayer);
 }
 
 FVector ATacBattleGrid::GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const
@@ -303,11 +306,10 @@ void ATacBattleGrid::SelectUnit(AUnit* Unit)
 	const TArray<FIntPoint> TargetCells = TargetingComponent->GetValidTargetCells(Unit, ETargetReach::ClosestEnemies);
 	HighlightComponent->ShowValidTargets(TargetCells);
 
-	UE_LOG(LogTemp, Warning, TEXT("SelectUnit: Found %d target cells for unit at [%d,%d]"), TargetCells.Num(), Unit->GetGridRow(), Unit->GetGridCol());
+	UE_LOG(LogTemp, Warning, TEXT("SelectUnit: Found %d target cells"), TargetCells.Num());
 	for (const FIntPoint& Cell : TargetCells)
 	{
-		const int32 Distance = FMath::Abs(Cell.Y - Unit->GetGridRow()) + FMath::Abs(Cell.X - Unit->GetGridCol());
-		UE_LOG(LogTemp, Warning, TEXT("  Target at [%d,%d], Distance: %d"), Cell.Y, Cell.X, Distance);
+		UE_LOG(LogTemp, Warning, TEXT("  Target at [%d,%d]"), Cell.Y, Cell.X);
 	}
 }
 
@@ -319,8 +321,13 @@ bool ATacBattleGrid::TryMoveSelectedUnit(int32 TargetRow, int32 TargetCol)
 		return false;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("TryMoveSelectedUnit: Attempting to move unit from [%d,%d] to [%d,%d]"),
-		SelectedUnit->GetGridRow(), SelectedUnit->GetGridCol(), TargetRow, TargetCol);
+	int32 CurrentRow, CurrentCol;
+	EBattleLayer CurrentLayer;
+	if (GetUnitPosition(SelectedUnit, CurrentRow, CurrentCol, CurrentLayer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TryMoveSelectedUnit: Attempting to move unit from [%d,%d] to [%d,%d]"),
+			CurrentRow, CurrentCol, TargetRow, TargetCol);
+	}
 
 	const bool bSuccess = MoveUnit(SelectedUnit, TargetRow, TargetCol);
 
@@ -355,7 +362,12 @@ void ATacBattleGrid::HandleUnitClicked(AUnit* Unit)
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Grid received click from unit at [%d,%d]"), Unit->GetGridRow(), Unit->GetGridCol());
+	int32 Row, Col;
+	EBattleLayer Layer;
+	if (GetUnitPosition(Unit, Row, Col, Layer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Grid received click from unit at [%d,%d]"), Row, Col);
+	}
 
 	// If we have a selected unit and clicked a different unit, check if it's a valid target
 	if (SelectedUnit && SelectedUnit != Unit)
@@ -385,7 +397,12 @@ void ATacBattleGrid::NotifyActorOnClicked(FKey ButtonPressed)
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Grid clicked with unit [%d,%d] selected"), SelectedUnit->GetGridRow(), SelectedUnit->GetGridCol());
+	int32 SelectedRow, SelectedCol;
+	EBattleLayer SelectedLayer;
+	if (GetUnitPosition(SelectedUnit, SelectedRow, SelectedCol, SelectedLayer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Grid clicked with unit [%d,%d] selected"), SelectedRow, SelectedCol);
+	}
 
 	// Get player controller
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
@@ -426,20 +443,20 @@ void ATacBattleGrid::UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col)
 	UE_LOG(LogTemp, Warning, TEXT("UnitEntersFlank: Unit entered flank cell at [%d,%d]"), Row, Col);
 
 	// Store original rotation before applying flank rotation
-	if (!Unit->IsOnFlank())
+	if (!IsUnitOnFlank(Unit))
 	{
-		Unit->SetOriginalRotation(Unit->GetActorRotation());
+		SetUnitOriginalRotation(Unit, Unit->GetActorRotation());
 	}
 
 	// Apply flank-specific rotation
 	const FRotator FlankRotation = FGridCoordinates::GetFlankRotation(Row, Col);
 	Unit->SetActorRotation(FlankRotation);
-	Unit->SetOnFlank(true);
+	SetUnitOnFlank(Unit, true);
 }
 
 void ATacBattleGrid::UnitExitsFlank(AUnit* Unit)
 {
-	if (!Unit || !Unit->IsOnFlank())
+	if (!Unit || !IsUnitOnFlank(Unit))
 	{
 		return;
 	}
@@ -447,8 +464,8 @@ void ATacBattleGrid::UnitExitsFlank(AUnit* Unit)
 	UE_LOG(LogTemp, Warning, TEXT("UnitExitsFlank: Unit exited flank cell"));
 
 	// Restore original rotation
-	Unit->SetActorRotation(Unit->GetOriginalRotation());
-	Unit->SetOnFlank(false);
+	Unit->SetActorRotation(GetUnitOriginalRotation(Unit));
+	SetUnitOnFlank(Unit, false);
 }
 
 void ATacBattleGrid::UnitConflict(AUnit* Attacker, AUnit* Defender)
@@ -458,8 +475,49 @@ void ATacBattleGrid::UnitConflict(AUnit* Attacker, AUnit* Defender)
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("UnitConflict: Attacker at [%d,%d] vs Defender at [%d,%d]"),
-		Attacker->GetGridRow(), Attacker->GetGridCol(),
-		Defender->GetGridRow(), Defender->GetGridCol());
+	int32 AttackerRow, AttackerCol, DefenderRow, DefenderCol;
+	EBattleLayer AttackerLayer, DefenderLayer;
+	const bool bFoundAttacker = GetUnitPosition(Attacker, AttackerRow, AttackerCol, AttackerLayer);
+	const bool bFoundDefender = GetUnitPosition(Defender, DefenderRow, DefenderCol, DefenderLayer);
+
+	if (bFoundAttacker && bFoundDefender)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UnitConflict: Attacker at [%d,%d] vs Defender at [%d,%d]"),
+			AttackerRow, AttackerCol, DefenderRow, DefenderCol);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UnitConflict: Could not determine unit positions"));
+	}
+
 	// Future implementation: combat resolution, damage calculation, animations, etc.
+}
+
+bool ATacBattleGrid::IsUnitOnFlank(const AUnit* Unit) const
+{
+	const bool* bOnFlank = UnitFlankStates.Find(const_cast<AUnit*>(Unit));
+	return bOnFlank ? *bOnFlank : false;
+}
+
+void ATacBattleGrid::SetUnitOnFlank(AUnit* Unit, bool bOnFlank)
+{
+	if (bOnFlank)
+	{
+		UnitFlankStates.Add(Unit, true);
+	}
+	else
+	{
+		UnitFlankStates.Remove(Unit);
+	}
+}
+
+FRotator ATacBattleGrid::GetUnitOriginalRotation(const AUnit* Unit) const
+{
+	const FRotator* Rotation = UnitOriginalRotations.Find(const_cast<AUnit*>(Unit));
+	return Rotation ? *Rotation : FRotator::ZeroRotator;
+}
+
+void ATacBattleGrid::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation)
+{
+	UnitOriginalRotations.Add(Unit, Rotation);
 }
