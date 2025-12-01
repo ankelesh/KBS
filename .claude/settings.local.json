@@ -11,7 +11,8 @@
       "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Classes\\GameMechanics\\Units\\Weapons\\BattleEffects\\BattleEffect.h\")",
       "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Private\\GameMechanics\\Units\\Weapons\\BattleEffects\\BattleEffect.cpp\")",
       "Bash(\"C:\\Program Files\\Epic Games\\UE_5.4\\Engine\\Build\\BatchFiles\\Build.bat\" KBSEditor Win64 Development -Project=\"E:\\Projects\\unreal_projects\\KBS\\KBS.uproject\" -WaitMutex -FromMsBuild)",
-      "Bash(Select-String -Pattern \"(error|warning|succeeded|failed)\" -Context 0,2)"
+      "Bash(Select-String -Pattern \"(error|warning|succeeded|failed)\" -Context 0,2)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []

@@ -24,6 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TObjectPtr<UTexture2D> Portrait;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
+	FString UnitName;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStatsTemplate;
 

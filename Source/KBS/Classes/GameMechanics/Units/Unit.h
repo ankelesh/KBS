@@ -1,13 +1,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
 #include "UnitStats.h"
 #include "Unit.generated.h"
 
 class UWeapon;
 class UUnitDefinition;
-class UEffectManagerComponent;
+class UBattleEffectComponent;
+class UBattleEffect;
+class UAbilityInventoryComponent;
+struct FDamageResult;
 
 UENUM(BlueprintType)
 enum class EBattleLayer : uint8
@@ -17,9 +20,12 @@ enum class EBattleLayer : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitClicked, AUnit*, ClickedUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttacked, AUnit*, Victim, AUnit*, Attacker);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitDamaged, AUnit*, Victim, AUnit*, Attacker);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttacks, AUnit*, Attacker, AUnit*, Target);
 
 UCLASS()
-class KBS_API AUnit : public AActor
+class KBS_API AUnit : public APawn
 {
 	GENERATED_BODY()
 
@@ -31,23 +37,42 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitClicked OnUnitClicked;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitAttacked OnUnitAttacked;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitDamaged OnUnitDamaged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitAttacks OnUnitAttacks;
+
+	UFUNCTION(BlueprintCallable, Category = "Display")
+	FUnitDisplayData GetDisplayData() const;
+
 	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
 
 	void RecalculateModifiedStats();
 	void RecalculateAllWeaponStats();
 	void Restore();
 	void LevelUp();
+	void SetUnitDefinition(UUnitDefinition* InDefinition);
 
 	const FUnitCoreStats& GetStats() const { return ModifiedStats; }
 	float GetCurrentHealth() const { return CurrentHealth; }
 	const FUnitProgressionData& GetProgression() const { return Progression; }
 	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
 
+	void TakeHit(const FDamageResult& DamageResult);
+	void ApplyEffect(UBattleEffect* Effect);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USkeletalMeshComponent> MeshComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UEffectManagerComponent> EffectManager;
+	TObjectPtr<UBattleEffectComponent> EffectManager;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UAbilityInventoryComponent> AbilityInventory;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")

@@ -1,13 +1,13 @@
-#include "GameMechanics/Units/EffectManagerComponent.h"
+#include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Unit.h"
 
-UEffectManagerComponent::UEffectManagerComponent()
+UBattleEffectComponent::UBattleEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UEffectManagerComponent::AddEffect(UBattleEffect* Effect)
+void UBattleEffectComponent::AddEffect(UBattleEffect* Effect)
 {
 	if (Effect)
 	{
@@ -16,7 +16,7 @@ void UEffectManagerComponent::AddEffect(UBattleEffect* Effect)
 	}
 }
 
-void UEffectManagerComponent::RemoveEffect(UBattleEffect* Effect)
+void UBattleEffectComponent::RemoveEffect(UBattleEffect* Effect)
 {
 	if (Effect)
 	{
@@ -25,7 +25,7 @@ void UEffectManagerComponent::RemoveEffect(UBattleEffect* Effect)
 	}
 }
 
-void UEffectManagerComponent::ClearAllEffects()
+void UBattleEffectComponent::ClearAllEffects()
 {
 	AUnit* Owner = GetOwnerUnit();
 	for (UBattleEffect* Effect : ActiveEffects)
@@ -38,7 +38,7 @@ void UEffectManagerComponent::ClearAllEffects()
 	ActiveEffects.Empty();
 }
 
-void UEffectManagerComponent::BroadcastTurnStart()
+void UBattleEffectComponent::BroadcastTurnStart()
 {
 	AUnit* Owner = GetOwnerUnit();
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
@@ -56,7 +56,7 @@ void UEffectManagerComponent::BroadcastTurnStart()
 	}
 }
 
-void UEffectManagerComponent::BroadcastTurnEnd()
+void UBattleEffectComponent::BroadcastTurnEnd()
 {
 	AUnit* Owner = GetOwnerUnit();
 	for (UBattleEffect* Effect : ActiveEffects)
@@ -68,7 +68,7 @@ void UEffectManagerComponent::BroadcastTurnEnd()
 	}
 }
 
-void UEffectManagerComponent::BroadcastAttacked(AUnit* Attacker)
+void UBattleEffectComponent::BroadcastAttacked(AUnit* Attacker)
 {
 	AUnit* Owner = GetOwnerUnit();
 	for (UBattleEffect* Effect : ActiveEffects)
@@ -80,7 +80,7 @@ void UEffectManagerComponent::BroadcastAttacked(AUnit* Attacker)
 	}
 }
 
-void UEffectManagerComponent::BroadcastAttacks(AUnit* Target)
+void UBattleEffectComponent::BroadcastAttacks(AUnit* Target)
 {
 	AUnit* Owner = GetOwnerUnit();
 	for (UBattleEffect* Effect : ActiveEffects)
@@ -92,7 +92,7 @@ void UEffectManagerComponent::BroadcastAttacks(AUnit* Target)
 	}
 }
 
-void UEffectManagerComponent::BroadcastMoved()
+void UBattleEffectComponent::BroadcastMoved()
 {
 	AUnit* Owner = GetOwnerUnit();
 	for (UBattleEffect* Effect : ActiveEffects)
@@ -104,7 +104,7 @@ void UEffectManagerComponent::BroadcastMoved()
 	}
 }
 
-void UEffectManagerComponent::BroadcastDied()
+void UBattleEffectComponent::BroadcastDied()
 {
 	AUnit* Owner = GetOwnerUnit();
 	for (UBattleEffect* Effect : ActiveEffects)
@@ -116,7 +116,7 @@ void UEffectManagerComponent::BroadcastDied()
 	}
 }
 
-AUnit* UEffectManagerComponent::GetOwnerUnit() const
+AUnit* UBattleEffectComponent::GetOwnerUnit() const
 {
 	return Cast<AUnit>(GetOwner());
 }

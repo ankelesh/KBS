@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/UnitDefinition.h"
 #include "BattleTeam.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "TacBattleGrid.generated.h"
@@ -47,6 +48,9 @@ struct FUnitPlacement
 
 	UPROPERTY(EditAnywhere, Category = "Unit Placement")
 	EBattleLayer Layer = EBattleLayer::Ground;
+
+	UPROPERTY(EditAnywhere, Category = "Unit Placement")
+	TObjectPtr<UUnitDefinition> Definition = nullptr;
 };
 
 UCLASS(BlueprintType)
@@ -62,6 +66,11 @@ public:
 	TObjectPtr<UMaterialInterface> EnemyDecalMaterial;
 
 };
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentUnitChanged, AUnit*, NewCurrentUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitHovered, AUnit*, HoveredUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnitUnhovered);
 
 UCLASS()
 class KBS_API ATacBattleGrid : public AActor
@@ -86,8 +95,8 @@ public:
 	TArray<FIntPoint> GetValidMoveCells(AUnit* Unit) const;
 	bool MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol);
 
-	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit, ETargetReach Reach) const;
-	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit, ETargetReach Reach) const;
+	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit) const;
+	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit) const;
 
 	void SelectUnit(AUnit* Unit);
 	bool TryMoveSelectedUnit(int32 TargetRow, int32 TargetCol);
@@ -97,18 +106,30 @@ public:
 
 	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
 
-	UFUNCTION()
+
+	UFUNCTION(BlueprintCallable, Category = "Battle")
 	void HandleUnitClicked(AUnit* Unit);
 
 	void UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col);
 	void UnitExitsFlank(AUnit* Unit);
-	void UnitConflict(AUnit* Attacker, AUnit* Defender);
+	void AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
 
 	bool IsUnitOnFlank(const AUnit* Unit) const;
 	void SetUnitOnFlank(AUnit* Unit, bool bOnFlank);
 	FRotator GetUnitOriginalRotation(const AUnit* Unit) const;
 	void SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation);
 
+	UFUNCTION(BlueprintCallable, Category = "Battle")
+	TArray<AUnit*> GetPlayerTeamUnits() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnCurrentUnitChanged OnCurrentUnitChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitHovered OnUnitHovered;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitUnhovered OnUnitUnhovered;
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;

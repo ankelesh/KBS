@@ -2,18 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "EffectManagerComponent.generated.h"
+#include "BattleEffectComponent.generated.h"
 
 class UBattleEffect;
 class AUnit;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class KBS_API UEffectManagerComponent : public UActorComponent
+class KBS_API UBattleEffectComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UEffectManagerComponent();
+	UBattleEffectComponent();
 
 	void AddEffect(UBattleEffect* Effect);
 	void RemoveEffect(UBattleEffect* Effect);

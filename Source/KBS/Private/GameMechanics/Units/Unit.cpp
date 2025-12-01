@@ -2,7 +2,12 @@
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Units/UnitDefinition.h"
-#include "GameMechanics/Units/EffectManagerComponent.h"
+#include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
+#include "GameMechanics/Units/BattleEffects/BattleEffect.h"
+#include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
+#include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
+#include "GameplayTypes/CombatTypes.h"
 
 AUnit::AUnit()
 {
@@ -11,7 +16,8 @@ AUnit::AUnit()
 	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
 
-	EffectManager = CreateDefaultSubobject<UEffectManagerComponent>(TEXT("EffectManager"));
+	EffectManager = CreateDefaultSubobject<UBattleEffectComponent>(TEXT("EffectManager"));
+	AbilityInventory = CreateDefaultSubobject<UAbilityInventoryComponent>(TEXT("AbilityInventory"));
 }
 
 void AUnit::BeginPlay()
@@ -63,6 +69,31 @@ void AUnit::BeginPlay()
 	}
 
 	RecalculateModifiedStats();
+
+	// Create and equip default StandardAttackAction
+	if (AbilityInventory)
+	{
+		// Create default ability definition
+		UUnitAbilityDefinition* DefaultAbilityDef = NewObject<UUnitAbilityDefinition>(this);
+		if (DefaultAbilityDef)
+		{
+			DefaultAbilityDef->AbilityName = TEXT("Standard Attack");
+			DefaultAbilityDef->MaxCharges = -1; // Unlimited charges
+			DefaultAbilityDef->Targeting = ETargetReach::None;
+			DefaultAbilityDef->bIsPassive = false;
+
+			// Create ability instance
+			UUnitAutoAttackAbility* StandardAttack = NewObject<UUnitAutoAttackAbility>(this);
+			if (StandardAttack)
+			{
+				StandardAttack->InitializeFromDefinition(DefaultAbilityDef, this);
+				AbilityInventory->EquipAbility(StandardAttack);
+			}
+		}
+
+		// Register passive abilities with the subsystem
+		AbilityInventory->RegisterPassives();
+	}
 }
 
 void AUnit::RecalculateModifiedStats()
@@ -113,10 +144,64 @@ void AUnit::LevelUp()
 	RecalculateModifiedStats();
 }
 
+void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
+{
+	UnitDefinition = InDefinition;
+}
+
+FUnitDisplayData AUnit::GetDisplayData() const
+{
+	FUnitDisplayData DisplayData;
+	DisplayData.UnitName = UnitDefinition ? UnitDefinition->UnitName : TEXT("Unknown");
+	DisplayData.CurrentHealth = CurrentHealth;
+	DisplayData.MaxHealth = ModifiedStats.MaxHealth;
+	DisplayData.Initiative = ModifiedStats.Initiative;
+	DisplayData.Accuracy = ModifiedStats.Accuracy;
+	DisplayData.Level = Progression.LevelOnCurrentTier;
+	DisplayData.Experience = Progression.TotalExperience;
+	DisplayData.ExperienceToNextLevel = Progression.ExperienceToNextLevel;
+	DisplayData.Defense = ModifiedStats.Defense;
+	DisplayData.PortraitTexture = UnitDefinition ? UnitDefinition->Portrait : nullptr;
+	
+	UE_LOG(LogTemp, Warning, TEXT("Unit data returned: HP [%f] INI [%d]"), DisplayData.CurrentHealth, DisplayData.Initiative);
+	// Get active effects from EffectManager
+	// TODO
+
+	return DisplayData;
+}
+
 void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	Super::NotifyActorOnClicked(ButtonPressed);
 
 	UE_LOG(LogTemp, Warning, TEXT("Unit clicked"));
 	OnUnitClicked.Broadcast(this);
+}
+
+void AUnit::TakeHit(const FDamageResult& DamageResult)
+{
+	CurrentHealth -= DamageResult.Damage;
+	CurrentHealth = FMath::Max(0.0f, CurrentHealth);
+
+	// Remove ward if it was spent during damage calculation
+	if (DamageResult.DamageBlocked > 0 && ModifiedStats.Defense.Wards.Contains(DamageResult.DamageSource))
+	{
+		ModifiedStats.Defense.Wards.Remove(DamageResult.DamageSource);
+	}
+
+	if (CurrentHealth <= 0.0f)
+	{
+		if (EffectManager)
+		{
+			EffectManager->BroadcastDied();
+		}
+	}
+}
+
+void AUnit::ApplyEffect(UBattleEffect* Effect)
+{
+	if (EffectManager && Effect)
+	{
+		EffectManager->AddEffect(Effect);
+	}
 }

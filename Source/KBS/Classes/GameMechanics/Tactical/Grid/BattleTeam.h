@@ -27,12 +27,12 @@ public:
 	ETeamSide GetTeamSide() const { return TeamSide; }
 	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
 
-	const TSet<TObjectPtr<AUnit>>& GetUnits() const { return Units; }
+	const TArray<TObjectPtr<AUnit>>& GetUnits() const { return Units; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")
 	ETeamSide TeamSide = ETeamSide::Attacker;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Team")
-	TSet<TObjectPtr<AUnit>> Units;
+	TArray<TObjectPtr<AUnit>> Units;
 };

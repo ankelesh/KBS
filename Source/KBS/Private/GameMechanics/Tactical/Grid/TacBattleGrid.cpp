@@ -7,7 +7,12 @@
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
-
+#include "GameMechanics/Tactical/DamageCalculator.h"
+#include "GameplayTypes/CombatTypes.h"
+#include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
+#include "GameplayTypes/AbilityBattleContext.h"
 ATacBattleGrid::ATacBattleGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -116,9 +121,18 @@ void ATacBattleGrid::BeginPlay()
 		}
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
-		AUnit* NewUnit = GetWorld()->SpawnActor<AUnit>(Placement.UnitClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+		AUnit* NewUnit = GetWorld()->SpawnActorDeferred<AUnit>(Placement.UnitClass, FTransform::Identity, this, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 		if (NewUnit)
 		{
+			// Set definition before BeginPlay so stats initialize correctly
+			if (Placement.Definition)
+			{
+				NewUnit->SetUnitDefinition(Placement.Definition);
+			}
+
+			// Trigger BeginPlay (which initializes stats from Definition)
+			NewUnit->FinishSpawning(FTransform::Identity);
+
 			const bool bPlaced = PlaceUnit(NewUnit, Placement.Row, Placement.Col, Placement.Layer);
 			if (bPlaced)
 			{
@@ -278,13 +292,37 @@ bool ATacBattleGrid::MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol)
 	return MovementComponent->MoveUnit(Unit, TargetRow, TargetCol);
 }
 
-TArray<FIntPoint> ATacBattleGrid::GetValidTargetCells(AUnit* Unit, ETargetReach Reach) const
+TArray<FIntPoint> ATacBattleGrid::GetValidTargetCells(AUnit* Unit) const
 {
+	if (!Unit || !Unit->AbilityInventory)
+	{
+		return TArray<FIntPoint>();
+	}
+
+	UUnitAbilityInstance* CurrentAbility = Unit->AbilityInventory->GetCurrentActiveAbility();
+	if (!CurrentAbility)
+	{
+		return TArray<FIntPoint>();
+	}
+
+	ETargetReach Reach = CurrentAbility->GetTargeting();
 	return TargetingComponent->GetValidTargetCells(Unit, Reach);
 }
 
-TArray<AUnit*> ATacBattleGrid::GetValidTargetUnits(AUnit* Unit, ETargetReach Reach) const
+TArray<AUnit*> ATacBattleGrid::GetValidTargetUnits(AUnit* Unit) const
 {
+	if (!Unit || !Unit->AbilityInventory)
+	{
+		return TArray<AUnit*>();
+	}
+
+	UUnitAbilityInstance* CurrentAbility = Unit->AbilityInventory->GetCurrentActiveAbility();
+	if (!CurrentAbility)
+	{
+		return TArray<AUnit*>();
+	}
+
+	ETargetReach Reach = CurrentAbility->GetTargeting();
 	return TargetingComponent->GetValidTargetUnits(Unit, Reach);
 }
 
@@ -297,13 +335,14 @@ void ATacBattleGrid::SelectUnit(AUnit* Unit)
 	}
 
 	SelectedUnit = Unit;
+	OnCurrentUnitChanged.Broadcast(Unit);
 
 	// Get valid movement cells and show them
 	const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(Unit);
 	HighlightComponent->ShowValidMoves(ValidCells);
 
 	// Get valid target cells and show them
-	const TArray<FIntPoint> TargetCells = TargetingComponent->GetValidTargetCells(Unit, ETargetReach::ClosestEnemies);
+	const TArray<FIntPoint> TargetCells = GetValidTargetCells(Unit);
 	HighlightComponent->ShowValidTargets(TargetCells);
 
 	UE_LOG(LogTemp, Warning, TEXT("SelectUnit: Found %d target cells"), TargetCells.Num());
@@ -372,11 +411,13 @@ void ATacBattleGrid::HandleUnitClicked(AUnit* Unit)
 	// If we have a selected unit and clicked a different unit, check if it's a valid target
 	if (SelectedUnit && SelectedUnit != Unit)
 	{
-		TArray<AUnit*> ValidTargets = GetValidTargetUnits(SelectedUnit, ETargetReach::ClosestEnemies);
+		TArray<AUnit*> ValidTargets = GetValidTargetUnits(SelectedUnit);
 		if (ValidTargets.Contains(Unit))
 		{
-			// Valid target clicked - trigger conflict
-			UnitConflict(SelectedUnit, Unit);
+			// Valid target clicked - trigger ability
+			TArray<AUnit*> Targets;
+			Targets.Add(Unit);
+			AbilityTargetSelected(SelectedUnit, Targets);
 			return;
 		}
 	}
@@ -468,29 +509,44 @@ void ATacBattleGrid::UnitExitsFlank(AUnit* Unit)
 	SetUnitOnFlank(Unit, false);
 }
 
-void ATacBattleGrid::UnitConflict(AUnit* Attacker, AUnit* Defender)
+void ATacBattleGrid::AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit*>& Targets)
 {
-	if (!Attacker || !Defender)
+	if (!SourceUnit || Targets.Num() == 0)
 	{
 		return;
 	}
 
-	int32 AttackerRow, AttackerCol, DefenderRow, DefenderCol;
-	EBattleLayer AttackerLayer, DefenderLayer;
-	const bool bFoundAttacker = GetUnitPosition(Attacker, AttackerRow, AttackerCol, AttackerLayer);
-	const bool bFoundDefender = GetUnitPosition(Defender, DefenderRow, DefenderCol, DefenderLayer);
-
-	if (bFoundAttacker && bFoundDefender)
+	// Get the unit's current active ability
+	if (!SourceUnit->AbilityInventory)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UnitConflict: Attacker at [%d,%d] vs Defender at [%d,%d]"),
-			AttackerRow, AttackerCol, DefenderRow, DefenderCol);
+		UE_LOG(LogTemp, Warning, TEXT("AbilityTargetSelected: Source unit has no AbilityInventory"));
+		return;
+	}
+
+	UUnitAbilityInstance* CurrentAbility = SourceUnit->AbilityInventory->GetCurrentActiveAbility();
+	if (!CurrentAbility)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AbilityTargetSelected: Source unit has no current active ability"));
+		return;
+	}
+
+	// Build the ability battle context
+	FAbilityBattleContext Context;
+	Context.SourceUnit = SourceUnit;
+	Context.TargetUnits = Targets;
+	Context.Grid = this;
+
+	// Trigger and apply the ability
+	if (CurrentAbility->TriggerAbility(Context))
+	{
+		CurrentAbility->ApplyAbilityEffect(Context);
+		UE_LOG(LogTemp, Log, TEXT("AbilityTargetSelected: Applied ability '%s' from unit to %d targets"),
+			*CurrentAbility->GetConfig()->AbilityName, Targets.Num());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UnitConflict: Could not determine unit positions"));
+		UE_LOG(LogTemp, Warning, TEXT("AbilityTargetSelected: Ability trigger failed"));
 	}
-
-	// Future implementation: combat resolution, damage calculation, animations, etc.
 }
 
 bool ATacBattleGrid::IsUnitOnFlank(const AUnit* Unit) const
@@ -520,4 +576,15 @@ FRotator ATacBattleGrid::GetUnitOriginalRotation(const AUnit* Unit) const
 void ATacBattleGrid::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation)
 {
 	UnitOriginalRotations.Add(Unit, Rotation);
+}
+
+TArray<AUnit*> ATacBattleGrid::GetPlayerTeamUnits() const
+{
+	// Assuming AttackerTeam is the player for now
+	// You'll adjust this logic when you add team switching
+	if (AttackerTeam)
+	{
+		return AttackerTeam->GetUnits(); // Adjust based on UBattleTeam's API
+	}
+	return TArray<AUnit*>();
 }

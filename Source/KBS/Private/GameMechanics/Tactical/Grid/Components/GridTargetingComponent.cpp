@@ -30,10 +30,6 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 	{
 		GetClosestEnemyCells(Unit, TargetCells);
 	}
-	else if (Reach == ETargetReach::Flank)
-	{
-		GetFlankTargetCells(Unit, TargetCells);
-	}
 	else if (Reach == ETargetReach::AnyEnemy)
 	{
 		GetAnyEnemyCells(Unit, TargetCells);

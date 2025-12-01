@@ -8,18 +8,6 @@
 class UBattleEffect;
 class UWeaponDataAsset;
 
-UENUM(BlueprintType)
-enum class ETargetReach : uint8
-{
-	ClosestEnemies UMETA(DisplayName = "Closest Enemies"),
-	AnyEnemy UMETA(DisplayName = "Any Enemy"),
-	AllEnemies UMETA(DisplayName = "All Enemies"),
-	Area UMETA(DisplayName = "Area"),
-	Flank UMETA(DisplayName = "Flank"),
-	AnyFriendly UMETA(DisplayName = "Any Friendly"),
-	AllFriendlies UMETA(DisplayName = "All Friendlies")
-};
-
 USTRUCT(BlueprintType)
 struct FAreaShape
 {
@@ -64,6 +52,7 @@ public:
 
 	const FWeaponStats& GetStats() const { return ModifiedStats; }
 	const TArray<TObjectPtr<UBattleEffect>>& GetEffects() const { return ActiveEffects; }
+	const ETargetReach GetReach() const { return ModifiedStats.TargetReach; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
