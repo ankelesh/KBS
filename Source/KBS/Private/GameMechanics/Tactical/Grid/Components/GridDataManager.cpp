@@ -1,6 +1,7 @@
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
+#include "GameMechanics/Units/UnitVisualsComponent.h"
 
 void UGridDataManager::Initialize()
 {
@@ -31,11 +32,17 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer
 	Unit->SetActorLocation(FGridCoordinates::CellToWorldLocation(Row, Col, Layer, Grid->GetActorLocation()));
 	Unit->SetActorEnableCollision(true);
 
-	// Enable click events on unit mesh
-	if (Unit->MeshComponent)
+	// Enable click events on all unit meshes
+	if (Unit->VisualsComponent)
 	{
-		Unit->MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		Unit->MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		for (USceneComponent* MeshComp : Unit->VisualsComponent->GetAllMeshComponents())
+		{
+			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(MeshComp))
+			{
+				PrimComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+				PrimComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+			}
+		}
 	}
 
 	// Subscribe to unit click events

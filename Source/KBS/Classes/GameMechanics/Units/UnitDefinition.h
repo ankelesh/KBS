@@ -7,7 +7,43 @@
 
 class UWeaponDataAsset;
 class USkeletalMesh;
+class UStaticMesh;
 class UAnimBlueprintGeneratedClass;
+class UMaterialInterface;
+
+UENUM(BlueprintType)
+enum class EUnitMeshType : uint8
+{
+	Skeletal UMETA(DisplayName = "Skeletal Mesh"),
+	Static UMETA(DisplayName = "Static Mesh")
+};
+
+USTRUCT(BlueprintType)
+struct FUnitMeshDescriptor
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh")
+	EUnitMeshType MeshType = EUnitMeshType::Skeletal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (EditCondition = "MeshType == EUnitMeshType::Skeletal", EditConditionHides))
+	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (EditCondition = "MeshType == EUnitMeshType::Static", EditConditionHides))
+	TSoftObjectPtr<UStaticMesh> StaticMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attachment")
+	FName ParentSocket = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attachment")
+	FTransform RelativeTransform = FTransform::Identity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Materials")
+	TArray<TSoftObjectPtr<UMaterialInterface>> MaterialOverrides;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	bool bIsPrimaryMesh = false;
+};
 
 UCLASS(BlueprintType)
 class KBS_API UUnitDefinition : public UPrimaryDataAsset
@@ -16,7 +52,7 @@ class KBS_API UUnitDefinition : public UPrimaryDataAsset
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
-	TObjectPtr<USkeletalMesh> Mesh;
+	TArray<FUnitMeshDescriptor> MeshComponents;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TSubclassOf<UAnimInstance> AnimationClass;

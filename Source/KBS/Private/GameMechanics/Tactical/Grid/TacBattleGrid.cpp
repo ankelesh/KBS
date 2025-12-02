@@ -1,5 +1,6 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/BoxComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
@@ -174,11 +175,17 @@ void ATacBattleGrid::BeginPlay()
 				AUnit* Unit = GroundLayer[Row].Cells[Col];
 				Unit->SetActorEnableCollision(true);
 
-				// Enable click events on unit mesh
-				if (Unit->MeshComponent)
+				// Enable click events on all unit meshes
+				if (Unit->VisualsComponent)
 				{
-					Unit->MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-					Unit->MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+					for (USceneComponent* MeshComp : Unit->VisualsComponent->GetAllMeshComponents())
+					{
+						if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(MeshComp))
+						{
+							PrimComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+							PrimComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+						}
+					}
 				}
 
 				Unit->OnUnitClicked.AddDynamic(this, &ATacBattleGrid::HandleUnitClicked);
@@ -191,11 +198,17 @@ void ATacBattleGrid::BeginPlay()
 				AUnit* Unit = AirLayer[Row].Cells[Col];
 				Unit->SetActorEnableCollision(true);
 
-				// Enable click events on unit mesh
-				if (Unit->MeshComponent)
+				// Enable click events on all unit meshes
+				if (Unit->VisualsComponent)
 				{
-					Unit->MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-					Unit->MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+					for (USceneComponent* MeshComp : Unit->VisualsComponent->GetAllMeshComponents())
+					{
+						if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(MeshComp))
+						{
+							PrimComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+							PrimComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+						}
+					}
 				}
 
 				Unit->OnUnitClicked.AddDynamic(this, &ATacBattleGrid::HandleUnitClicked);

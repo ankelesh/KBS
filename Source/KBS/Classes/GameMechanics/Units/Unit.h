@@ -10,6 +10,7 @@ class UUnitDefinition;
 class UBattleEffectComponent;
 class UBattleEffect;
 class UAbilityInventoryComponent;
+class UUnitVisualsComponent;
 struct FDamageResult;
 
 UENUM(BlueprintType)
@@ -33,6 +34,7 @@ public:
 	AUnit();
 
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitClicked OnUnitClicked;
@@ -66,7 +68,7 @@ public:
 	void ApplyEffect(UBattleEffect* Effect);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<USkeletalMeshComponent> MeshComponent;
+	TObjectPtr<UUnitVisualsComponent> VisualsComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBattleEffectComponent> EffectManager;

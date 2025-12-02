@@ -2,6 +2,7 @@
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
@@ -13,8 +14,12 @@ AUnit::AUnit()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
-	RootComponent = MeshComponent;
+	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
+	SceneRoot->SetMobility(EComponentMobility::Movable);
+
+	VisualsComponent = CreateDefaultSubobject<UUnitVisualsComponent>(TEXT("VisualsComponent"));
+	VisualsComponent->SetupAttachment(RootComponent);
 
 	EffectManager = CreateDefaultSubobject<UBattleEffectComponent>(TEXT("EffectManager"));
 	AbilityInventory = CreateDefaultSubobject<UAbilityInventoryComponent>(TEXT("AbilityInventory"));
@@ -30,15 +35,10 @@ void AUnit::BeginPlay()
 		return;
 	}
 
-	// Initialize mesh and animation
-	if (UnitDefinition->Mesh)
+	// Initialize visual components from definition
+	if (VisualsComponent)
 	{
-		MeshComponent->SetSkeletalMesh(UnitDefinition->Mesh);
-	}
-
-	if (UnitDefinition->AnimationClass)
-	{
-		MeshComponent->SetAnimInstanceClass(UnitDefinition->AnimationClass);
+		VisualsComponent->InitializeFromDefinition(UnitDefinition);
 	}
 
 	// Initialize base stats and progression from template
@@ -62,8 +62,8 @@ void AUnit::BeginPlay()
 			if (NewWeapon)
 			{
 				NewWeapon->RegisterComponent();
+				NewWeapon->Initialize(VisualsComponent, WeaponData);
 				Weapons.Add(NewWeapon);
-				// Note: Weapon initialization should be called after spawn
 			}
 		}
 	}
@@ -94,6 +94,22 @@ void AUnit::BeginPlay()
 		// Register passive abilities with the subsystem
 		AbilityInventory->RegisterPassives();
 	}
+}
+
+void AUnit::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+#if WITH_EDITOR
+	if (GetWorld() && GetWorld()->WorldType == EWorldType::Editor)
+	{
+		if (UnitDefinition && VisualsComponent)
+		{
+			VisualsComponent->ClearAllMeshComponents();
+			VisualsComponent->InitializeFromDefinition(UnitDefinition);
+		}
+	}
+#endif
 }
 
 void AUnit::RecalculateModifiedStats()
