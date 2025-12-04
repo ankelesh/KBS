@@ -3,8 +3,12 @@
 #include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "Kismet/KismetMathLibrary.h"
 
 ETargetReach UUnitAutoAttackAbility::GetTargeting() const
 {
@@ -86,6 +90,33 @@ void UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleContext& Con
 	}
 
 	ETargetReach Reach = GetTargeting();
+
+	// Play attack animation
+	UWeapon* Weapon = DamageCalc->SelectMaxReachWeapon(Context.SourceUnit);
+	if (Weapon && Context.TargetUnits.Num() > 0)
+	{
+		UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
+		UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
+
+		// Rotate toward first target
+		AUnit* FirstTarget = Context.TargetUnits[0];
+		if (FirstTarget)
+		{
+			const FVector SourceLoc = Context.SourceUnit->GetActorLocation();
+			const FVector TargetLoc = FirstTarget->GetActorLocation();
+			const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
+
+			if (Context.SourceUnit->VisualsComponent)
+			{
+				Context.SourceUnit->VisualsComponent->RotateTowardTarget(LookAtRotation, 540.0f);
+
+				if (AttackMontage)
+				{
+					Context.SourceUnit->VisualsComponent->PlayAttackMontage(AttackMontage);
+				}
+			}
+		}
+	}
 
 	for (AUnit* Target : Context.TargetUnits)
 	{

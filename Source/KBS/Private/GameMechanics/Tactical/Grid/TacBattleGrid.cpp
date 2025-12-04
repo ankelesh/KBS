@@ -7,6 +7,7 @@
 #include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
 #include "GameplayTypes/CombatTypes.h"
@@ -41,6 +42,7 @@ ATacBattleGrid::ATacBattleGrid()
 	MovementComponent = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MovementComponent"));
 	TargetingComponent = CreateDefaultSubobject<UGridTargetingComponent>(TEXT("TargetingComponent"));
 	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
+	TurnManager = CreateDefaultSubobject<UTurnManagerComponent>(TEXT("TurnManager"));
 
 	AttackerTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("AttackerTeam"));
 	AttackerTeam->SetTeamSide(ETeamSide::Attacker);
@@ -189,6 +191,7 @@ void ATacBattleGrid::BeginPlay()
 				}
 
 				Unit->OnUnitClicked.AddDynamic(this, &ATacBattleGrid::HandleUnitClicked);
+				Unit->OnUnitDied.AddDynamic(this, &ATacBattleGrid::HandleUnitDied);
 				UE_LOG(LogTemp, Log, TEXT("Grid subscribed to unit at [%d,%d] Ground"), Row, Col);
 			}
 
@@ -212,8 +215,34 @@ void ATacBattleGrid::BeginPlay()
 				}
 
 				Unit->OnUnitClicked.AddDynamic(this, &ATacBattleGrid::HandleUnitClicked);
+				Unit->OnUnitDied.AddDynamic(this, &ATacBattleGrid::HandleUnitDied);
 				UE_LOG(LogTemp, Log, TEXT("Grid subscribed to unit at [%d,%d] Air"), Row, Col);
 			}
+		}
+	}
+
+	// Setup turn manager
+	if (TurnManager)
+	{
+		TurnManager->AttackerTeam = AttackerTeam;
+		TurnManager->DefenderTeam = DefenderTeam;
+
+		// Subscribe to action completion events
+		OnMovementComplete.AddDynamic(TurnManager, &UTurnManagerComponent::EndCurrentUnitTurn);
+		OnAbilityComplete.AddDynamic(TurnManager, &UTurnManagerComponent::EndCurrentUnitTurn);
+
+		// Subscribe to battle end event
+		TurnManager->OnBattleEnded.AddDynamic(this, &ATacBattleGrid::HandleBattleEnded);
+
+		// Initialize battle
+		TArray<AUnit*> AllBattleUnits;
+		AllBattleUnits.Append(AttackerTeam->GetUnits());
+		AllBattleUnits.Append(DefenderTeam->GetUnits());
+
+		if (AllBattleUnits.Num() > 0)
+		{
+			TurnManager->StartBattle(AllBattleUnits);
+			UE_LOG(LogTemp, Log, TEXT("Battle started with %d units"), AllBattleUnits.Num());
 		}
 	}
 }
@@ -439,6 +468,30 @@ void ATacBattleGrid::HandleUnitClicked(AUnit* Unit)
 	SelectUnit(Unit);
 }
 
+void ATacBattleGrid::HandleUnitDied(AUnit* Unit)
+{
+	if (!Unit || !TurnManager)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Grid received death event from unit %s"), *Unit->GetName());
+	TurnManager->RemoveUnitFromQueue(Unit);
+}
+
+void ATacBattleGrid::HandleBattleEnded(UBattleTeam* Winner)
+{
+	if (Winner)
+	{
+		FString TeamName = (Winner->GetTeamSide() == ETeamSide::Attacker) ? TEXT("Attacker") : TEXT("Defender");
+		UE_LOG(LogTemp, Warning, TEXT("=== BATTLE ENDED - Winner: %s Team ==="), *TeamName);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("=== BATTLE ENDED - No Winner (Draw?) ==="));
+	}
+}
+
 void ATacBattleGrid::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	Super::NotifyActorOnClicked(ButtonPressed);
@@ -555,6 +608,9 @@ void ATacBattleGrid::AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit
 		CurrentAbility->ApplyAbilityEffect(Context);
 		UE_LOG(LogTemp, Log, TEXT("AbilityTargetSelected: Applied ability '%s' from unit to %d targets"),
 			*CurrentAbility->GetConfig()->AbilityName, Targets.Num());
+
+		// Broadcast ability completion for turn system
+		OnAbilityComplete.Broadcast();
 	}
 	else
 	{

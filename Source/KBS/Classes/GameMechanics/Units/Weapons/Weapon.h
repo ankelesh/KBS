@@ -57,6 +57,7 @@ public:
 	const TArray<TObjectPtr<UBattleEffect>>& GetEffects() const { return ActiveEffects; }
 	const ETargetReach GetReach() const { return ModifiedStats.TargetReach; }
 	UStaticMeshComponent* GetWeaponMesh() const { return WeaponMeshComponent; }
+	const TObjectPtr<UWeaponDataAsset> GetConfig() const { return Config; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")

@@ -24,6 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitClicked, AUnit*, ClickedUnit)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttacked, AUnit*, Victim, AUnit*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitDamaged, AUnit*, Victim, AUnit*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttacks, AUnit*, Attacker, AUnit*, Target);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, Unit);
 
 UCLASS()
 class KBS_API AUnit : public APawn
@@ -48,6 +49,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitAttacks OnUnitAttacks;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitDied OnUnitDied;
+
 	UFUNCTION(BlueprintCallable, Category = "Display")
 	FUnitDisplayData GetDisplayData() const;
 
@@ -63,9 +67,20 @@ public:
 	float GetCurrentHealth() const { return CurrentHealth; }
 	const FUnitProgressionData& GetProgression() const { return Progression; }
 	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
+	
 
 	void TakeHit(const FDamageResult& DamageResult);
 	void ApplyEffect(UBattleEffect* Effect);
+
+	// Turn lifecycle hooks
+	UFUNCTION()
+	void OnUnitTurnStart();
+
+	UFUNCTION()
+	void OnUnitTurnEnd();
+
+	// Stat accessors
+	const FUnitCoreStats& GetModifiedStats() const { return ModifiedStats; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UUnitVisualsComponent> VisualsComponent;

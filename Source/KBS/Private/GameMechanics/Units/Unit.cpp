@@ -8,6 +8,7 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameplayTypes/CombatTypes.h"
 
 AUnit::AUnit()
@@ -211,6 +212,23 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 		{
 			EffectManager->BroadcastDied();
 		}
+
+		// Play death animation
+		if (VisualsComponent && UnitDefinition && UnitDefinition->DeathMontage)
+		{
+			VisualsComponent->PlayDeathMontage(UnitDefinition->DeathMontage);
+		}
+
+		// Broadcast death event
+		OnUnitDied.Broadcast(this);
+	}
+	else
+	{
+		// Play hit reaction animation
+		if (VisualsComponent && UnitDefinition && UnitDefinition->HitReactionMontage)
+		{
+			VisualsComponent->PlayHitReactionMontage(UnitDefinition->HitReactionMontage);
+		}
 	}
 }
 
@@ -220,4 +238,37 @@ void AUnit::ApplyEffect(UBattleEffect* Effect)
 	{
 		EffectManager->AddEffect(Effect);
 	}
+}
+
+void AUnit::OnUnitTurnStart()
+{
+	UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
+
+	// Broadcast turn start to effects
+	if (EffectManager)
+	{
+		EffectManager->BroadcastTurnStart();
+	}
+
+	// Reset weapon charges/cooldowns (future implementation)
+	for (TObjectPtr<UWeapon> Weapon : Weapons)
+	{
+		if (Weapon)
+		{
+			// TODO: Reset charges/cooldowns when implemented
+		}
+	}
+
+}
+
+void AUnit::OnUnitTurnEnd()
+{
+	UE_LOG(LogTemp, Log, TEXT("%s: Turn ended"), *GetName());
+
+	// Broadcast turn end to effects
+	if (EffectManager)
+	{
+		EffectManager->BroadcastTurnEnd();
+	}
+
 }

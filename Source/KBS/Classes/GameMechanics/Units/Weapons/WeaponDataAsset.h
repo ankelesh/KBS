@@ -7,6 +7,7 @@
 
 class UBattleEffect;
 class UStaticMesh;
+class UAnimMontage;
 
 UCLASS(BlueprintType)
 class KBS_API UWeaponDataAsset : public UPrimaryDataAsset
@@ -31,4 +32,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Visual")
 	FName AttachSocketName = TEXT("weapon_socket");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Animation")
+	TObjectPtr<UAnimMontage> AttackMontage;
 };

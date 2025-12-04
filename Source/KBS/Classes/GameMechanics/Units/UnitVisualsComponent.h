@@ -7,6 +7,9 @@
 class UUnitDefinition;
 class USkeletalMeshComponent;
 class UStaticMesh;
+class UAnimMontage;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageCompleted, UAnimMontage*, Montage);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UUnitVisualsComponent : public USceneComponent
@@ -25,6 +28,20 @@ public:
 	USkeletalMeshComponent* GetPrimarySkeletalMesh() const { return PrimarySkeletalMesh; }
 	const TArray<TObjectPtr<USceneComponent>>& GetAllMeshComponents() const { return SpawnedMeshComponents; }
 
+	// Animation methods
+	void PlayAttackMontage(UAnimMontage* Montage, float PlayRate = 1.0f);
+	void PlayHitReactionMontage(UAnimMontage* Montage);
+	void PlayDeathMontage(UAnimMontage* Montage);
+	void StopAllMontages();
+	void SetMovementSpeed(float Speed);
+	void SetIsMoving(bool bMoving);
+	void RotateTowardTarget(FRotator TargetRotation, float Speed = 360.0f);
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UPROPERTY(BlueprintAssignable, Category = "Animation")
+	FOnMontageCompleted OnMontageCompleted;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USceneComponent> VisualsRoot;
@@ -38,4 +55,9 @@ protected:
 private:
 	void CreateMeshComponent(const struct FUnitMeshDescriptor& Descriptor, UUnitDefinition* Definition);
 	void SetupCollisionForMesh(UPrimitiveComponent* MeshComponent);
+	void HandleMontageCompleted(UAnimMontage* Montage, bool bInterrupted);
+
+	FRotator PendingRotation;
+	bool bIsRotating = false;
+	float CurrentRotationSpeed = 360.0f;
 };

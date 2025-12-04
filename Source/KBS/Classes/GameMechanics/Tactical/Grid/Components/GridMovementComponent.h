@@ -10,6 +10,18 @@ class UBattleTeam;
 class UGridDataManager;
 enum class EBattleLayer : uint8;
 
+USTRUCT()
+struct FMovementInterpData
+{
+	GENERATED_BODY()
+
+	FVector StartLocation = FVector::ZeroVector;
+	FVector TargetLocation = FVector::ZeroVector;
+	FVector Direction = FVector::ZeroVector;
+	float ElapsedTime = 0.0f;
+	float Duration = 0.3f;
+};
+
 /**
  * Handles unit movement validation and execution on the tactical grid
  */
@@ -36,12 +48,16 @@ public:
 	 */
 	bool MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol);
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 private:
 	UPROPERTY()
 	TObjectPtr<ATacBattleGrid> Grid;
 
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;
+
+	TMap<TObjectPtr<AUnit>, FMovementInterpData> UnitsBeingMoved;
 
 	/**
 	 * Get valid adjacent movement cells for ground units
@@ -57,4 +73,6 @@ private:
 	 * Get all valid cells for air units (can move anywhere valid)
 	 */
 	void GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+
+	void StartMovementInterpolation(AUnit* Unit, FVector StartLocation, FVector TargetLocation, FVector Direction, float Distance, float Speed);
 };

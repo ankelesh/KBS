@@ -2,12 +2,14 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameplayTypes/GridCoordinates.h"
 
 UGridMovementComponent::UGridMovementComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
 void UGridMovementComponent::Initialize(ATacBattleGrid* InGrid, UGridDataManager* InDataManager)
@@ -238,6 +240,21 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 		return false;
 	}
 
+	// Calculate movement animation parameters BEFORE grid updates
+	const FVector StartLocation = Unit->GetActorLocation();
+	const FVector TargetLocation = Grid->GetCellWorldLocation(TargetRow, TargetCol, Layer);
+	const FVector Direction = (TargetLocation - StartLocation).GetSafeNormal();
+	const float Distance = FVector::Dist(StartLocation, TargetLocation);
+	const float MovementSpeed = Unit ? Unit->GetDisplayData().MoveSpeed: 300.0f;
+
+	const FRotator TargetRotation = Direction.Rotation();
+	if (Unit->VisualsComponent)
+	{
+		Unit->VisualsComponent->RotateTowardTarget(TargetRotation, 720.0f);
+	}
+
+	StartMovementInterpolation(Unit, StartLocation, TargetLocation, Direction, Distance, MovementSpeed);
+
 	const bool bLeavingFlank = Grid->IsFlankCell(CurrentRow, CurrentCol);
 	const bool bEnteringFlank = Grid->IsFlankCell(TargetRow, TargetCol);
 
@@ -245,6 +262,21 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 
 	if (TargetOccupant)
 	{
+		// Handle animation for swapped unit
+		const FVector SwapStartLocation = TargetOccupant->GetActorLocation();
+		const FVector SwapTargetLocation = Grid->GetCellWorldLocation(CurrentRow, CurrentCol, Layer);
+		const FVector SwapDirection = (SwapTargetLocation - SwapStartLocation).GetSafeNormal();
+		const float SwapDistance = FVector::Dist(SwapStartLocation, SwapTargetLocation);
+		const float SwapMovementSpeed = TargetOccupant->UnitDefinition ? TargetOccupant->UnitDefinition->MovementSpeed : 300.0f;
+
+		const FRotator SwapRotation = SwapDirection.Rotation();
+		if (TargetOccupant->VisualsComponent)
+		{
+			TargetOccupant->VisualsComponent->RotateTowardTarget(SwapRotation, 720.0f);
+		}
+
+		StartMovementInterpolation(TargetOccupant, SwapStartLocation, SwapTargetLocation, SwapDirection, SwapDistance, SwapMovementSpeed);
+
 		const bool bSwappedLeavingFlank = Grid->IsFlankCell(TargetRow, TargetCol);
 		const bool bSwappedEnteringFlank = Grid->IsFlankCell(CurrentRow, CurrentCol);
 
@@ -293,5 +325,70 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 		}
 	}
 
+	// Broadcast movement completion for turn system
+	if (ATacBattleGrid* BattleGrid = Cast<ATacBattleGrid>(Grid))
+	{
+		BattleGrid->OnMovementComplete.Broadcast();
+	}
+
 	return true;
+}
+
+void UGridMovementComponent::StartMovementInterpolation(AUnit* Unit, FVector StartLocation, FVector TargetLocation, FVector Direction, float Distance, float Speed)
+{
+	if (!Unit || Distance <= 0.0f || Speed <= 0.0f)
+	{
+		return;
+	}
+
+	FMovementInterpData InterpData;
+	InterpData.StartLocation = StartLocation;
+	InterpData.TargetLocation = TargetLocation;
+	InterpData.Direction = Direction;
+	InterpData.ElapsedTime = 0.0f;
+	InterpData.Duration = Distance / Speed;
+
+	UnitsBeingMoved.Add(Unit, InterpData);
+
+	if (Unit->VisualsComponent)
+	{
+		Unit->VisualsComponent->SetIsMoving(true);
+		Unit->VisualsComponent->SetMovementSpeed(Speed);
+	}
+}
+
+void UGridMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	for (auto It = UnitsBeingMoved.CreateIterator(); It; ++It)
+	{
+		AUnit* Unit = It.Key();
+		FMovementInterpData& Data = It.Value();
+
+		if (!Unit)
+		{
+			It.RemoveCurrent();
+			continue;
+		}
+
+		Data.ElapsedTime += DeltaTime;
+		const float Alpha = FMath::Clamp(Data.ElapsedTime / Data.Duration, 0.0f, 1.0f);
+		const float SmoothedAlpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
+
+		const FVector NewLocation = FMath::Lerp(Data.StartLocation, Data.TargetLocation, SmoothedAlpha);
+		Unit->SetActorLocation(NewLocation);
+
+		if (Alpha >= 1.0f)
+		{
+			Unit->SetActorLocation(Data.TargetLocation);
+
+			if (Unit->VisualsComponent)
+			{
+				Unit->VisualsComponent->SetIsMoving(false);
+			}
+
+			It.RemoveCurrent();
+		}
+	}
 }

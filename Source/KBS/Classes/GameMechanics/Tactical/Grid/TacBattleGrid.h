@@ -14,6 +14,7 @@ class UGridDataManager;
 class UGridMovementComponent;
 class UGridTargetingComponent;
 class UGridHighlightComponent;
+class UTurnManagerComponent;
 
 USTRUCT()
 struct FGridRow
@@ -71,6 +72,7 @@ public:
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentUnitChanged, AUnit*, NewCurrentUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitHovered, AUnit*, HoveredUnit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnitUnhovered);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnActionComplete);
 
 UCLASS()
 class KBS_API ATacBattleGrid : public AActor
@@ -110,6 +112,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle")
 	void HandleUnitClicked(AUnit* Unit);
 
+	UFUNCTION()
+	void HandleUnitDied(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleBattleEnded(UBattleTeam* Winner);
+
 	void UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col);
 	void UnitExitsFlank(AUnit* Unit);
 	void AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
@@ -130,6 +138,13 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitUnhovered OnUnitUnhovered;
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle Events")
+	FOnActionComplete OnMovementComplete;
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle Events")
+	FOnActionComplete OnAbilityComplete;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
@@ -152,6 +167,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<UGridHighlightComponent> HighlightComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UTurnManagerComponent> TurnManager;
 
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Teams")
 	TObjectPtr<UBattleTeam> AttackerTeam;

@@ -3,10 +3,12 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInterface.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 
 UUnitVisualsComponent::UUnitVisualsComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 	SetMobility(EComponentMobility::Movable);
 }
 
@@ -315,4 +317,137 @@ void UUnitVisualsComponent::DetachWeaponMesh(UMeshComponent* WeaponMeshComponent
 		WeaponMeshComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		WeaponMeshComponent->DestroyComponent();
 	}
+}
+
+void UUnitVisualsComponent::PlayAttackMontage(UAnimMontage* Montage, float PlayRate)
+{
+	if (!Montage || !PrimarySkeletalMesh)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Play(Montage, PlayRate);
+
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &UUnitVisualsComponent::HandleMontageCompleted);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
+	}
+}
+
+void UUnitVisualsComponent::PlayHitReactionMontage(UAnimMontage* Montage)
+{
+	if (!Montage || !PrimarySkeletalMesh)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Play(Montage);
+
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &UUnitVisualsComponent::HandleMontageCompleted);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
+	}
+}
+
+void UUnitVisualsComponent::PlayDeathMontage(UAnimMontage* Montage)
+{
+	if (!Montage || !PrimarySkeletalMesh)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Play(Montage);
+	}
+}
+
+void UUnitVisualsComponent::StopAllMontages()
+{
+	if (PrimarySkeletalMesh)
+	{
+		UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
+		if (AnimInstance)
+		{
+			AnimInstance->StopAllMontages(0.25f);
+		}
+	}
+}
+
+void UUnitVisualsComponent::SetMovementSpeed(float Speed)
+{
+	if (!PrimarySkeletalMesh)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
+	if (AnimInstance)
+	{
+		FProperty* Property = AnimInstance->GetClass()->FindPropertyByName(FName("MovementSpeed"));
+		if (Property && Property->IsA<FFloatProperty>())
+		{
+			Property->SetValue_InContainer(AnimInstance, &Speed);
+		}
+	}
+}
+
+void UUnitVisualsComponent::SetIsMoving(bool bMoving)
+{
+	if (!PrimarySkeletalMesh)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
+	if (AnimInstance)
+	{
+		FProperty* Property = AnimInstance->GetClass()->FindPropertyByName(FName("bIsMoving"));
+		if (Property && Property->IsA<FBoolProperty>())
+		{
+			Property->SetValue_InContainer(AnimInstance, &bMoving);
+		}
+	}
+}
+
+void UUnitVisualsComponent::RotateTowardTarget(FRotator TargetRotation, float Speed)
+{
+	PendingRotation = TargetRotation;
+	CurrentRotationSpeed = Speed;
+	bIsRotating = true;
+}
+
+void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (bIsRotating)
+	{
+		AActor* Owner = GetOwner();
+		if (Owner)
+		{
+			FRotator CurrentRotation = Owner->GetActorRotation();
+			FRotator NewRotation = FMath::RInterpTo(CurrentRotation, PendingRotation, DeltaTime, CurrentRotationSpeed);
+			Owner->SetActorRotation(NewRotation);
+
+			float RotationDifference = FMath::Abs((PendingRotation - NewRotation).Yaw);
+			if (RotationDifference < 1.0f)
+			{
+				Owner->SetActorRotation(PendingRotation);
+				bIsRotating = false;
+			}
+		}
+	}
+}
+
+void UUnitVisualsComponent::HandleMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
+{
+	OnMontageCompleted.Broadcast(Montage);
 }
