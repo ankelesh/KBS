@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "UnitStats.h"
+#include "UnitDisplayData.h"
+#include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "Unit.generated.h"
 
 class UWeapon;
@@ -20,7 +22,7 @@ enum class EBattleLayer : uint8
 	Air = 1 UMETA(DisplayName = "Air")
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitClicked, AUnit*, ClickedUnit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitClicked, AUnit*, ClickedUnit, FKey, ButtonPressed);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttacked, AUnit*, Victim, AUnit*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitDamaged, AUnit*, Victim, AUnit*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttacks, AUnit*, Attacker, AUnit*, Target);
@@ -67,7 +69,10 @@ public:
 	float GetCurrentHealth() const { return CurrentHealth; }
 	const FUnitProgressionData& GetProgression() const { return Progression; }
 	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
-	
+	const float GetMovementSpeed() const;
+
+	ETeamSide GetTeamSide() const { return TeamSide; }
+	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
 
 	void TakeHit(const FDamageResult& DamageResult);
 	void ApplyEffect(UBattleEffect* Effect);
@@ -112,4 +117,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<TObjectPtr<UWeapon>> Weapons;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")
+	ETeamSide TeamSide = ETeamSide::Attacker;
 };

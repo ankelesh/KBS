@@ -46,15 +46,15 @@ FDamageResult UDamageCalculator::CalculateDamage(AUnit* Attacker, UWeapon* Weapo
 	const FUnitDefenseStats& Defense = TargetStats.Defense;
 
 	// Select best damage source (least armor on target)
-	EDamageSource BestSource = SelectBestDamageSource(WeaponStats.DamagePerSource, Target);
+	EDamageSource BestSource = SelectBestDamageSource(WeaponStats.DamageSources, Target);
 	Result.DamageSource = BestSource;
 
-	if (!WeaponStats.DamagePerSource.Contains(BestSource))
+	if (BestSource == EDamageSource::None)
 	{
 		return Result;
 	}
 
-	int32 BaseDamage = WeaponStats.DamagePerSource[BestSource];
+	int32 BaseDamage = WeaponStats.BaseDamage;
 
 	// Immunity check
 	if (Defense.Immunities.Contains(BestSource))
@@ -400,7 +400,7 @@ bool UDamageCalculator::PerformAccuracyRoll(float HitChance)
 	return Roll <= HitChance;
 }
 
-EDamageSource UDamageCalculator::SelectBestDamageSource(const TMap<EDamageSource, int32>& DamageSources, AUnit* Target)
+EDamageSource UDamageCalculator::SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target)
 {
 	if (!Target || DamageSources.Num() == 0)
 	{
@@ -413,9 +413,8 @@ EDamageSource UDamageCalculator::SelectBestDamageSource(const TMap<EDamageSource
 	float LowestArmor = 1.0f;
 	bool bFirstSource = true;
 
-	for (const auto& Pair : DamageSources)
+	for (EDamageSource Source : DamageSources)
 	{
-		EDamageSource Source = Pair.Key;
 		float Armor = 0.0f;
 
 		if (Defense.Armour.Contains(Source))

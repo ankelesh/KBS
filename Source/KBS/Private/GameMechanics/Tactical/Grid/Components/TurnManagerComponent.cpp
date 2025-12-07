@@ -136,6 +136,7 @@ void UTurnManagerComponent::ActivateNextUnit()
 	TurnQueue.RemoveAt(0);
 
 	ActiveUnit = Entry.Unit;
+	ActiveUnitInitiative = Entry.TotalInitiative;
 
 	UE_LOG(LogTemp, Log, TEXT(">>> %s's turn begins (Initiative: %d)"),
 		*ActiveUnit->GetName(),
@@ -259,4 +260,52 @@ bool UTurnManagerComponent::BattleIsOver() const
 int32 UTurnManagerComponent::RollInitiative() const
 {
 	return FMath::RandRange(InitiativeRollMin, InitiativeRollMax);
+}
+
+FUnitTurnQueueDisplay UTurnManagerComponent::MakeUnitTurnQueueDisplay(AUnit* Unit, int32 Initiative, bool bIsActiveUnit) const
+{
+	FUnitTurnQueueDisplay QueueDisplay;
+
+	if (!Unit)
+	{
+		return QueueDisplay;
+	}
+
+	FUnitDisplayData UnitData = Unit->GetDisplayData();
+
+	QueueDisplay.UnitName = UnitData.UnitName;
+	QueueDisplay.CurrentInitiative = Initiative;
+	QueueDisplay.PortraitTexture = UnitData.PortraitTexture;
+	QueueDisplay.bIsActiveUnit = bIsActiveUnit;
+	QueueDisplay.BelongsToAttackerTeam = AttackerTeam ? AttackerTeam->ContainsUnit(Unit) : false;
+
+	return QueueDisplay;
+}
+
+TArray<FUnitTurnQueueDisplay> UTurnManagerComponent::GetQueueDisplayData() const
+{
+	TArray<FUnitTurnQueueDisplay> DisplayData;
+
+	for (const FTurnQueueEntry& Entry : TurnQueue)
+	{
+		if (!Entry.Unit)
+		{
+			continue;
+		}
+
+		// Active unit is not in the queue, so bIsActive is always false
+		FUnitTurnQueueDisplay QueueDisplay = MakeUnitTurnQueueDisplay(Entry.Unit, Entry.TotalInitiative, false);
+		DisplayData.Add(QueueDisplay);
+	}
+
+	return DisplayData;
+}
+
+FUnitTurnQueueDisplay UTurnManagerComponent::GetActiveUnitDisplayData() const
+{
+	if (!ActiveUnit)
+	{
+		return FUnitTurnQueueDisplay();
+	}
+	return MakeUnitTurnQueueDisplay(ActiveUnit, ActiveUnitInitiative, true);
 }

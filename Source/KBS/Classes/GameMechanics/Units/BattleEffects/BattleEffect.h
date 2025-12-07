@@ -3,17 +3,10 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "BattleEffectDataAsset.h"
 #include "BattleEffect.generated.h"
 
 class AUnit;
-class UBattleEffectDataAsset;
-
-UENUM(BlueprintType)
-enum class EEffectTarget : uint8
-{
-	Enemy UMETA(DisplayName = "Enemy"),
-	Self UMETA(DisplayName = "Self")
-};
 
 UCLASS(Abstract, Blueprintable)
 class KBS_API UBattleEffect : public UObject
@@ -34,6 +27,7 @@ public:
 
 	EDamageSource GetDamageSource() const;
 	EEffectTarget GetEffectTarget() const;
+	FText GetEffectName() const { return Config->Name; }
 	int32 GetRemainingTurns() const { return RemainingTurns; }
 	void DecrementTurns() { if (RemainingTurns > 0) RemainingTurns--; }
 

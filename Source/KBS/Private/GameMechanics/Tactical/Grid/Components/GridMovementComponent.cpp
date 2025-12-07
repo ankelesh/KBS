@@ -6,6 +6,7 @@
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameplayTypes/GridCoordinates.h"
+#include "GameplayTypes/FlankCellDefinitions.h"
 
 UGridMovementComponent::UGridMovementComponent()
 {
@@ -29,7 +30,7 @@ TArray<FIntPoint> UGridMovementComponent::GetValidMoveCells(AUnit* Unit) const
 
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return ValidCells;
 	}
@@ -51,12 +52,12 @@ void UGridMovementComponent::GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>
 {
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return;
 	}
 
-	UBattleTeam* UnitTeam = Grid->GetTeamForUnit(Unit);
+	UBattleTeam* UnitTeam = DataManager->GetTeamForUnit(Unit);
 
 	const TArray<FIntPoint> AdjacentOffsets = {
 		FIntPoint(0, -1), FIntPoint(0, 1), FIntPoint(-1, 0), FIntPoint(1, 0)
@@ -67,22 +68,24 @@ void UGridMovementComponent::GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>
 		const int32 TargetRow = UnitRow + Offset.Y;
 		const int32 TargetCol = UnitCol + Offset.X;
 
-		if (!Grid->IsValidCell(TargetRow, TargetCol, UnitLayer))
+		if (!DataManager->IsValidCell(TargetRow, TargetCol, UnitLayer))
 		{
 			continue;
 		}
 
-		if (Grid->IsFlankCell(TargetRow, TargetCol))
+		// Block movement into own team's flank columns
+		if (DataManager->IsFlankCell(TargetRow, TargetCol))
 		{
-			UBattleTeam* AttackerTeam = Grid->GetTeamForUnit(Unit);
-			UBattleTeam* DefenderTeam = Grid->GetEnemyTeam(Unit);
+			UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
 
-			if (UnitTeam == AttackerTeam && TargetRow <= 1)
+			// Attackers cannot enter their own flanks (columns 0-1)
+			if (UnitTeam == AttackerTeam && FFlankCellDefinitions::IsAttackerFlankColumn(TargetCol))
 			{
 				continue;
 			}
 
-			if (UnitTeam == DefenderTeam && TargetRow >= 3)
+			// Defenders cannot enter their own flanks (columns 3-4)
+			if (UnitTeam != AttackerTeam && FFlankCellDefinitions::IsDefenderFlankColumn(TargetCol))
 			{
 				continue;
 			}
@@ -100,80 +103,61 @@ void UGridMovementComponent::GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& O
 {
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return;
 	}
 
-	UBattleTeam* UnitTeam = Grid->GetTeamForUnit(Unit);
-	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(Unit);
-
-	if (!UnitTeam || !EnemyTeam)
+	UBattleTeam* UnitTeam = DataManager->GetTeamForUnit(Unit);
+	if (!UnitTeam)
 	{
 		return;
 	}
 
-	// Special flank movement: move to closest enemy flank cell only (not from center column)
-	if (UnitCol == 2)
+	const FIntPoint UnitPos(UnitCol, UnitRow);
+	UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
+	const bool bIsAttacker = (UnitTeam == AttackerTeam);
+
+	// Determine enemy flank columns based on unit team
+	TArray<int32> EnemyFlankColumns;
+	if (bIsAttacker)
 	{
-		return; // Units in center column cannot move to flanks
+		EnemyFlankColumns = FFlankCellDefinitions::DefenderFlankColumns;
+	}
+	else
+	{
+		EnemyFlankColumns = FFlankCellDefinitions::AttackerFlankColumns;
 	}
 
-	// Determine which team and corresponding flank row
-	int32 FlankRow = -1;
-	TArray<FIntPoint> FlankCells;
-
-	// Get the actual attacker and defender teams from grid
-	UBattleTeam* AttackerTeam = (UnitTeam && EnemyTeam) ?
-		(UnitTeam->GetTeamSide() == ETeamSide::Attacker ? UnitTeam : EnemyTeam) : nullptr;
-	UBattleTeam* DefenderTeam = (UnitTeam && EnemyTeam) ?
-		(UnitTeam->GetTeamSide() == ETeamSide::Defender ? UnitTeam : EnemyTeam) : nullptr;
-
-	if (UnitTeam == AttackerTeam && AttackerTeam)
+	// Check all enemy flank cells on the grid
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
 	{
-		// Attackers can move to defender's flank at row 3, cols 0/4
-		FlankRow = 3;
-		FlankCells = { FIntPoint(0, FlankRow), FIntPoint(4, FlankRow) };
-	}
-	else if (UnitTeam == DefenderTeam && DefenderTeam)
-	{
-		// Defenders can move to attacker's flank at row 1, cols 0/4
-		FlankRow = 1;
-		FlankCells = { FIntPoint(0, FlankRow), FIntPoint(4, FlankRow) };
-	}
-
-	if (FlankRow == -1)
-	{
-		return;
-	}
-
-	// Find closest flank cell
-	int32 MinDist = TNumericLimits<int32>::Max();
-	FIntPoint ClosestFlank(-1, -1);
-
-	for (const FIntPoint& FlankCell : FlankCells)
-	{
-		if (!Grid->IsValidCell(FlankCell.Y, FlankCell.X, UnitLayer))
+		for (int32 Col : EnemyFlankColumns)
 		{
-			continue;
-		}
+			// Skip restricted cells (Z cells at row 2, columns 0 and 4)
+			if (!DataManager->IsValidCell(Row, Col, UnitLayer))
+			{
+				continue;
+			}
 
-		const int32 Dist = FMath::Abs(FlankCell.X - UnitCol) + FMath::Abs(FlankCell.Y - UnitRow);
-		if (Dist < MinDist)
-		{
-			MinDist = Dist;
-			ClosestFlank = FlankCell;
-		}
-	}
+			// Skip if not a flank cell
+			if (!DataManager->IsFlankCell(Row, Col))
+			{
+				continue;
+			}
 
-	if (ClosestFlank.X >= 0)
-	{
-		AUnit* Occupant = DataManager->GetUnit(ClosestFlank.Y, ClosestFlank.X, UnitLayer);
-		if (!Occupant || UnitTeam->ContainsUnit(Occupant))
-		{
-			OutCells.Add(ClosestFlank);
-			UE_LOG(LogTemp, Log, TEXT("Unit at [%d,%d] can move to closest flank [%d,%d], distance: %d"),
-				UnitRow, UnitCol, ClosestFlank.Y, ClosestFlank.X, MinDist);
+			const FIntPoint FlankCell(Col, Row);
+
+			// Check if unit can enter this flank cell based on entry rules
+			if (CanEnterFlankCell(UnitPos, FlankCell, UnitTeam))
+			{
+				// Check occupancy - allow if empty or friendly unit
+				AUnit* Occupant = DataManager->GetUnit(Row, Col, UnitLayer);
+				if (!Occupant || UnitTeam->ContainsUnit(Occupant))
+				{
+					OutCells.Add(FlankCell);
+				}
+			}
 		}
 	}
 }
@@ -182,18 +166,18 @@ void UGridMovementComponent::GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& Out
 {
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return;
 	}
 
-	UBattleTeam* UnitTeam = Grid->GetTeamForUnit(Unit);
+	UBattleTeam* UnitTeam = DataManager->GetTeamForUnit(Unit);
 
 	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
 	{
 		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
 		{
-			if (Grid->IsRestrictedCell(Row, Col))
+			if (DataManager->IsRestrictedCell(Row, Col))
 			{
 				continue;
 			}
@@ -234,7 +218,7 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 
 	int32 CurrentRow, CurrentCol;
 	EBattleLayer Layer;
-	if (!Grid->GetUnitPosition(Unit, CurrentRow, CurrentCol, Layer))
+	if (!DataManager->GetUnitPosition(Unit, CurrentRow, CurrentCol, Layer))
 	{
 		UE_LOG(LogTemp, Error, TEXT("MoveUnit: Could not find unit position!"));
 		return false;
@@ -242,21 +226,22 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 
 	// Calculate movement animation parameters BEFORE grid updates
 	const FVector StartLocation = Unit->GetActorLocation();
-	const FVector TargetLocation = Grid->GetCellWorldLocation(TargetRow, TargetCol, Layer);
+	const FVector TargetLocation = DataManager->GetCellWorldLocation(TargetRow, TargetCol, Layer);
 	const FVector Direction = (TargetLocation - StartLocation).GetSafeNormal();
 	const float Distance = FVector::Dist(StartLocation, TargetLocation);
-	const float MovementSpeed = Unit ? Unit->GetDisplayData().MoveSpeed: 300.0f;
+	const float MovementSpeed = Unit ? Unit->GetMovementSpeed() : 300.0f;
 
-	const FRotator TargetRotation = Direction.Rotation();
+	FRotator TargetRotation = Direction.Rotation();
+	TargetRotation.Yaw += ModelForwardOffset;
 	if (Unit->VisualsComponent)
 	{
-		Unit->VisualsComponent->RotateTowardTarget(TargetRotation, 720.0f);
+		Unit->VisualsComponent->RotateTowardTarget(TargetRotation, 360.0f);
 	}
 
-	StartMovementInterpolation(Unit, StartLocation, TargetLocation, Direction, Distance, MovementSpeed);
+	StartMovementInterpolation(Unit, StartLocation, TargetLocation, Direction, Distance, MovementSpeed, TargetRow, TargetCol);
 
-	const bool bLeavingFlank = Grid->IsFlankCell(CurrentRow, CurrentCol);
-	const bool bEnteringFlank = Grid->IsFlankCell(TargetRow, TargetCol);
+	const bool bLeavingFlank = DataManager->IsFlankCell(CurrentRow, CurrentCol);
+	const bool bEnteringFlank = DataManager->IsFlankCell(TargetRow, TargetCol);
 
 	AUnit* TargetOccupant = DataManager->GetUnit(TargetRow, TargetCol, Layer);
 
@@ -264,21 +249,22 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 	{
 		// Handle animation for swapped unit
 		const FVector SwapStartLocation = TargetOccupant->GetActorLocation();
-		const FVector SwapTargetLocation = Grid->GetCellWorldLocation(CurrentRow, CurrentCol, Layer);
+		const FVector SwapTargetLocation = DataManager->GetCellWorldLocation(CurrentRow, CurrentCol, Layer);
 		const FVector SwapDirection = (SwapTargetLocation - SwapStartLocation).GetSafeNormal();
 		const float SwapDistance = FVector::Dist(SwapStartLocation, SwapTargetLocation);
-		const float SwapMovementSpeed = TargetOccupant->UnitDefinition ? TargetOccupant->UnitDefinition->MovementSpeed : 300.0f;
+		const float SwapMovementSpeed = TargetOccupant->GetMovementSpeed() ? TargetOccupant->GetMovementSpeed() : 300.0f;
 
-		const FRotator SwapRotation = SwapDirection.Rotation();
+		FRotator SwapRotation = SwapDirection.Rotation();
+		SwapRotation.Yaw += ModelForwardOffset;
 		if (TargetOccupant->VisualsComponent)
 		{
-			TargetOccupant->VisualsComponent->RotateTowardTarget(SwapRotation, 720.0f);
+			TargetOccupant->VisualsComponent->RotateTowardTarget(SwapRotation, 360.0f);
 		}
 
-		StartMovementInterpolation(TargetOccupant, SwapStartLocation, SwapTargetLocation, SwapDirection, SwapDistance, SwapMovementSpeed);
+		StartMovementInterpolation(TargetOccupant, SwapStartLocation, SwapTargetLocation, SwapDirection, SwapDistance, SwapMovementSpeed, CurrentRow, CurrentCol);
 
-		const bool bSwappedLeavingFlank = Grid->IsFlankCell(TargetRow, TargetCol);
-		const bool bSwappedEnteringFlank = Grid->IsFlankCell(CurrentRow, CurrentCol);
+		const bool bSwappedLeavingFlank = DataManager->IsFlankCell(TargetRow, TargetCol);
+		const bool bSwappedEnteringFlank = DataManager->IsFlankCell(CurrentRow, CurrentCol);
 
 		// Swap units
 		DataManager->RemoveUnit(TargetRow, TargetCol, Layer, Grid);
@@ -290,21 +276,21 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 		// Handle flank exit/entry for moving unit
 		if (bLeavingFlank && !bEnteringFlank)
 		{
-			Grid->UnitExitsFlank(Unit);
+			OnUnitFlankStateChanged.Broadcast(Unit, false, FIntPoint(CurrentCol, CurrentRow));
 		}
 		else if (bEnteringFlank)
 		{
-			Grid->UnitEntersFlank(Unit, TargetRow, TargetCol);
+			OnUnitFlankStateChanged.Broadcast(Unit, true, FIntPoint(TargetCol, TargetRow));
 		}
 
 		// Handle flank exit/entry for swapped unit
 		if (bSwappedLeavingFlank && !bSwappedEnteringFlank)
 		{
-			Grid->UnitExitsFlank(TargetOccupant);
+			OnUnitFlankStateChanged.Broadcast(TargetOccupant, false, FIntPoint(TargetCol, TargetRow));
 		}
 		else if (bSwappedEnteringFlank)
 		{
-			Grid->UnitEntersFlank(TargetOccupant, CurrentRow, CurrentCol);
+			OnUnitFlankStateChanged.Broadcast(TargetOccupant, true, FIntPoint(CurrentCol, CurrentRow));
 		}
 	}
 	else
@@ -317,11 +303,11 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 		// Handle flank exit/entry
 		if (bLeavingFlank && !bEnteringFlank)
 		{
-			Grid->UnitExitsFlank(Unit);
+			OnUnitFlankStateChanged.Broadcast(Unit, false, FIntPoint(CurrentCol, CurrentRow));
 		}
 		else if (bEnteringFlank)
 		{
-			Grid->UnitEntersFlank(Unit, TargetRow, TargetCol);
+			OnUnitFlankStateChanged.Broadcast(Unit, true, FIntPoint(TargetCol, TargetRow));
 		}
 	}
 
@@ -334,7 +320,7 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 	return true;
 }
 
-void UGridMovementComponent::StartMovementInterpolation(AUnit* Unit, FVector StartLocation, FVector TargetLocation, FVector Direction, float Distance, float Speed)
+void UGridMovementComponent::StartMovementInterpolation(AUnit* Unit, FVector StartLocation, FVector TargetLocation, FVector Direction, float Distance, float Speed, int32 TargetRow, int32 TargetCol)
 {
 	if (!Unit || Distance <= 0.0f || Speed <= 0.0f)
 	{
@@ -347,6 +333,9 @@ void UGridMovementComponent::StartMovementInterpolation(AUnit* Unit, FVector Sta
 	InterpData.Direction = Direction;
 	InterpData.ElapsedTime = 0.0f;
 	InterpData.Duration = Distance / Speed;
+	InterpData.bNeedsFinalRotation = true;
+	InterpData.UnitTeamSide = Unit->GetTeamSide();
+	InterpData.FinalRotation = CalculateDefaultCellOrientation(TargetRow, TargetCol, Unit->GetTeamSide());
 
 	UnitsBeingMoved.Add(Unit, InterpData);
 
@@ -386,9 +375,155 @@ void UGridMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 			if (Unit->VisualsComponent)
 			{
 				Unit->VisualsComponent->SetIsMoving(false);
-			}
 
-			It.RemoveCurrent();
+				// Start final rotation to default orientation
+				if (Data.bNeedsFinalRotation)
+				{
+					Unit->VisualsComponent->RotateTowardTarget(Data.FinalRotation, 360.0f);
+					Data.bNeedsFinalRotation = false;
+				}
+
+				// Only remove from movement tracking when rotation is also complete
+				if (!Unit->VisualsComponent->IsRotating())
+				{
+					It.RemoveCurrent();
+					continue;
+				}
+			}
+			else
+			{
+				It.RemoveCurrent();
+				continue;
+			}
 		}
 	}
+}
+
+bool UGridMovementComponent::CanEnterFlankCell(const FIntPoint& UnitPos, const FIntPoint& FlankCell, UBattleTeam* UnitTeam) const
+{
+	if (!DataManager || !UnitTeam)
+	{
+		return false;
+	}
+
+	const int32 UnitRow = UnitPos.Y;
+	const int32 UnitCol = UnitPos.X;
+	const int32 FlankRow = FlankCell.Y;
+	const int32 FlankCol = FlankCell.X;
+
+	UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
+	const bool bIsAttacker = (UnitTeam == AttackerTeam);
+
+	// Determine if this is an enemy flank
+	const bool bIsEnemyFlank = (bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(FlankCol)) ||
+	                           (!bIsAttacker && FFlankCellDefinitions::IsAttackerFlankColumn(FlankCol));
+
+	if (!bIsEnemyFlank)
+	{
+		return false;
+	}
+
+	// Check if target is closest-to-center or far flank
+	const bool bIsClosestFlank = FFlankCellDefinitions::IsClosestFlankColumn(FlankCol);
+	const bool bIsFarFlank = FFlankCellDefinitions::IsFarFlankColumn(FlankCol);
+
+	// Rule 1: Can enter closest-to-center enemy flank FROM center row (row 2, cols 1-3)
+	if (bIsClosestFlank && FFlankCellDefinitions::IsCenterLineCell(UnitRow, UnitCol))
+	{
+		return IsAdjacentCell(UnitPos, FlankCell);
+	}
+
+	// Rule 2: Can enter closest-to-center enemy flank FROM adjacent friendly flank cell
+	if (bIsClosestFlank && IsFlankCell(UnitPos))
+	{
+		const bool bIsOwnFlank = (bIsAttacker && FFlankCellDefinitions::IsAttackerFlankColumn(UnitCol)) ||
+		                         (!bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(UnitCol));
+
+		if (bIsOwnFlank && IsAdjacentCell(UnitPos, FlankCell))
+		{
+			return true;
+		}
+	}
+
+	// Rule 3: Can enter far enemy flank FROM closest enemy flank
+	if (bIsFarFlank && IsFlankCell(UnitPos))
+	{
+		const bool bIsInClosestEnemyFlank = (bIsAttacker && UnitCol == 3) || (!bIsAttacker && UnitCol == 1);
+
+		if (bIsInClosestEnemyFlank && IsAdjacentCell(UnitPos, FlankCell))
+		{
+			return true;
+		}
+	}
+
+	// Rule 4: Can enter far enemy flank FROM adjacent normal (non-flank) cell
+	if (bIsFarFlank && !IsFlankCell(UnitPos))
+	{
+		return IsAdjacentCell(UnitPos, FlankCell);
+	}
+
+	return false;
+}
+
+bool UGridMovementComponent::IsAdjacentCell(const FIntPoint& CellA, const FIntPoint& CellB) const
+{
+	const int32 ManhattanDistance = FMath::Abs(CellA.X - CellB.X) + FMath::Abs(CellA.Y - CellB.Y);
+	return ManhattanDistance == 1;
+}
+
+bool UGridMovementComponent::IsFlankCell(const FIntPoint& Cell) const
+{
+	if (!DataManager)
+	{
+		return false;
+	}
+
+	return DataManager->IsFlankCell(Cell.Y, Cell.X);
+}
+
+FRotator UGridMovementComponent::CalculateDefaultCellOrientation(int32 Row, int32 Col, ETeamSide TeamSide) const
+{
+	if (DataManager && DataManager->IsFlankCell(Row, Col))
+	{
+		const FIntPoint ClosestCell = FindClosestNonFlankCell(Row, Col);
+		const FVector CurrentPos = DataManager->GetCellWorldLocation(Row, Col, EBattleLayer::Ground);
+		const FVector TargetPos = DataManager->GetCellWorldLocation(ClosestCell.Y, ClosestCell.X, EBattleLayer::Ground);
+		const FVector Direction = (TargetPos - CurrentPos).GetSafeNormal();
+
+		FRotator Rotation = Direction.Rotation();
+		Rotation.Yaw += ModelForwardOffset;
+		return Rotation;
+	}
+
+	FRotator DefaultRotation;
+	DefaultRotation.Pitch = 0.0f;
+	DefaultRotation.Roll = 0.0f;
+	DefaultRotation.Yaw = (TeamSide == ETeamSide::Attacker) ? AttackerDefaultYaw : DefenderDefaultYaw;
+
+	return DefaultRotation;
+}
+
+FIntPoint UGridMovementComponent::FindClosestNonFlankCell(int32 FlankRow, int32 FlankCol) const
+{
+	int32 ClosestCol = 2;
+	float MinDistance = FLT_MAX;
+
+	const TArray<int32>& CenterCols = FFlankCellDefinitions::CenterColumns;
+	for (int32 Col : CenterCols)
+	{
+		for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+		{
+			if (DataManager && DataManager->IsValidCell(Row, Col, EBattleLayer::Ground))
+			{
+				const float Distance = FMath::Sqrt(float(FMath::Square(Row - FlankRow) + FMath::Square(Col - FlankCol)));
+				if (Distance < MinDistance)
+				{
+					MinDistance = Distance;
+					ClosestCol = Col;
+				}
+			}
+		}
+	}
+
+	return FIntPoint(ClosestCol, FlankRow);
 }

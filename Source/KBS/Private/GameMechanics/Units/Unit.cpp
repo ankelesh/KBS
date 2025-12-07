@@ -14,14 +14,14 @@
 AUnit::AUnit()
 {
 	PrimaryActorTick.bCanEverTick = false;
-
+	
 	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	RootComponent = SceneRoot;
 	SceneRoot->SetMobility(EComponentMobility::Movable);
 
 	VisualsComponent = CreateDefaultSubobject<UUnitVisualsComponent>(TEXT("VisualsComponent"));
 	VisualsComponent->SetupAttachment(RootComponent);
-
+	
 	EffectManager = CreateDefaultSubobject<UBattleEffectComponent>(TEXT("EffectManager"));
 	AbilityInventory = CreateDefaultSubobject<UAbilityInventoryComponent>(TEXT("AbilityInventory"));
 }
@@ -168,32 +168,23 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 
 FUnitDisplayData AUnit::GetDisplayData() const
 {
-	FUnitDisplayData DisplayData;
-	DisplayData.UnitName = UnitDefinition ? UnitDefinition->UnitName : TEXT("Unknown");
-	DisplayData.CurrentHealth = CurrentHealth;
-	DisplayData.MaxHealth = ModifiedStats.MaxHealth;
-	DisplayData.Initiative = ModifiedStats.Initiative;
-	DisplayData.Accuracy = ModifiedStats.Accuracy;
-	DisplayData.Level = Progression.LevelOnCurrentTier;
-	DisplayData.Experience = Progression.TotalExperience;
-	DisplayData.ExperienceToNextLevel = Progression.ExperienceToNextLevel;
-	DisplayData.Defense = ModifiedStats.Defense;
-	DisplayData.PortraitTexture = UnitDefinition ? UnitDefinition->Portrait : nullptr;
-	
-	UE_LOG(LogTemp, Warning, TEXT("Unit data returned: HP [%f] INI [%d]"), DisplayData.CurrentHealth, DisplayData.Initiative);
-	// Get active effects from EffectManager
-	// TODO
+	const FString Name = UnitDefinition ? UnitDefinition->UnitName : TEXT("Unknown");
+	UTexture2D* Portrait = UnitDefinition ? UnitDefinition->Portrait : nullptr;
+	const TArray<TObjectPtr<UBattleEffect>> Effects = EffectManager ? EffectManager->GetActiveEffects() : TArray<TObjectPtr<UBattleEffect>>();
 
-	return DisplayData;
+	return BuildUnitDisplayData(Name, CurrentHealth, ModifiedStats, Progression, Portrait, Effects, Weapons, TeamSide);
 }
 
 void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	Super::NotifyActorOnClicked(ButtonPressed);
 
-	UE_LOG(LogTemp, Warning, TEXT("Unit clicked"));
-	OnUnitClicked.Broadcast(this);
+	UE_LOG(LogTemp, Warning, TEXT("[EVENT] Unit '%s' clicked with button '%s'"), *GetName(), *ButtonPressed.ToString());
+	OnUnitClicked.Broadcast(this, ButtonPressed);
 }
+
+const float AUnit::GetMovementSpeed() const
+	{ return UnitDefinition->MovementSpeed; }
 
 void AUnit::TakeHit(const FDamageResult& DamageResult)
 {
@@ -220,6 +211,7 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 		}
 
 		// Broadcast death event
+		UE_LOG(LogTemp, Warning, TEXT("[EVENT] Broadcasting OnUnitDied for unit '%s'"), *GetName());
 		OnUnitDied.Broadcast(this);
 	}
 	else

@@ -3,13 +3,22 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 
-void UGridDataManager::Initialize()
+void UGridDataManager::Initialize(ATacBattleGrid* InGrid, UBattleTeam* InAttackerTeam, UBattleTeam* InDefenderTeam)
 {
+	Grid = InGrid;
+	AttackerTeam = InAttackerTeam;
+	DefenderTeam = InDefenderTeam;
+
+	if (Grid)
+	{
+		GridWorldLocation = Grid->GetActorLocation();
+	}
+
 	GroundLayer.SetNum(FGridCoordinates::GridSize);
 	AirLayer.SetNum(FGridCoordinates::GridSize);
 }
 
-bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer, ATacBattleGrid* Grid)
+bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer, ATacBattleGrid* TacBattleGrid)
 {
 	if (!Unit || !FGridCoordinates::IsValidCell(Row, Col))
 	{
@@ -46,7 +55,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer
 	}
 
 	// Subscribe to unit click events
-	Unit->OnUnitClicked.AddDynamic(Grid, &ATacBattleGrid::HandleUnitClicked);
+	Unit->OnUnitClicked.AddDynamic(TacBattleGrid, &ATacBattleGrid::HandleUnitClicked);
 	UE_LOG(LogTemp, Log, TEXT("Grid subscribed to unit at [%d,%d]"), Row, Col);
 
 	return true;
@@ -69,7 +78,7 @@ AUnit* UGridDataManager::GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const
 	return LayerArray[Row].Cells[Col];
 }
 
-bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer, ATacBattleGrid* Grid)
+bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer, ATacBattleGrid* TacBattleGrid)
 {
 	if (!FGridCoordinates::IsValidCell(Row, Col))
 	{
@@ -90,8 +99,12 @@ bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer, ATac
 	}
 
 	// Unsubscribe from unit click events
-	Unit->OnUnitClicked.RemoveDynamic(Grid, &ATacBattleGrid::HandleUnitClicked);
+	Unit->OnUnitClicked.RemoveDynamic(TacBattleGrid, &ATacBattleGrid::HandleUnitClicked);
 	UE_LOG(LogTemp, Log, TEXT("Grid unsubscribed from unit at [%d,%d]"), Row, Col);
+
+	// Clean up external state tracking to prevent memory leaks
+	UnitFlankStates.Remove(Unit);
+	UnitOriginalRotations.Remove(Unit);
 
 	LayerArray[Row].Cells[Col] = nullptr;
 	return true;
@@ -145,4 +158,73 @@ bool UGridDataManager::GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& 
 	}
 
 	return false;
+}
+
+bool UGridDataManager::IsUnitOnFlank(const AUnit* Unit) const
+{
+	const bool* bOnFlank = UnitFlankStates.Find(const_cast<AUnit*>(Unit));
+	return bOnFlank ? *bOnFlank : false;
+}
+
+void UGridDataManager::SetUnitFlankState(AUnit* Unit, bool bOnFlank)
+{
+	if (bOnFlank)
+	{
+		UnitFlankStates.Add(Unit, true);
+	}
+	else
+	{
+		UnitFlankStates.Remove(Unit);
+	}
+}
+
+FRotator UGridDataManager::GetUnitOriginalRotation(const AUnit* Unit) const
+{
+	const FRotator* Rotation = UnitOriginalRotations.Find(const_cast<AUnit*>(Unit));
+	return Rotation ? *Rotation : FRotator::ZeroRotator;
+}
+
+void UGridDataManager::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation)
+{
+	UnitOriginalRotations.Add(Unit, Rotation);
+}
+
+bool UGridDataManager::IsValidCell(int32 Row, int32 Col, EBattleLayer Layer) const
+{
+	return Grid ? Grid->IsValidCell(Row, Col, Layer) : false;
+}
+
+bool UGridDataManager::IsFlankCell(int32 Row, int32 Col) const
+{
+	return Grid ? Grid->IsFlankCell(Row, Col) : false;
+}
+
+bool UGridDataManager::IsRestrictedCell(int32 Row, int32 Col) const
+{
+	return Grid ? Grid->IsRestrictedCell(Row, Col) : false;
+}
+
+FVector UGridDataManager::GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const
+{
+	return Grid ? Grid->GetCellWorldLocation(Row, Col, Layer) : FVector::ZeroVector;
+}
+
+UBattleTeam* UGridDataManager::GetTeamForUnit(AUnit* Unit) const
+{
+	if (!Unit)
+	{
+		return nullptr;
+	}
+
+	if (AttackerTeam && AttackerTeam->ContainsUnit(Unit))
+	{
+		return AttackerTeam;
+	}
+
+	if (DefenderTeam && DefenderTeam->ContainsUnit(Unit))
+	{
+		return DefenderTeam;
+	}
+
+	return nullptr;
 }

@@ -36,7 +36,7 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 
 	if (Definition->MeshComponents.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitDefinition"));
+		//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitDefinition"));
 		return;
 	}
 
@@ -49,13 +49,14 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 			VisualsRoot->SetupAttachment(this);
 			VisualsRoot->SetMobility(EComponentMobility::Movable);
 			VisualsRoot->RegisterComponent();
+			
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Owner=%s, VisualsRoot=%s, This IsRegistered=%s"),
-		GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"),
-		VisualsRoot ? TEXT("Valid") : TEXT("NULL"),
-		IsRegistered() ? TEXT("YES") : TEXT("NO"));
+	//UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Owner=%s, VisualsRoot=%s, This IsRegistered=%s"),
+	//	GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"),
+	//	VisualsRoot ? TEXT("Valid") : TEXT("NULL"),
+	//	IsRegistered() ? TEXT("YES") : TEXT("NO"));
 
 	// First pass: Create all skeletal meshes to ensure primary mesh and sockets exist
 	for (const FUnitMeshDescriptor& MeshDesc : Definition->MeshComponents)
@@ -69,18 +70,18 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 	// Initialize animation on primary skeletal mesh
 	if (PrimarySkeletalMesh && Definition->AnimationClass)
 	{
-		UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Setting animation class on primary skeletal mesh"));
+		//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Setting animation class on primary skeletal mesh"));
 		PrimarySkeletalMesh->SetAnimInstanceClass(Definition->AnimationClass);
 		PrimarySkeletalMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 		PrimarySkeletalMesh->InitAnim(true);
-		UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Animation initialized, AnimInstance: %s"),
-			PrimarySkeletalMesh->GetAnimInstance() ? TEXT("Valid") : TEXT("NULL"));
+		//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Animation initialized, AnimInstance: %s"),
+		//	PrimarySkeletalMesh->GetAnimInstance() ? TEXT("Valid") : TEXT("NULL"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Cannot init animation - PrimaryMesh: %s, AnimClass: %s"),
-			PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"),
-			Definition->AnimationClass ? TEXT("Valid") : TEXT("NULL"));
+		//UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Cannot init animation - PrimaryMesh: %s, AnimClass: %s"),
+		//	PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"),
+		//	Definition->AnimationClass ? TEXT("Valid") : TEXT("NULL"));
 	}
 
 	// Set up leader pose component for all non-primary skeletal meshes
@@ -92,7 +93,7 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 			if (SkelMesh && SkelMesh != PrimarySkeletalMesh)
 			{
 				SkelMesh->SetLeaderPoseComponent(PrimarySkeletalMesh);
-				UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Set leader pose component for %s"), *SkelMesh->GetName());
+				//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Set leader pose component for %s"), *SkelMesh->GetName());
 
 #if WITH_EDITOR
 				// Force update in editor to show animation immediately
@@ -119,8 +120,8 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 
 	if (Descriptor.MeshType == EUnitMeshType::Skeletal)
 	{
-		UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Processing skeletal mesh, bIsPrimaryMesh=%s"),
-			Descriptor.bIsPrimaryMesh ? TEXT("TRUE") : TEXT("FALSE"));
+		//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Processing skeletal mesh, bIsPrimaryMesh=%s"),
+		//	Descriptor.bIsPrimaryMesh ? TEXT("TRUE") : TEXT("FALSE"));
 
 		if (!Descriptor.SkeletalMesh.IsNull())
 		{
@@ -135,7 +136,7 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 				USkeletalMesh* LoadedMesh = Descriptor.SkeletalMesh.LoadSynchronous();
 				if (LoadedMesh)
 				{
-					UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Skeletal mesh loaded: %s"), *LoadedMesh->GetName());
+					//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Skeletal mesh loaded: %s"), *LoadedMesh->GetName());
 					SkelMeshComp->SetSkeletalMesh(LoadedMesh);
 
 					// Enable ticking for animations
@@ -156,23 +157,19 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 					if (Descriptor.bIsPrimaryMesh && !PrimarySkeletalMesh)
 					{
 						PrimarySkeletalMesh = SkelMeshComp;
-						UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Primary skeletal mesh set"));
+						//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Primary skeletal mesh set"));
 					}
 				}
-				else
-				{
-					UE_LOG(LogTemp, Error, TEXT("UnitVisualsComponent: Failed to load skeletal mesh from descriptor"));
-				}
 			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("UnitVisualsComponent: Failed to create USkeletalMeshComponent"));
-			}
+			//else
+			//{
+			//	UE_LOG(LogTemp, Error, TEXT("UnitVisualsComponent: Failed to create USkeletalMeshComponent"));
+			//}
 		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Skeletal mesh descriptor has null mesh reference"));
-		}
+		//else
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Skeletal mesh descriptor has null mesh reference"));
+		//}
 	}
 	else if (Descriptor.MeshType == EUnitMeshType::Static)
 	{
@@ -209,8 +206,8 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	// Attach to parent BEFORE registering (socket or root)
 	if (Descriptor.ParentSocket != NAME_None && PrimarySkeletalMesh)
 	{
-		UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Attaching mesh to socket '%s' on primary skeletal mesh"),
-			*Descriptor.ParentSocket.ToString());
+		//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Attaching mesh to socket '%s' on primary skeletal mesh"),
+		//	*Descriptor.ParentSocket.ToString());
 
 		// Use snap rules for socket attachment if no custom transform specified
 		FAttachmentTransformRules AttachRules = Descriptor.RelativeTransform.Equals(FTransform::Identity)
@@ -220,16 +217,16 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 		NewMeshComponent->AttachToComponent(PrimarySkeletalMesh, AttachRules, Descriptor.ParentSocket);
 
 		// Verify socket exists
-		if (PrimarySkeletalMesh->DoesSocketExist(Descriptor.ParentSocket))
-		{
-			UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Socket '%s' exists and mesh attached"),
-				*Descriptor.ParentSocket.ToString());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Socket '%s' does NOT exist on skeletal mesh!"),
-				*Descriptor.ParentSocket.ToString());
-		}
+		//if (PrimarySkeletalMesh->DoesSocketExist(Descriptor.ParentSocket))
+		//{
+		//	UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Socket '%s' exists and mesh attached"),
+		//		*Descriptor.ParentSocket.ToString());
+		//}
+		//else
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Socket '%s' does NOT exist on skeletal mesh!"),
+		//		*Descriptor.ParentSocket.ToString());
+		//}
 
 		// Apply custom transform if specified
 		if (!Descriptor.RelativeTransform.Equals(FTransform::Identity))
@@ -239,11 +236,11 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	}
 	else
 	{
-		if (Descriptor.ParentSocket != NAME_None)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Cannot attach to socket '%s' - PrimarySkeletalMesh is NULL"),
-				*Descriptor.ParentSocket.ToString());
-		}
+		//if (Descriptor.ParentSocket != NAME_None)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Cannot attach to socket '%s' - PrimarySkeletalMesh is NULL"),
+		//		*Descriptor.ParentSocket.ToString());
+		//}
 		NewMeshComponent->AttachToComponent(VisualsRoot, FAttachmentTransformRules::KeepRelativeTransform);
 		NewMeshComponent->SetRelativeTransform(Descriptor.RelativeTransform);
 	}
@@ -252,10 +249,10 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	NewMeshComponent->RegisterComponent();
 	SpawnedMeshComponents.Add(NewMeshComponent);
 
-	UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Registered %s, AttachParent=%s, IsRegistered=%s"),
-		*NewMeshComponent->GetName(),
-		NewMeshComponent->GetAttachParent() ? *NewMeshComponent->GetAttachParent()->GetName() : TEXT("NULL"),
-		NewMeshComponent->IsRegistered() ? TEXT("YES") : TEXT("NO"));
+	//UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Registered %s, AttachParent=%s, IsRegistered=%s"),
+	//	*NewMeshComponent->GetName(),
+	//	NewMeshComponent->GetAttachParent() ? *NewMeshComponent->GetAttachParent()->GetName() : TEXT("NULL"),
+	//	NewMeshComponent->IsRegistered() ? TEXT("YES") : TEXT("NO"));
 
 	if (PrimitiveComp)
 	{
@@ -442,6 +439,7 @@ void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 			{
 				Owner->SetActorRotation(PendingRotation);
 				bIsRotating = false;
+				OnRotationCompleted.Broadcast();
 			}
 		}
 	}

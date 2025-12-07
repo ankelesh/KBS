@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameMechanics/Units/UnitDisplayData.h"
 #include "TurnManagerComponent.generated.h"
 
 class AUnit;
@@ -49,6 +50,9 @@ public:
 	TObjectPtr<AUnit> ActiveUnit;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn")
+	int32 ActiveUnitInitiative;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn")
 	int32 CurrentTurnNumber = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn")
@@ -56,10 +60,10 @@ public:
 
 	// Config
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turn")
-	int32 InitiativeRollMin = 1;
+	int32 InitiativeRollMin = -4;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turn")
-	int32 InitiativeRollMax = 20;
+	int32 InitiativeRollMax = 4;
 
 	// Unit tracking
 	UPROPERTY()
@@ -111,6 +115,15 @@ public:
 
 	bool BattleIsOver() const;
 
+	// UI Data
+	UFUNCTION(BlueprintCallable, Category = "Turn")
+	TArray<FUnitTurnQueueDisplay> GetQueueDisplayData() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Turn")
+	FUnitTurnQueueDisplay GetActiveUnitDisplayData() const;
+
+private:
 	// Helpers
 	int32 RollInitiative() const;
+	FUnitTurnQueueDisplay MakeUnitTurnQueueDisplay(AUnit* Unit, int32 Initiative, bool bIsActiveUnit) const;
 };

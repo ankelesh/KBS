@@ -10,6 +10,7 @@ class UStaticMesh;
 class UAnimMontage;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageCompleted, UAnimMontage*, Montage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRotationCompleted);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UUnitVisualsComponent : public USceneComponent
@@ -36,11 +37,15 @@ public:
 	void SetMovementSpeed(float Speed);
 	void SetIsMoving(bool bMoving);
 	void RotateTowardTarget(FRotator TargetRotation, float Speed = 360.0f);
+	bool IsRotating() const { return bIsRotating; }
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(BlueprintAssignable, Category = "Animation")
 	FOnMontageCompleted OnMontageCompleted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Animation")
+	FOnRotationCompleted OnRotationCompleted;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

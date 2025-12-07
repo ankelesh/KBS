@@ -28,7 +28,10 @@ struct FWeaponStats
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
-	TMap<EDamageSource, int32> DamagePerSource;
+	int32 BaseDamage = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	TSet<EDamageSource> DamageSources;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 	float AccuracyMultiplier = 1.0f;

@@ -69,5 +69,5 @@ private:
 
 	// Helper methods
 	bool PerformAccuracyRoll(float HitChance);
-	EDamageSource SelectBestDamageSource(const TMap<EDamageSource, int32>& DamageSources, AUnit* Target);
+	EDamageSource SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target);
 };

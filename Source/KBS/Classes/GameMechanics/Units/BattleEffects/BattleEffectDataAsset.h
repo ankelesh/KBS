@@ -1,10 +1,15 @@
 #pragma once
-
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTypes/DamageTypes.h"
-#include "BattleEffect.h"
 #include "BattleEffectDataAsset.generated.h"
+
+UENUM(BlueprintType)
+enum class EEffectTarget : uint8
+{
+	Enemy UMETA(DisplayName = "Enemy"),
+	Self UMETA(DisplayName = "Self")
+};
 
 UCLASS(BlueprintType)
 class KBS_API UBattleEffectDataAsset : public UPrimaryDataAsset

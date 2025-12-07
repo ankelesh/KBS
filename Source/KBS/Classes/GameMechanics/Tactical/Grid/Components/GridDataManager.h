@@ -19,9 +19,9 @@ class KBS_API UGridDataManager : public UObject
 
 public:
 	/**
-	 * Initialize grid layers
+	 * Initialize grid layers with team references
 	 */
-	void Initialize();
+	void Initialize(ATacBattleGrid* InGrid, UBattleTeam* InAttackerTeam, UBattleTeam* InDefenderTeam);
 
 	/**
 	 * Place a unit in the grid
@@ -54,10 +54,49 @@ public:
 	 */
 	bool GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
 
+	/**
+	 * Flank state management
+	 */
+	bool IsUnitOnFlank(const AUnit* Unit) const;
+	void SetUnitFlankState(AUnit* Unit, bool bOnFlank);
+	FRotator GetUnitOriginalRotation(const AUnit* Unit) const;
+	void SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation);
+
+	/**
+	 * Grid query methods (read-only, delegated to Grid)
+	 */
+	bool IsValidCell(int32 Row, int32 Col, EBattleLayer Layer) const;
+	bool IsFlankCell(int32 Row, int32 Col) const;
+	bool IsRestrictedCell(int32 Row, int32 Col) const;
+	FVector GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const;
+
+	/**
+	 * Team query methods
+	 */
+	UBattleTeam* GetTeamForUnit(AUnit* Unit) const;
+	UBattleTeam* GetAttackerTeam() const { return AttackerTeam; }
+	UBattleTeam* GetDefenderTeam() const { return DefenderTeam; }
+
 private:
 	UPROPERTY()
 	TArray<FGridRow> GroundLayer;
 
 	UPROPERTY()
 	TArray<FGridRow> AirLayer;
+
+	// External unit state tracking
+	TMap<AUnit*, bool> UnitFlankStates;
+	TMap<AUnit*, FRotator> UnitOriginalRotations;
+
+	// Grid and team references for query delegation
+	UPROPERTY()
+	TObjectPtr<ATacBattleGrid> Grid;
+
+	UPROPERTY()
+	TObjectPtr<UBattleTeam> AttackerTeam;
+
+	UPROPERTY()
+	TObjectPtr<UBattleTeam> DefenderTeam;
+
+	FVector GridWorldLocation;
 };
