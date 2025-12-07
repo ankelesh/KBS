@@ -47,6 +47,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Animation")
 	FOnRotationCompleted OnRotationCompleted;
 
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USceneComponent> VisualsRoot;

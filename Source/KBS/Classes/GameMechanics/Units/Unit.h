@@ -67,6 +67,7 @@ public:
 
 	const FUnitCoreStats& GetStats() const { return ModifiedStats; }
 	float GetCurrentHealth() const { return CurrentHealth; }
+	bool IsDead() const { return CurrentHealth <= 0.0f; }
 	const FUnitProgressionData& GetProgression() const { return Progression; }
 	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
 	const float GetMovementSpeed() const;

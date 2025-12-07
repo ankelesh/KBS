@@ -8,6 +8,8 @@
 
 class UUnitAbilityInstance;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityEquipped, UUnitAbilityInstance*, Ability);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UAbilityInventoryComponent : public UActorComponent
 {
@@ -25,6 +27,9 @@ public:
 	UUnitAbilityInstance* GetCurrentActiveAbility() const { return CurrentActiveAbility; }
 	const TArray<TObjectPtr<UUnitAbilityInstance>>& GetAvailableActiveAbilities() const { return AvailableActiveAbilities; }
 	const TArray<TObjectPtr<UUnitAbilityInstance>>& GetPassiveAbilities() const { return PassiveAbilities; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Abilities")
+	FOnAbilityEquipped OnAbilityEquipped;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameMechanics/Units/UnitDisplayData.h"
+#include "GameplayTypes/AbilityTypes.h"
 #include "TurnManagerComponent.generated.h"
 
 class AUnit;
@@ -102,6 +103,8 @@ public:
 	void StartGlobalTurn();
 	void EndGlobalTurn();
 	void ActivateNextUnit();
+
+	UFUNCTION()
 	void EndCurrentUnitTurn();
 
 	// Queue management
@@ -114,6 +117,9 @@ public:
 	bool CanUnitAct(AUnit* Unit) const;
 
 	bool BattleIsOver() const;
+
+	// Ability result handling
+	void HandleAbilityComplete(const FAbilityResult& Result);
 
 	// UI Data
 	UFUNCTION(BlueprintCallable, Category = "Turn")

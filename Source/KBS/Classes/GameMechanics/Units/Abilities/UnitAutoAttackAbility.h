@@ -14,5 +14,5 @@ class KBS_API UUnitAutoAttackAbility : public UUnitAbilityInstance
 public:
 	virtual ETargetReach GetTargeting() const override;
 	virtual TMap<AUnit*, FPreviewHitResult> DamagePreview(AUnit* Source, const TArray<AUnit*>& Targets) override;
-	virtual void ApplyAbilityEffect(const FAbilityBattleContext& Context) override;
+	virtual FAbilityResult ApplyAbilityEffect(const FAbilityBattleContext& Context) override;
 };

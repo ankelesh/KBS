@@ -15,6 +15,8 @@ class UGridMovementComponent;
 class UGridTargetingComponent;
 class UGridHighlightComponent;
 class UTurnManagerComponent;
+class UAbilityExecutorComponent;
+class UUnitAbilityInstance;
 
 USTRUCT()
 struct FGridRow
@@ -131,6 +133,9 @@ public:
 	// ========== Ability System ==========
 	void AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
 
+	UFUNCTION()
+	void HandleAbilityEquipped(UUnitAbilityInstance* Ability);
+
 	// ========== Component Accessors ==========
 	UFUNCTION(BlueprintCallable, Category="Getters")
 	UTurnManagerComponent* GetTurnManager();
@@ -188,7 +193,7 @@ private:
 	void DrawGridCells();
 
 	// ========== Input Helper Methods ==========
-	TOptional<FIntPoint> GetCellUnderMouse() const;
+	bool GetCellUnderMouse(int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
 
 	// ========== Core Components ==========
 	UPROPERTY(VisibleAnywhere)
@@ -212,6 +217,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<UTurnManagerComponent> TurnManager;
+
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UAbilityExecutorComponent> AbilityExecutor;
 
 	// ========== Team Data ==========
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Teams")

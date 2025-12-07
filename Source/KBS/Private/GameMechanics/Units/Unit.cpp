@@ -30,16 +30,24 @@ void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
 
+	UE_LOG(LogTemp, Error, TEXT("===== AUnit::BeginPlay START - Actor: %s ====="), *GetName());
+
 	if (!UnitDefinition)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unit has no UnitDefinition assigned!"));
 		return;
 	}
 
+	UE_LOG(LogTemp, Warning, TEXT("AUnit::BeginPlay - UnitDefinition: %s"), *UnitDefinition->GetName());
+
 	// Initialize visual components from definition
 	if (VisualsComponent)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("AUnit::BeginPlay - Calling InitializeFromDefinition"));
 		VisualsComponent->InitializeFromDefinition(UnitDefinition);
+		UE_LOG(LogTemp, Error, TEXT("AUnit::BeginPlay - AFTER Init: SpawnedMeshComponents=%d, PrimaryMesh=%s"),
+			VisualsComponent->GetAllMeshComponents().Num(),
+			VisualsComponent->GetPrimarySkeletalMesh() ? TEXT("Valid") : TEXT("NULL"));
 	}
 
 	// Initialize base stats and progression from template
@@ -102,13 +110,23 @@ void AUnit::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 
 #if WITH_EDITOR
+	UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Actor: %s, WorldType: %d"),
+		*GetName(),
+		GetWorld() ? (int32)GetWorld()->WorldType : -1);
+
 	if (GetWorld() && GetWorld()->WorldType == EWorldType::Editor)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Editor world, initializing visuals"));
 		if (UnitDefinition && VisualsComponent)
 		{
 			VisualsComponent->ClearAllMeshComponents();
 			VisualsComponent->InitializeFromDefinition(UnitDefinition);
 		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - NOT Editor world (WorldType=%d), skipping visual init"),
+			GetWorld() ? (int32)GetWorld()->WorldType : -1);
 	}
 #endif
 }

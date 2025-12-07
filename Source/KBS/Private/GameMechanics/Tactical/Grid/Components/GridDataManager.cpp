@@ -228,3 +228,67 @@ UBattleTeam* UGridDataManager::GetTeamForUnit(AUnit* Unit) const
 
 	return nullptr;
 }
+
+TArray<FIntPoint> UGridDataManager::GetEmptyCells(EBattleLayer Layer) const
+{
+	TArray<FIntPoint> EmptyCells;
+
+	const TArray<FGridRow>& LayerArray = GetLayer(Layer);
+
+	for (int32 Row = 0; Row < LayerArray.Num(); ++Row)
+	{
+		for (int32 Col = 0; Col < LayerArray[Row].Cells.Num(); ++Col)
+		{
+			if (IsValidCell(Row, Col, Layer) && LayerArray[Row].Cells[Col] == nullptr)
+			{
+				EmptyCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+
+	return EmptyCells;
+}
+
+TArray<FIntPoint> UGridDataManager::GetOccupiedCells(EBattleLayer Layer, UBattleTeam* Team) const
+{
+	TArray<FIntPoint> OccupiedCells;
+
+	if (!Team)
+	{
+		return OccupiedCells;
+	}
+
+	const TArray<FGridRow>& LayerArray = GetLayer(Layer);
+
+	for (int32 Row = 0; Row < LayerArray.Num(); ++Row)
+	{
+		for (int32 Col = 0; Col < LayerArray[Row].Cells.Num(); ++Col)
+		{
+			AUnit* Unit = LayerArray[Row].Cells[Col];
+			if (Unit && Team->ContainsUnit(Unit))
+			{
+				OccupiedCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+
+	return OccupiedCells;
+}
+
+bool UGridDataManager::IsCellOccupied(int32 Row, int32 Col, EBattleLayer Layer) const
+{
+	return GetUnit(Row, Col, Layer) != nullptr;
+}
+
+TArray<FIntPoint> UGridDataManager::GetValidPlacementCells(EBattleLayer Layer) const
+{
+	TArray<FIntPoint> PlacementCells = GetEmptyCells(Layer);
+
+	// Filter out restricted cells
+	PlacementCells.RemoveAll([this](const FIntPoint& Cell)
+	{
+		return IsRestrictedCell(Cell.Y, Cell.X);
+	});
+
+	return PlacementCells;
+}

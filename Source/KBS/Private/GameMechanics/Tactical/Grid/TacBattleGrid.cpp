@@ -8,6 +8,7 @@
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
 #include "GameplayTypes/CombatTypes.h"
@@ -42,6 +43,7 @@ ATacBattleGrid::ATacBattleGrid()
 	TargetingComponent = CreateDefaultSubobject<UGridTargetingComponent>(TEXT("TargetingComponent"));
 	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
 	TurnManager = CreateDefaultSubobject<UTurnManagerComponent>(TEXT("TurnManager"));
+	AbilityExecutor = CreateDefaultSubobject<UAbilityExecutorComponent>(TEXT("AbilityExecutor"));
 
 	AttackerTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("AttackerTeam"));
 	AttackerTeam->SetTeamSide(ETeamSide::Attacker);
@@ -213,6 +215,12 @@ void ATacBattleGrid::SelectUnit(AUnit* Unit)
 	UE_LOG(LogTemp, Warning, TEXT("[EVENT] Broadcasting OnCurrentUnitChanged for unit '%s'"), *Unit->GetName());
 	OnCurrentUnitChanged.Broadcast(Unit);
 
+	// Subscribe to ability changes
+	if (Unit->AbilityInventory)
+	{
+		Unit->AbilityInventory->OnAbilityEquipped.AddDynamic(this, &ATacBattleGrid::HandleAbilityEquipped);
+	}
+
 	// Get valid movement cells and show them
 	const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(Unit);
 	HighlightComponent->ShowValidMoves(ValidCells);
@@ -354,30 +362,105 @@ void ATacBattleGrid::NotifyActorOnClicked(FKey ButtonPressed)
 
 	UE_LOG(LogTemp, Warning, TEXT("Grid NotifyActorOnClicked called!"));
 
+	// Early exit if no unit is selected
 	if (!SelectedUnit)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Grid clicked but no unit selected"));
 		return;
 	}
 
-	int32 SelectedRow, SelectedCol;
-	EBattleLayer SelectedLayer;
-	if (GetUnitPosition(SelectedUnit, SelectedRow, SelectedCol, SelectedLayer))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid clicked with unit [%d,%d] selected"), SelectedRow, SelectedCol);
-	}
-
-	TOptional<FIntPoint> ClickedCell = GetCellUnderMouse();
-	if (!ClickedCell.IsSet())
+	// Get clicked cell with layer information
+	int32 ClickedRow, ClickedCol;
+	EBattleLayer ClickedLayer;
+	if (!GetCellUnderMouse(ClickedRow, ClickedCol, ClickedLayer))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Grid clicked: Could not determine clicked cell"));
 		return;
 	}
 
-	FIntPoint CellCoords = ClickedCell.GetValue();
-	UE_LOG(LogTemp, Warning, TEXT("Grid clicked at cell [%d,%d]"), CellCoords.Y, CellCoords.X);
-	TryMoveSelectedUnit(CellCoords.Y, CellCoords.X);
-	TurnManager->EndCurrentUnitTurn();
+	UE_LOG(LogTemp, Warning, TEXT("Grid clicked at cell [%d,%d] Layer=%d"), ClickedRow, ClickedCol, (int32)ClickedLayer);
+
+	// Get valid target cells and valid move cells
+	const TArray<FIntPoint> ValidTargetCells = GetValidTargetCells(SelectedUnit);
+	const TArray<FIntPoint> ValidMoveCells = GetValidMoveCells(SelectedUnit);
+
+	FIntPoint ClickedCell(ClickedCol, ClickedRow);
+
+	// PRIORITY 1: Check if clicked cell is a valid target cell
+	if (ValidTargetCells.Contains(ClickedCell))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Clicked cell [%d,%d] is a valid target"), ClickedRow, ClickedCol);
+
+		// Get current ability and its targeting
+		UUnitAbilityInstance* CurrentAbility = SelectedUnit->AbilityInventory ?
+			SelectedUnit->AbilityInventory->GetCurrentActiveAbility() : nullptr;
+
+		if (!CurrentAbility)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No active ability for selected unit"));
+			return;
+		}
+
+		ETargetReach Reach = CurrentAbility->GetTargeting();
+
+		// Get weapon's area shape if this is an Area ability
+		const FAreaShape* AreaShape = nullptr;
+		FAreaShape LocalAreaShape;
+		if (Reach == ETargetReach::Area)
+		{
+			UWorld* World = GetWorld();
+			if (World)
+			{
+				UDamageCalculator* DamageCalc = World->GetSubsystem<UDamageCalculator>();
+				if (DamageCalc)
+				{
+					UWeapon* Weapon = DamageCalc->SelectMaxReachWeapon(SelectedUnit);
+					if (Weapon)
+					{
+						LocalAreaShape = Weapon->GetStats().AreaShape;
+						AreaShape = &LocalAreaShape;
+					}
+				}
+			}
+		}
+
+		// Resolve all targets based on clicked cell and reach type
+		TArray<AUnit*> Targets = TargetingComponent->ResolveTargetsFromClick(
+			SelectedUnit, ClickedCell, ClickedLayer, Reach, AreaShape);
+
+		if (Targets.Num() > 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Executing ability on %d target(s)"), Targets.Num());
+			AbilityTargetSelected(SelectedUnit, Targets);
+			return;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Valid target cell but no valid targets resolved at [%d,%d] Layer=%d"),
+				ClickedRow, ClickedCol, (int32)ClickedLayer);
+		}
+	}
+
+	// PRIORITY 2: Check if clicked cell is a valid move cell
+	if (ValidMoveCells.Contains(ClickedCell))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Clicked cell [%d,%d] is a valid move destination"), ClickedRow, ClickedCol);
+
+		if (MoveUnit(SelectedUnit, ClickedRow, ClickedCol))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Movement successful, ending turn"));
+			ClearSelection();
+			TurnManager->EndCurrentUnitTurn();
+			return;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Movement failed for cell [%d,%d]"), ClickedRow, ClickedCol);
+		}
+	}
+
+	// FALLBACK: Invalid click
+	UE_LOG(LogTemp, Log, TEXT("Clicked cell [%d,%d] is neither a valid target nor a valid move"), ClickedRow, ClickedCol);
 }
 
 void ATacBattleGrid::UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col)
@@ -436,27 +519,57 @@ void ATacBattleGrid::AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit
 		return;
 	}
 
-	// Build the ability battle context
-	FAbilityBattleContext Context;
-	Context.SourceUnit = SourceUnit;
-	Context.TargetUnits = Targets;
-	Context.Grid = this;
+	// Build context via executor
+	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, Targets);
 
-	// Trigger and apply the ability
-	if (CurrentAbility->TriggerAbility(Context))
-	{
-		CurrentAbility->ApplyAbilityEffect(Context);
-		UE_LOG(LogTemp, Log, TEXT("AbilityTargetSelected: Applied ability '%s' from unit to %d targets"),
-			*CurrentAbility->GetConfig()->AbilityName, Targets.Num());
+	// Execute ability via executor
+	FAbilityResult Result = AbilityExecutor->ExecuteAbility(CurrentAbility, Context);
 
-		// Broadcast ability completion for turn system
-		UE_LOG(LogTemp, Warning, TEXT("[EVENT] Broadcasting OnAbilityComplete"));
-		OnAbilityComplete.Broadcast();
-	}
-	else
+	// Resolve result
+	AbilityExecutor->ResolveResult(Result);
+
+	// Handle turn flow based on result
+	if (Result.bSuccess)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityTargetSelected: Ability trigger failed"));
+		switch (Result.TurnAction)
+		{
+		case EAbilityTurnAction::EndTurn:
+			TurnManager->EndCurrentUnitTurn();
+			break;
+
+		case EAbilityTurnAction::FreeTurn:
+			// Unit keeps turn - refresh selection
+			SelectUnit(SourceUnit);
+			break;
+
+		case EAbilityTurnAction::EndTurnDelayed:
+		case EAbilityTurnAction::RequireConfirm:
+			// For now, just end turn (full implementation later)
+			TurnManager->EndCurrentUnitTurn();
+			break;
+		}
 	}
+}
+
+void ATacBattleGrid::HandleAbilityEquipped(UUnitAbilityInstance* Ability)
+{
+	if (!SelectedUnit || !Ability)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("HandleAbilityEquipped: Refreshing targeting for new ability"));
+
+	// Clear current highlights
+	HighlightComponent->ClearHighlights();
+
+	// Query new ability's targeting and refresh highlights
+	const TArray<FIntPoint> TargetCells = GetValidTargetCells(SelectedUnit);
+	HighlightComponent->ShowValidTargets(TargetCells);
+
+	// Also refresh movement highlights
+	const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(SelectedUnit);
+	HighlightComponent->ShowValidMoves(ValidCells);
 }
 
 bool ATacBattleGrid::IsUnitOnFlank(const AUnit* Unit) const
@@ -511,6 +624,7 @@ void ATacBattleGrid::InitializeComponents()
 	DataManager->Initialize(this, AttackerTeam, DefenderTeam);
 	MovementComponent->Initialize(this, DataManager);
 	TargetingComponent->Initialize(this, DataManager);
+	AbilityExecutor->Initialize(this);
 	HighlightComponent->Initialize(this, Root, Config->MoveAllowedDecalMaterial, Config->EnemyDecalMaterial);
 	HighlightComponent->CreateDecalPool();
 
@@ -720,13 +834,13 @@ void ATacBattleGrid::DrawGridCells()
 	}
 }
 
-TOptional<FIntPoint> ATacBattleGrid::GetCellUnderMouse() const
+bool ATacBattleGrid::GetCellUnderMouse(int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const
 {
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC)
 	{
 		UE_LOG(LogTemp, Error, TEXT("GetCellUnderMouse: No PlayerController found!"));
-		return TOptional<FIntPoint>();
+		return false;
 	}
 
 	FVector WorldLocation, WorldDirection;
@@ -739,8 +853,21 @@ TOptional<FIntPoint> ATacBattleGrid::GetCellUnderMouse() const
 	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility))
 	{
 		FIntPoint CellCoords = GetCellFromWorldLocation(Hit.Location);
-		return TOptional<FIntPoint>(CellCoords);
+		OutRow = CellCoords.Y;
+		OutCol = CellCoords.X;
+
+		// Determine layer from hit Z-coordinate
+		// Compare distance to Ground and Air layer heights
+		FVector GroundLocation = GetCellWorldLocation(OutRow, OutCol, EBattleLayer::Ground);
+		FVector AirLocation = GetCellWorldLocation(OutRow, OutCol, EBattleLayer::Air);
+
+		float DistToGround = FMath::Abs(Hit.Location.Z - GroundLocation.Z);
+		float DistToAir = FMath::Abs(Hit.Location.Z - AirLocation.Z);
+
+		OutLayer = (DistToGround < DistToAir) ? EBattleLayer::Ground : EBattleLayer::Air;
+
+		return true;
 	}
 
-	return TOptional<FIntPoint>();
+	return false;
 }

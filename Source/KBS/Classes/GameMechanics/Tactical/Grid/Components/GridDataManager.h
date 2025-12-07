@@ -77,6 +77,14 @@ public:
 	UBattleTeam* GetAttackerTeam() const { return AttackerTeam; }
 	UBattleTeam* GetDefenderTeam() const { return DefenderTeam; }
 
+	/**
+	 * Cell state query methods
+	 */
+	TArray<FIntPoint> GetEmptyCells(EBattleLayer Layer) const;
+	TArray<FIntPoint> GetOccupiedCells(EBattleLayer Layer, UBattleTeam* Team) const;
+	bool IsCellOccupied(int32 Row, int32 Col, EBattleLayer Layer) const;
+	TArray<FIntPoint> GetValidPlacementCells(EBattleLayer Layer) const;
+
 private:
 	UPROPERTY()
 	TArray<FGridRow> GroundLayer;

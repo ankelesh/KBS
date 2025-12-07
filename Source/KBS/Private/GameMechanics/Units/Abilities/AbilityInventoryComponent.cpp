@@ -17,6 +17,7 @@ void UAbilityInventoryComponent::EquipAbility(UUnitAbilityInstance* Ability)
 	}
 
 	CurrentActiveAbility = Ability;
+	OnAbilityEquipped.Broadcast(Ability);
 }
 
 void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability)

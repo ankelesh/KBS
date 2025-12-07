@@ -15,13 +15,23 @@ void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDe
 	}
 }
 
-bool UUnitAbilityInstance::TriggerAbility(const FAbilityBattleContext& Context)
+FAbilityResult UUnitAbilityInstance::TriggerAbility(const FAbilityBattleContext& Context)
 {
-	return true;
+	// Validate first
+	FAbilityValidation Validation = CanExecute(Context);
+	if (!Validation.bIsValid)
+	{
+		return CreateFailureResult(Validation.FailureReason, Validation.FailureMessage);
+	}
+
+	// Perform ability setup
+	return CreateSuccessResult();
 }
 
-void UUnitAbilityInstance::ApplyAbilityEffect(const FAbilityBattleContext& Context)
+FAbilityResult UUnitAbilityInstance::ApplyAbilityEffect(const FAbilityBattleContext& Context)
 {
+	// Base implementation - override in subclasses
+	return CreateSuccessResult();
 }
 
 ETargetReach UUnitAbilityInstance::GetTargeting() const
@@ -100,4 +110,38 @@ void UUnitAbilityInstance::RestoreCharges()
 	{
 		RemainingCharges = Config->MaxCharges;
 	}
+}
+
+FAbilityValidation UUnitAbilityInstance::CanExecute(const FAbilityBattleContext& Context) const
+{
+	// Check if ability has charges (if not unlimited)
+	if (Config && Config->MaxCharges > 0)
+	{
+		if (RemainingCharges <= 0)
+		{
+			return FAbilityValidation::Failure(EAbilityFailureReason::NoCharges,
+				FText::FromString("No charges remaining"));
+		}
+	}
+
+	// Check if targets exist
+	if (Context.TargetUnits.Num() == 0 && !IsPassive())
+	{
+		return FAbilityValidation::Failure(EAbilityFailureReason::InvalidTarget,
+			FText::FromString("No valid targets"));
+	}
+
+	// Ability-specific requirements can be checked in subclasses
+	return FAbilityValidation::Success();
+}
+
+FAbilityResult UUnitAbilityInstance::CreateSuccessResult() const
+{
+	FAbilityResult Result = FAbilityResult::Success(TurnAction);
+	return Result;
+}
+
+FAbilityResult UUnitAbilityInstance::CreateFailureResult(EAbilityFailureReason Reason, FText Message) const
+{
+	return FAbilityResult::Failure(Reason, Message);
 }

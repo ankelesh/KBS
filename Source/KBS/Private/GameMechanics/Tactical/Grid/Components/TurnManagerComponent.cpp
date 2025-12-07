@@ -257,6 +257,47 @@ bool UTurnManagerComponent::BattleIsOver() const
 	return !bAttackerHasLivingUnits || !bDefenderHasLivingUnits;
 }
 
+void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
+{
+	if (!Result.bSuccess)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Ability failed, not ending turn"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("TurnManager: Handling ability result with TurnAction: %d"),
+		static_cast<uint8>(Result.TurnAction));
+
+	switch (Result.TurnAction)
+	{
+	case EAbilityTurnAction::EndTurn:
+		EndCurrentUnitTurn();
+		break;
+
+	case EAbilityTurnAction::FreeTurn:
+		// Do nothing - unit keeps turn
+		UE_LOG(LogTemp, Log, TEXT("TurnManager: Free turn - unit keeps acting"));
+		break;
+
+	case EAbilityTurnAction::EndTurnDelayed:
+		// TODO: Set flag, end turn when animations finish
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: EndTurnDelayed not fully implemented - ending turn now"));
+		EndCurrentUnitTurn();
+		break;
+
+	case EAbilityTurnAction::RequireConfirm:
+		// TODO: Set flag, wait for confirmation
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: RequireConfirm not fully implemented - ending turn now"));
+		EndCurrentUnitTurn();
+		break;
+
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Unknown TurnAction, ending turn"));
+		EndCurrentUnitTurn();
+		break;
+	}
+}
+
 int32 UTurnManagerComponent::RollInitiative() const
 {
 	return FMath::RandRange(InitiativeRollMin, InitiativeRollMax);

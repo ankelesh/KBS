@@ -302,10 +302,14 @@ FCombatHitResult UDamageCalculator::ProcessHit(AUnit* Attacker, AUnit* Target, E
 	if (!PerformAccuracyRoll(HitChance))
 	{
 		HitResult.bHit = false;
+		UE_LOG(LogTemp, Warning, TEXT("MISS: %s attacked %s with %.1f%% hit chance - Attack missed!"),
+			*Attacker->GetName(), *Target->GetName(), HitChance);
 		return HitResult;
 	}
 
 	HitResult.bHit = true;
+	UE_LOG(LogTemp, Log, TEXT("HIT: %s attacked %s with %.1f%% hit chance - Attack succeeded!"),
+		*Attacker->GetName(), *Target->GetName(), HitChance);
 
 	// Calculate and apply damage
 	FDamageResult DamageResult = CalculateDamage(Attacker, SelectedWeapon, Target);

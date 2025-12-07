@@ -14,6 +14,8 @@ UUnitVisualsComponent::UUnitVisualsComponent()
 
 void UUnitVisualsComponent::ClearAllMeshComponents()
 {
+	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::ClearAllMeshComponents - Clearing %d components"), SpawnedMeshComponents.Num());
+
 	for (int32 i = SpawnedMeshComponents.Num() - 1; i >= 0; --i)
 	{
 		if (SpawnedMeshComponents[i])
@@ -36,7 +38,7 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 
 	if (Definition->MeshComponents.Num() == 0)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitDefinition"));
+		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitDefinition"));
 		return;
 	}
 
@@ -53,10 +55,11 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 		}
 	}
 
-	//UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Owner=%s, VisualsRoot=%s, This IsRegistered=%s"),
-	//	GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"),
-	//	VisualsRoot ? TEXT("Valid") : TEXT("NULL"),
-	//	IsRegistered() ? TEXT("YES") : TEXT("NO"));
+	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Owner=%s, VisualsRoot=%s, This IsRegistered=%s, MeshComponents Count=%d"),
+		GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"),
+		VisualsRoot ? TEXT("Valid") : TEXT("NULL"),
+		IsRegistered() ? TEXT("YES") : TEXT("NO"),
+		Definition->MeshComponents.Num());
 
 	// First pass: Create all skeletal meshes to ensure primary mesh and sockets exist
 	for (const FUnitMeshDescriptor& MeshDesc : Definition->MeshComponents)
@@ -70,19 +73,23 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 	// Initialize animation on primary skeletal mesh
 	if (PrimarySkeletalMesh && Definition->AnimationClass)
 	{
-		//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Setting animation class on primary skeletal mesh"));
+		UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Setting animation class on primary skeletal mesh"));
 		PrimarySkeletalMesh->SetAnimInstanceClass(Definition->AnimationClass);
 		PrimarySkeletalMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 		PrimarySkeletalMesh->InitAnim(true);
-		//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Animation initialized, AnimInstance: %s"),
-		//	PrimarySkeletalMesh->GetAnimInstance() ? TEXT("Valid") : TEXT("NULL"));
+		UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Animation initialized, AnimInstance: %s"),
+			PrimarySkeletalMesh->GetAnimInstance() ? TEXT("Valid") : TEXT("NULL"));
 	}
 	else
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Cannot init animation - PrimaryMesh: %s, AnimClass: %s"),
-		//	PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"),
-		//	Definition->AnimationClass ? TEXT("Valid") : TEXT("NULL"));
+		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Cannot init animation - PrimaryMesh: %s, AnimClass: %s"),
+			PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"),
+			Definition->AnimationClass ? TEXT("Valid") : TEXT("NULL"));
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::InitializeFromDefinition COMPLETE - SpawnedMeshComponents: %d, PrimarySkeletalMesh: %s"),
+		SpawnedMeshComponents.Num(),
+		PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"));
 
 	// Set up leader pose component for all non-primary skeletal meshes
 	if (PrimarySkeletalMesh)
@@ -120,8 +127,9 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 
 	if (Descriptor.MeshType == EUnitMeshType::Skeletal)
 	{
-		//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Processing skeletal mesh, bIsPrimaryMesh=%s"),
-		//	Descriptor.bIsPrimaryMesh ? TEXT("TRUE") : TEXT("FALSE"));
+		UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Processing skeletal mesh, bIsPrimaryMesh=%s, IsNull=%s"),
+			Descriptor.bIsPrimaryMesh ? TEXT("TRUE") : TEXT("FALSE"),
+			Descriptor.SkeletalMesh.IsNull() ? TEXT("TRUE") : TEXT("FALSE"));
 
 		if (!Descriptor.SkeletalMesh.IsNull())
 		{
@@ -136,7 +144,7 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 				USkeletalMesh* LoadedMesh = Descriptor.SkeletalMesh.LoadSynchronous();
 				if (LoadedMesh)
 				{
-					//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Skeletal mesh loaded: %s"), *LoadedMesh->GetName());
+					UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Skeletal mesh loaded: %s"), *LoadedMesh->GetName());
 					SkelMeshComp->SetSkeletalMesh(LoadedMesh);
 
 					// Enable ticking for animations
@@ -157,7 +165,7 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 					if (Descriptor.bIsPrimaryMesh && !PrimarySkeletalMesh)
 					{
 						PrimarySkeletalMesh = SkelMeshComp;
-						//UE_LOG(LogTemp, Log, TEXT("UnitVisualsComponent: Primary skeletal mesh set"));
+						UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Primary skeletal mesh set"));
 					}
 				}
 			}
@@ -249,10 +257,10 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	NewMeshComponent->RegisterComponent();
 	SpawnedMeshComponents.Add(NewMeshComponent);
 
-	//UE_LOG(LogTemp, Warning, TEXT("UnitVisualsComponent: Registered %s, AttachParent=%s, IsRegistered=%s"),
-	//	*NewMeshComponent->GetName(),
-	//	NewMeshComponent->GetAttachParent() ? *NewMeshComponent->GetAttachParent()->GetName() : TEXT("NULL"),
-	//	NewMeshComponent->IsRegistered() ? TEXT("YES") : TEXT("NO"));
+	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Registered %s, AttachParent=%s, IsRegistered=%s"),
+		*NewMeshComponent->GetName(),
+		NewMeshComponent->GetAttachParent() ? *NewMeshComponent->GetAttachParent()->GetName() : TEXT("NULL"),
+		NewMeshComponent->IsRegistered() ? TEXT("YES") : TEXT("NO"));
 
 	if (PrimitiveComp)
 	{
@@ -358,11 +366,11 @@ void UUnitVisualsComponent::PlayDeathMontage(UAnimMontage* Montage)
 	{
 		return;
 	}
-
 	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
 	if (AnimInstance)
 	{
-		AnimInstance->Montage_Play(Montage);
+		// Play with 0 blend out - stays on final frame
+		AnimInstance->Montage_Play(Montage, 1.0f, EMontagePlayReturnType::MontageLength, 0.0f, true);
 	}
 }
 

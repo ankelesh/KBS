@@ -70,23 +70,23 @@ TMap<AUnit*, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(AUnit* Sou
 	return Results;
 }
 
-void UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleContext& Context)
+FAbilityResult UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleContext& Context)
 {
 	if (!Context.SourceUnit)
 	{
-		return;
+		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No source unit"));
 	}
 
 	UWorld* World = Context.SourceUnit->GetWorld();
 	if (!World)
 	{
-		return;
+		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No world"));
 	}
 
 	UDamageCalculator* DamageCalc = World->GetSubsystem<UDamageCalculator>();
 	if (!DamageCalc)
 	{
-		return;
+		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No damage calculator"));
 	}
 
 	ETargetReach Reach = GetTargeting();
@@ -104,7 +104,8 @@ void UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleContext& Con
 		{
 			const FVector SourceLoc = Context.SourceUnit->GetActorLocation();
 			const FVector TargetLoc = FirstTarget->GetActorLocation();
-			const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
+			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
+			LookAtRotation.Yaw -= 90.0f; // Adjust for Y-oriented models
 
 			if (Context.SourceUnit->VisualsComponent)
 			{
@@ -117,6 +118,9 @@ void UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleContext& Con
 			}
 		}
 	}
+
+	// Create success result and populate affected units
+	FAbilityResult Result = CreateSuccessResult();
 
 	for (AUnit* Target : Context.TargetUnits)
 	{
@@ -139,7 +143,20 @@ void UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleContext& Con
 
 				// Broadcast damage event
 				Target->OnUnitDamaged.Broadcast(Target, Context.SourceUnit);
+
+				// Add to affected units
+				Result.UnitsAffected.Add(Target);
+
+				UE_LOG(LogTemp, Log, TEXT("  -> Target '%s' took %.1d damage (%.1d blocked)"),
+					*Target->GetName(), HitResult.Damage, HitResult.DamageBlocked);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("  -> Target '%s' avoided the attack"),
+					*Target->GetName());
 			}
 		}
 	}
+
+	return Result;
 }
