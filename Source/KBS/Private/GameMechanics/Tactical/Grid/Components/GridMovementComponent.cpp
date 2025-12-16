@@ -311,11 +311,6 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 		}
 	}
 
-	// Broadcast movement completion for turn system
-	if (ATacBattleGrid* BattleGrid = Cast<ATacBattleGrid>(Grid))
-	{
-		BattleGrid->OnMovementComplete.Broadcast();
-	}
 
 	return true;
 }

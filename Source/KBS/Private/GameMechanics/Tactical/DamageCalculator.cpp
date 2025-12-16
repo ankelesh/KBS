@@ -83,7 +83,6 @@ FDamageResult UDamageCalculator::CalculateDamage(AUnit* Attacker, UWeapon* Weapo
 
 	// Apply flat damage reduction
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
-	FinalDamage = FMath::Max(0.0f, FinalDamage);
 
 	Result.Damage = FMath::RoundToInt(FinalDamage);
 	Result.DamageBlocked = BaseDamage - Result.Damage;

@@ -9,6 +9,7 @@
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/AIControllerComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
 #include "GameplayTypes/CombatTypes.h"
@@ -44,6 +45,7 @@ ATacBattleGrid::ATacBattleGrid()
 	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
 	TurnManager = CreateDefaultSubobject<UTurnManagerComponent>(TEXT("TurnManager"));
 	AbilityExecutor = CreateDefaultSubobject<UAbilityExecutorComponent>(TEXT("AbilityExecutor"));
+	AIController = CreateDefaultSubobject<UAIControllerComponent>(TEXT("AIController"));
 
 	AttackerTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("AttackerTeam"));
 	AttackerTeam->SetTeamSide(ETeamSide::Attacker);
@@ -350,9 +352,9 @@ void ATacBattleGrid::HandleUnitTurnStart(AUnit* Unit)
 	}
 	else
 	{
-		// AI-controlled unit: skip turn for now
-		UE_LOG(LogTemp, Log, TEXT("[HANDLER] AI unit turn started - skipping turn for '%s'"), *Unit->GetName());
-		TurnManager->EndCurrentUnitTurn();
+		// AI-controlled unit: execute AI
+		UE_LOG(LogTemp, Log, TEXT("[HANDLER] AI unit turn started - executing AI for '%s'"), *Unit->GetName());
+		AIController->ExecuteAITurn(Unit);
 	}
 }
 
@@ -625,6 +627,7 @@ void ATacBattleGrid::InitializeComponents()
 	MovementComponent->Initialize(this, DataManager);
 	TargetingComponent->Initialize(this, DataManager);
 	AbilityExecutor->Initialize(this);
+	AIController->Initialize(this, DataManager, MovementComponent, TargetingComponent, AbilityExecutor);
 	HighlightComponent->Initialize(this, Root, Config->MoveAllowedDecalMaterial, Config->EnemyDecalMaterial);
 	HighlightComponent->CreateDecalPool();
 
@@ -767,8 +770,6 @@ void ATacBattleGrid::ConfigureTurnManager()
 	TurnManager->AttackerTeam = AttackerTeam;
 	TurnManager->DefenderTeam = DefenderTeam;
 
-	OnMovementComplete.AddDynamic(TurnManager, &UTurnManagerComponent::EndCurrentUnitTurn);
-	OnAbilityComplete.AddDynamic(TurnManager, &UTurnManagerComponent::EndCurrentUnitTurn);
 	UE_LOG(LogTemp, Log, TEXT("[SUBSCRIBE] TurnManager subscribed to OnMovementComplete and OnAbilityComplete"));
 
 	TurnManager->OnUnitTurnStart.AddDynamic(this, &ATacBattleGrid::HandleUnitTurnStart);

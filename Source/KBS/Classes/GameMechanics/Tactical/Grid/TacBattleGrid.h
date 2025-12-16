@@ -221,6 +221,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<UAbilityExecutorComponent> AbilityExecutor;
 
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<class UAIControllerComponent> AIController;
+
 	// ========== Team Data ==========
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Teams")
 	TObjectPtr<UBattleTeam> AttackerTeam;

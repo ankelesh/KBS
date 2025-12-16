@@ -30,6 +30,7 @@ Main scene: $AST/BaseTestGround.umap
 
 ## Constraints
 Ask before modifying .uproject, project settings, or build files
+Don't build anything
 
 ## Doc links
 Only when requested or proposing solution
