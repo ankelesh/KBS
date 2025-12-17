@@ -10,6 +10,7 @@
 
 class ATacBattleGrid;
 class UUnitAbilityInstance;
+class UPresentationTrackerComponent;
 class AUnit;
 
 /**
@@ -52,4 +53,7 @@ public:
 private:
 	UPROPERTY()
 	TObjectPtr<ATacBattleGrid> Grid;
+
+	UPROPERTY()
+	TObjectPtr<UPresentationTrackerComponent> PresentationTracker;
 };

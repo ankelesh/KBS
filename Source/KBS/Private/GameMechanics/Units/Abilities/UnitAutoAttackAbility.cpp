@@ -7,6 +7,8 @@
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
+#include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
+#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -109,10 +111,41 @@ FAbilityResult UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleCo
 
 			if (Context.SourceUnit->VisualsComponent)
 			{
+				// Get presentation tracker for async operation tracking
+				UPresentationTrackerComponent* Tracker = Context.Grid ? Context.Grid->GetPresentationTracker() : nullptr;
+
+				// Register rotation operation and subscribe to completion event
+				if (Tracker)
+				{
+					FOperationHandle RotationHandle = Tracker->RegisterOperation(
+						FString::Printf(TEXT("Rotation_%s"), *Context.SourceUnit->GetName()));
+
+					Context.SourceUnit->VisualsComponent->OnRotationCompletedNative.AddLambda(
+						[Tracker, RotationHandle]()
+						{
+							Tracker->UnregisterOperation(RotationHandle);
+						}
+					);
+				}
+
 				Context.SourceUnit->VisualsComponent->RotateTowardTarget(LookAtRotation, 540.0f);
 
+				// Register attack montage operation and subscribe to completion event
 				if (AttackMontage)
 				{
+					if (Tracker)
+					{
+						FOperationHandle MontageHandle = Tracker->RegisterOperation(
+							FString::Printf(TEXT("AttackMontage_%s"), *Context.SourceUnit->GetName()));
+
+						Context.SourceUnit->VisualsComponent->OnMontageCompletedNative.AddLambda(
+							[Tracker, MontageHandle](UAnimMontage* Montage)
+							{
+								Tracker->UnregisterOperation(MontageHandle);
+							}
+						);
+					}
+
 					Context.SourceUnit->VisualsComponent->PlayAttackMontage(AttackMontage);
 				}
 			}

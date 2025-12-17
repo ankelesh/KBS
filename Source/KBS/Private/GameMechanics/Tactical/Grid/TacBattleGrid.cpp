@@ -9,6 +9,7 @@
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/AIControllerComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
@@ -45,6 +46,7 @@ ATacBattleGrid::ATacBattleGrid()
 	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
 	TurnManager = CreateDefaultSubobject<UTurnManagerComponent>(TEXT("TurnManager"));
 	AbilityExecutor = CreateDefaultSubobject<UAbilityExecutorComponent>(TEXT("AbilityExecutor"));
+	PresentationTracker = CreateDefaultSubobject<UPresentationTrackerComponent>(TEXT("PresentationTracker"));
 	AIController = CreateDefaultSubobject<UAIControllerComponent>(TEXT("AIController"));
 
 	AttackerTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("AttackerTeam"));
@@ -621,11 +623,20 @@ UTurnManagerComponent* ATacBattleGrid::GetTurnManager()
 	return TurnManager;
 }
 
+UPresentationTrackerComponent* ATacBattleGrid::GetPresentationTracker() const
+{
+	return PresentationTracker;
+}
+
 void ATacBattleGrid::InitializeComponents()
 {
 	DataManager->Initialize(this, AttackerTeam, DefenderTeam);
 	MovementComponent->Initialize(this, DataManager);
 	TargetingComponent->Initialize(this, DataManager);
+
+	// Initialize presentation tracker and pass to dependent components
+	TurnManager->PresentationTracker = PresentationTracker;
+
 	AbilityExecutor->Initialize(this);
 	AIController->Initialize(this, DataManager, MovementComponent, TargetingComponent, AbilityExecutor);
 	HighlightComponent->Initialize(this, Root, Config->MoveAllowedDecalMaterial, Config->EnemyDecalMaterial);

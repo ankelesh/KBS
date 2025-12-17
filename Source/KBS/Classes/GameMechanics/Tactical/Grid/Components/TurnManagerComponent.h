@@ -8,6 +8,7 @@
 
 class AUnit;
 class UBattleTeam;
+class UPresentationTrackerComponent;
 
 USTRUCT(BlueprintType)
 struct FTurnQueueEntry
@@ -76,6 +77,10 @@ public:
 	UPROPERTY()
 	TObjectPtr<UBattleTeam> DefenderTeam;
 
+	// Presentation tracking
+	UPROPERTY()
+	TObjectPtr<UPresentationTrackerComponent> PresentationTracker;
+
 	// Events
 	UPROPERTY(BlueprintAssignable, Category = "Turn Events")
 	FOnGlobalTurnStarted OnGlobalTurnStarted;
@@ -132,4 +137,11 @@ private:
 	// Helpers
 	int32 RollInitiative() const;
 	FUnitTurnQueueDisplay MakeUnitTurnQueueDisplay(AUnit* Unit, int32 Initiative, bool bIsActiveUnit) const;
+
+	// Presentation tracking
+	UPROPERTY()
+	bool bWaitingForPresentation = false;
+
+	UFUNCTION()
+	void OnPresentationComplete();
 };

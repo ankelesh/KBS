@@ -448,6 +448,7 @@ void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 				Owner->SetActorRotation(PendingRotation);
 				bIsRotating = false;
 				OnRotationCompleted.Broadcast();
+				OnRotationCompletedNative.Broadcast();
 			}
 		}
 	}
@@ -456,4 +457,5 @@ void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 void UUnitVisualsComponent::HandleMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
 {
 	OnMontageCompleted.Broadcast(Montage);
+	OnMontageCompletedNative.Broadcast(Montage);
 }

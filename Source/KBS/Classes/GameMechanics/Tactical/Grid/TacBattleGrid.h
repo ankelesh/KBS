@@ -16,6 +16,7 @@ class UGridTargetingComponent;
 class UGridHighlightComponent;
 class UTurnManagerComponent;
 class UAbilityExecutorComponent;
+class UPresentationTrackerComponent;
 class UUnitAbilityInstance;
 
 USTRUCT()
@@ -140,6 +141,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Getters")
 	UTurnManagerComponent* GetTurnManager();
 
+	UFUNCTION(BlueprintCallable, Category="Getters")
+	UPresentationTrackerComponent* GetPresentationTracker() const;
+
 	// ========== Event Handlers ==========
 	UFUNCTION(BlueprintCallable, Category = "Battle")
 	void HandleUnitClicked(AUnit* Unit, FKey ButtonPressed);
@@ -220,6 +224,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<UAbilityExecutorComponent> AbilityExecutor;
+
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UPresentationTrackerComponent> PresentationTracker;
 
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<class UAIControllerComponent> AIController;

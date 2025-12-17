@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Unit.h"
@@ -13,6 +14,12 @@ UAbilityExecutorComponent::UAbilityExecutorComponent()
 void UAbilityExecutorComponent::Initialize(ATacBattleGrid* InGrid)
 {
 	Grid = InGrid;
+
+	// Cache presentation tracker reference
+	if (Grid)
+	{
+		PresentationTracker = Grid->GetPresentationTracker();
+	}
 }
 
 FAbilityValidation UAbilityExecutorComponent::ValidateAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context) const
@@ -37,16 +44,36 @@ FAbilityResult UAbilityExecutorComponent::ExecuteAbility(UUnitAbilityInstance* A
 		return FAbilityResult::Failure(Validation.FailureReason, Validation.FailureMessage);
 	}
 
+	// Begin presentation batch to group all operations from this ability
+	FString AbilityName = Ability ? Ability->GetName() : TEXT("Unknown");
+	if (PresentationTracker)
+	{
+		PresentationTracker->BeginBatch(FString::Printf(TEXT("Ability_%s"), *AbilityName));
+	}
+
 	// Trigger ability
 	FAbilityResult TriggerResult = Ability->TriggerAbility(Context);
 	if (!TriggerResult.bSuccess)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AbilityExecutor: Ability trigger failed"));
+
+		// End batch even on failure
+		if (PresentationTracker)
+		{
+			PresentationTracker->EndBatch();
+		}
+
 		return TriggerResult;
 	}
 
 	// Apply ability effects
 	FAbilityResult ApplyResult = Ability->ApplyAbilityEffect(Context);
+
+	// End presentation batch - all operations for this ability are now registered
+	if (PresentationTracker)
+	{
+		PresentationTracker->EndBatch();
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("AbilityExecutor: Ability executed successfully, affected %d units"),
 		ApplyResult.UnitsAffected.Num());

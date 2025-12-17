@@ -12,6 +12,10 @@ class UAnimMontage;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageCompleted, UAnimMontage*, Montage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRotationCompleted);
 
+// Native (non-dynamic) delegates for lambda binding support
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMontageCompletedNative, UAnimMontage*);
+DECLARE_MULTICAST_DELEGATE(FOnRotationCompletedNative);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UUnitVisualsComponent : public USceneComponent
 {
@@ -47,6 +51,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Animation")
 	FOnRotationCompleted OnRotationCompleted;
 
+	// Native delegates for C++ lambda binding
+	FOnMontageCompletedNative OnMontageCompletedNative;
+	FOnRotationCompletedNative OnRotationCompletedNative;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

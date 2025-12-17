@@ -12,9 +12,13 @@ $GM = GameMechanics/
 $TACT = $GM/Tactical/
 $STRAT = $GM/Strategic/
 $UNITS = $GM/Units/
+$UABILITY = $UNITS/Abilities
+$CMP = $TACT/Grid/Components/
 $TYPES = GameplayTypes/
+
 Note: Headers in $SRC$H{path}, Impl in $SRC$CPP{path}
 Main scene: $AST/BaseTestGround.umap
+Main orchestrator (tactical): $TACT/Grid/TacBattleGrid
 
 ## Guidelines
 - Ask, don't assume

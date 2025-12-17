@@ -1,4 +1,5 @@
 #include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/UnitStats.h"
@@ -271,18 +272,24 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 	switch (Result.TurnAction)
 	{
 	case EAbilityTurnAction::EndTurn:
-		EndCurrentUnitTurn();
+	case EAbilityTurnAction::EndTurnDelayed:
+		// Check if presentation operations are still running
+		if (PresentationTracker && !PresentationTracker->IsIdle())
+		{
+			UE_LOG(LogTemp, Log, TEXT("TurnManager: Waiting for presentation to complete before ending turn"));
+			bWaitingForPresentation = true;
+			PresentationTracker->OnAllOperationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("TurnManager: No pending presentation, ending turn immediately"));
+			EndCurrentUnitTurn();
+		}
 		break;
 
 	case EAbilityTurnAction::FreeTurn:
 		// Do nothing - unit keeps turn
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Free turn - unit keeps acting"));
-		break;
-
-	case EAbilityTurnAction::EndTurnDelayed:
-		// TODO: Set flag, end turn when animations finish
-		UE_LOG(LogTemp, Warning, TEXT("TurnManager: EndTurnDelayed not fully implemented - ending turn now"));
-		EndCurrentUnitTurn();
 		break;
 
 	case EAbilityTurnAction::RequireConfirm:
@@ -349,4 +356,20 @@ FUnitTurnQueueDisplay UTurnManagerComponent::GetActiveUnitDisplayData() const
 		return FUnitTurnQueueDisplay();
 	}
 	return MakeUnitTurnQueueDisplay(ActiveUnit, ActiveUnitInitiative, true);
+}
+
+void UTurnManagerComponent::OnPresentationComplete()
+{
+	UE_LOG(LogTemp, Log, TEXT("TurnManager: Presentation complete, ending turn"));
+
+	bWaitingForPresentation = false;
+
+	// Unbind from tracker event
+	if (PresentationTracker)
+	{
+		PresentationTracker->OnAllOperationsComplete.RemoveDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+	}
+
+	// Now safe to end the turn
+	EndCurrentUnitTurn();
 }
