@@ -276,20 +276,24 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 		// Handle flank exit/entry for moving unit
 		if (bLeavingFlank && !bEnteringFlank)
 		{
+			RestoreOriginalRotation(Unit);
 			OnUnitFlankStateChanged.Broadcast(Unit, false, FIntPoint(CurrentCol, CurrentRow));
 		}
 		else if (bEnteringFlank)
 		{
+			ApplyFlankRotation(Unit, TargetRow, TargetCol);
 			OnUnitFlankStateChanged.Broadcast(Unit, true, FIntPoint(TargetCol, TargetRow));
 		}
 
 		// Handle flank exit/entry for swapped unit
 		if (bSwappedLeavingFlank && !bSwappedEnteringFlank)
 		{
+			RestoreOriginalRotation(TargetOccupant);
 			OnUnitFlankStateChanged.Broadcast(TargetOccupant, false, FIntPoint(TargetCol, TargetRow));
 		}
 		else if (bSwappedEnteringFlank)
 		{
+			ApplyFlankRotation(TargetOccupant, CurrentRow, CurrentCol);
 			OnUnitFlankStateChanged.Broadcast(TargetOccupant, true, FIntPoint(CurrentCol, CurrentRow));
 		}
 	}
@@ -303,10 +307,12 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 		// Handle flank exit/entry
 		if (bLeavingFlank && !bEnteringFlank)
 		{
+			RestoreOriginalRotation(Unit);
 			OnUnitFlankStateChanged.Broadcast(Unit, false, FIntPoint(CurrentCol, CurrentRow));
 		}
 		else if (bEnteringFlank)
 		{
+			ApplyFlankRotation(Unit, TargetRow, TargetCol);
 			OnUnitFlankStateChanged.Broadcast(Unit, true, FIntPoint(TargetCol, TargetRow));
 		}
 	}
@@ -521,4 +527,39 @@ FIntPoint UGridMovementComponent::FindClosestNonFlankCell(int32 FlankRow, int32 
 	}
 
 	return FIntPoint(ClosestCol, FlankRow);
+}
+
+void UGridMovementComponent::ApplyFlankRotation(AUnit* Unit, int32 Row, int32 Col)
+{
+	if (!Unit || !DataManager)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("ApplyFlankRotation: Unit entered flank cell at [%d,%d]"), Row, Col);
+
+	// Store original rotation before applying flank rotation
+	if (!DataManager->IsUnitOnFlank(Unit))
+	{
+		DataManager->SetUnitOriginalRotation(Unit, Unit->GetActorRotation());
+	}
+
+	// Apply flank-specific rotation
+	const FRotator FlankRotation = FGridCoordinates::GetFlankRotation(Row, Col);
+	Unit->SetActorRotation(FlankRotation);
+	DataManager->SetUnitFlankState(Unit, true);
+}
+
+void UGridMovementComponent::RestoreOriginalRotation(AUnit* Unit)
+{
+	if (!Unit || !DataManager || !DataManager->IsUnitOnFlank(Unit))
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("RestoreOriginalRotation: Unit exited flank cell"));
+
+	// Restore original rotation
+	Unit->SetActorRotation(DataManager->GetUnitOriginalRotation(Unit));
+	DataManager->SetUnitFlankState(Unit, false);
 }

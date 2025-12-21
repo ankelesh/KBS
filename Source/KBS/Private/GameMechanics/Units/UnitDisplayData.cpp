@@ -27,6 +27,7 @@ FString TargetReachToString(ETargetReach Reach)
 	switch (Reach)
 	{
 		case ETargetReach::None: return TEXT("None");
+		case ETargetReach::Self: return TEXT("Self");
 		case ETargetReach::ClosestEnemies: return TEXT("Closest Enemies");
 		case ETargetReach::AnyEnemy: return TEXT("Any Enemy");
 		case ETargetReach::AllEnemies: return TEXT("All Enemies");
@@ -146,6 +147,7 @@ FUnitDisplayData BuildUnitDisplayData(
 
 	DisplayData.Armour = ConvertArmourMap(ModifiedStats.Defense.Armour);
 	DisplayData.DamageReduction = ModifiedStats.Defense.DamageReduction;
+	DisplayData.bIsDefending = ModifiedStats.Defense.bIsDefending;
 
 	return DisplayData;
 }

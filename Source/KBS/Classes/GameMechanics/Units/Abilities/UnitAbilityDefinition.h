@@ -8,6 +8,7 @@
 #include "UnitAbilityDefinition.generated.h"
 
 class UBattleEffect;
+class UUnitAbilityInstance;
 
 UCLASS(BlueprintType)
 class KBS_API UUnitAbilityDefinition : public UPrimaryDataAsset
@@ -15,6 +16,9 @@ class KBS_API UUnitAbilityDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
+	TSubclassOf<UUnitAbilityInstance> AbilityClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	FString AbilityName;
 

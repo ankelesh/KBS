@@ -9,6 +9,31 @@ UAbilityInventoryComponent::UAbilityInventoryComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+UUnitAbilityInstance* UAbilityInventoryComponent::GetCurrentActiveAbility() const
+{
+	return CurrentActiveAbility;
+}
+
+TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAvailableActiveAbilities() const
+{
+	TArray<UUnitAbilityInstance*> Result;
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
+	{
+		Result.Add(Ability);
+	}
+	return Result;
+}
+
+TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetPassiveAbilities() const
+{
+	TArray<UUnitAbilityInstance*> Result;
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : PassiveAbilities)
+	{
+		Result.Add(Ability);
+	}
+	return Result;
+}
+
 void UAbilityInventoryComponent::EquipAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability)
@@ -17,7 +42,30 @@ void UAbilityInventoryComponent::EquipAbility(UUnitAbilityInstance* Ability)
 	}
 
 	CurrentActiveAbility = Ability;
-	OnAbilityEquipped.Broadcast(Ability);
+}
+
+void UAbilityInventoryComponent::EquipDefaultAbility()
+{
+	if (AvailableActiveAbilities.Num() > 0)
+	{
+		CurrentActiveAbility = AvailableActiveAbilities[0];
+		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Equipped default ability"));
+	}
+	else
+	{
+		CurrentActiveAbility = nullptr;
+		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: No available active abilities to equip"));
+	}
+}
+
+void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
+{
+	if (!Ability || Ability->IsPassive())
+	{
+		return;
+	}
+
+	AvailableActiveAbilities.Add(Ability);
 }
 
 void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability)
@@ -108,4 +156,34 @@ void UAbilityInventoryComponent::UnregisterPassives()
 			AbilitySubsystem->UnregisterAbility(Ability);
 		}
 	}
+}
+
+TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetActiveAbilitiesDisplayData() const
+{
+	TArray<FAbilityDisplayData> DisplayDataArray;
+
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
+	{
+		if (Ability)
+		{
+			DisplayDataArray.Add(Ability->GetAbilityDisplayData());
+		}
+	}
+
+	return DisplayDataArray;
+}
+
+TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetPassiveAbilitiesDisplayData() const
+{
+	TArray<FAbilityDisplayData> DisplayDataArray;
+
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : PassiveAbilities)
+	{
+		if (Ability)
+		{
+			DisplayDataArray.Add(Ability->GetAbilityDisplayData());
+		}
+	}
+
+	return DisplayDataArray;
 }

@@ -20,6 +20,7 @@ UENUM(BlueprintType)
 enum class ETargetReach : uint8
 {
 	None UMETA(DisplayName = "None"),
+	Self UMETA(DisplayName = "Self"),
 	ClosestEnemies UMETA(DisplayName = "Closest Enemies"),
 	AnyEnemy UMETA(DisplayName = "Any Enemy"),
 	AllEnemies UMETA(DisplayName = "All Enemies"),

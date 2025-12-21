@@ -26,9 +26,9 @@ public:
 	UAbilityExecutorComponent();
 
 	/**
-	 * Initialize with grid reference
+	 * Initialize with grid and presentation tracker references
 	 */
-	void Initialize(ATacBattleGrid* InGrid);
+	void Initialize(ATacBattleGrid* InGrid, UPresentationTrackerComponent* InPresentationTracker);
 
 	/**
 	 * Check if ability can execute in given context

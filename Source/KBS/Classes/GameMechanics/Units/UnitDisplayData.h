@@ -59,6 +59,9 @@ struct KBS_API FUnitDisplayData
 	int32 DamageReduction;
 
 	UPROPERTY(BlueprintReadWrite)
+	bool bIsDefending;
+
+	UPROPERTY(BlueprintReadWrite)
 	bool BelongsToAttackerTeam;
 };
 

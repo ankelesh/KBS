@@ -1,4 +1,5 @@
 #include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/GridInputLockComponent.h"
 
 UPresentationTrackerComponent::UPresentationTrackerComponent()
 {
@@ -14,6 +15,11 @@ void UPresentationTrackerComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
+void UPresentationTrackerComponent::SetInputLockComponent(UGridInputLockComponent* InInputLockComponent)
+{
+	InputLockComponent = InInputLockComponent;
+}
+
 void UPresentationTrackerComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -26,6 +32,13 @@ void UPresentationTrackerComponent::TickComponent(float DeltaTime, ELevelTick Ti
 		if (IsIdle())
 		{
 			UE_LOG(LogTemp, Log, TEXT("PresentationTracker: All operations complete, broadcasting event"));
+
+			// Unlock input when all presentations complete
+			if (InputLockComponent)
+			{
+				InputLockComponent->ReleaseLock(EInputLockSource::PresentationPlaying);
+			}
+
 			OnAllOperationsComplete.Broadcast();
 		}
 	}
@@ -33,11 +46,19 @@ void UPresentationTrackerComponent::TickComponent(float DeltaTime, ELevelTick Ti
 
 FOperationHandle UPresentationTrackerComponent::RegisterOperation(const FString& DebugLabel)
 {
+	bool bWasIdle = IsIdle();
+
 	FGuid NewGuid = FGuid::NewGuid();
 	PendingOperations.Add(NewGuid, DebugLabel);
 
 	UE_LOG(LogTemp, Log, TEXT("PresentationTracker: Registered operation '%s' [%s] (Total: %d)"),
 		*DebugLabel, *NewGuid.ToString(), PendingOperations.Num());
+
+	// Lock input when first operation starts
+	if (bWasIdle && InputLockComponent)
+	{
+		InputLockComponent->RequestLock(EInputLockSource::PresentationPlaying);
+	}
 
 	return FOperationHandle(NewGuid);
 }

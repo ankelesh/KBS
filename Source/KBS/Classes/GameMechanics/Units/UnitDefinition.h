@@ -11,6 +11,7 @@ class UStaticMesh;
 class UAnimBlueprintGeneratedClass;
 class UMaterialInterface;
 class UAnimMontage;
+class UUnitAbilityDefinition;
 
 UENUM(BlueprintType)
 enum class EUnitMeshType : uint8
@@ -72,6 +73,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<TObjectPtr<UWeaponDataAsset>> DefaultWeapons;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities")
+	TArray<TObjectPtr<UUnitAbilityDefinition>> DefaultAbilities;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;

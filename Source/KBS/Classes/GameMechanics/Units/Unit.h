@@ -77,6 +77,7 @@ public:
 
 	void TakeHit(const FDamageResult& DamageResult);
 	void ApplyEffect(UBattleEffect* Effect);
+	void SetDefending(bool bDefending);
 
 	// Turn lifecycle hooks
 	UFUNCTION()
@@ -87,6 +88,10 @@ public:
 
 	// Stat accessors
 	const FUnitCoreStats& GetModifiedStats() const { return ModifiedStats; }
+
+	// Component accessors
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UAbilityInventoryComponent* GetAbilityInventory() const { return AbilityInventory; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UUnitVisualsComponent> VisualsComponent;

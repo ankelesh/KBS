@@ -18,20 +18,7 @@ class UTurnManagerComponent;
 class UAbilityExecutorComponent;
 class UPresentationTrackerComponent;
 class UUnitAbilityInstance;
-
-USTRUCT()
-struct FGridRow
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TArray<TObjectPtr<AUnit>> Cells;
-
-	FGridRow()
-	{
-		Cells.Init(nullptr, 5);
-	}
-};
+class UGridInputLockComponent;
 
 USTRUCT(BlueprintType)
 struct FUnitPlacement
@@ -86,56 +73,32 @@ public:
 	// ========== Lifecycle ==========
 	ATacBattleGrid();
 
-	// ========== Grid Data & Validation ==========
-	bool IsValidCell(int32 Row, int32 Col, EBattleLayer Layer) const;
-	bool IsFlankCell(int32 Row, int32 Col) const;
-	bool IsRestrictedCell(int32 Row, int32 Col) const;
+	// ========== Grid Conversion (External API) ==========
 	FVector GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const;
 	FIntPoint GetCellFromWorldLocation(FVector WorldLocation) const;
 
-	// ========== Unit Placement & Retrieval ==========
-	bool PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer);
-	AUnit* GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const;
-	bool RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer);
-	bool GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
-
-	// ========== Movement API ==========
+	// ========== Movement API (UI) ==========
 	TArray<FIntPoint> GetValidMoveCells(AUnit* Unit) const;
-	bool MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol);
 
-	// ========== Targeting API ==========
+	// ========== Targeting API (UI) ==========
 	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit) const;
 	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit) const;
 
 	// ========== Selection & Interaction ==========
-	void SelectUnit(AUnit* Unit);
-	void ClearSelection();
-	AUnit* GetSelectedUnit() const { return SelectedUnit; }
-	bool TryMoveSelectedUnit(int32 TargetRow, int32 TargetCol);
-
 	UFUNCTION(BlueprintCallable, Category = "Battle")
 	void SetHoveredUnit(AUnit* Unit);
 
-	// ========== Team Management ==========
+	// ========== Team Queries (Component API) ==========
 	UBattleTeam* GetTeamForUnit(AUnit* Unit) const;
 	UBattleTeam* GetEnemyTeam(AUnit* Unit) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	TArray<AUnit*> GetTeamUnits(bool bIsAttackerTeam) const;
-
-	// ========== Flank State Management ==========
-	void UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col);
-	void UnitExitsFlank(AUnit* Unit);
-	bool IsUnitOnFlank(const AUnit* Unit) const;
-	void SetUnitOnFlank(AUnit* Unit, bool bOnFlank);
-	FRotator GetUnitOriginalRotation(const AUnit* Unit) const;
-	void SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation);
-
-	// ========== Ability System ==========
+	// ========== Ability System (Input Handlers) ==========
 	void AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
 
-	UFUNCTION()
-	void HandleAbilityEquipped(UUnitAbilityInstance* Ability);
+	UFUNCTION(BlueprintCallable, Category = "Battle|Abilities")
+	void SwitchAbility(UUnitAbilityInstance* NewAbility);
+
+	void AbilitySelfExecute(AUnit* SourceUnit, UUnitAbilityInstance* Ability);
 
 	// ========== Component Accessors ==========
 	UFUNCTION(BlueprintCallable, Category="Getters")
@@ -144,18 +107,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Getters")
 	UPresentationTrackerComponent* GetPresentationTracker() const;
 
-	// ========== Event Handlers ==========
-	UFUNCTION(BlueprintCallable, Category = "Battle")
-	void HandleUnitClicked(AUnit* Unit, FKey ButtonPressed);
+	UFUNCTION(BlueprintCallable, Category = "Getters")
+	UGridDataManager* GetDataManager();
 
-	UFUNCTION()
-	void HandleUnitDied(AUnit* Unit);
+	UFUNCTION(BlueprintCallable, Category = "Getters")
+	UGridInputLockComponent* GetInputLockComponent() const;
 
-	UFUNCTION()
-	void HandleBattleEnded(UBattleTeam* Winner);
-
-	UFUNCTION()
-	void HandleUnitTurnStart(AUnit* Unit);
+	// ========== Blueprint Actions ==========
+	/**
+	 * Request unit details (for HUD portrait clicks)
+	 * Broadcasts OnDetailsRequested event
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	void RequestUnitDetails(AUnit* Unit);
 
 	// ========== Actor Overrides ==========
 	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
@@ -181,6 +145,32 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	// ========== Event Handlers (Delegate Callbacks) ==========
+	UFUNCTION()
+	void HandleUnitClicked(AUnit* Unit, FKey ButtonPressed);
+
+	UFUNCTION()
+	void HandleUnitDied(AUnit* Unit);
+
+	UFUNCTION()
+	void HandleBattleEnded(UBattleTeam* Winner);
+
+	UFUNCTION()
+	void HandleUnitTurnStart(AUnit* Unit);
+
+	// ========== Internal Grid Operations ==========
+	bool IsValidCell(int32 Row, int32 Col, EBattleLayer Layer) const;
+	bool IsFlankCell(int32 Row, int32 Col) const;
+	bool IsRestrictedCell(int32 Row, int32 Col) const;
+	bool PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer);
+	AUnit* GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const;
+	bool RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer);
+	bool GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
+	bool MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol);
+
+	// ========== Internal Team Operations ==========
+	TArray<AUnit*> GetTeamUnits(bool bIsAttackerTeam) const;
 
 private:
 	// ========== BeginPlay Helper Methods ==========
@@ -231,13 +221,13 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<class UAIControllerComponent> AIController;
 
-	// ========== Team Data ==========
-	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Teams")
-	TObjectPtr<UBattleTeam> AttackerTeam;
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<class UTacGridInputRouter> InputRouter;
 
-	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Teams")
-	TObjectPtr<UBattleTeam> DefenderTeam;
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UGridInputLockComponent> InputLockComponent;
 
+	// ========== Team Configuration ==========
 	UPROPERTY(EditAnywhere, Category = "BattleGrid|Teams")
 	ETeamSide Player1ControlledTeam = ETeamSide::Attacker;
 
@@ -246,9 +236,6 @@ private:
 	TObjectPtr<UGridConfig> Config;
 
 	// ========== Runtime State ==========
-	UPROPERTY(EditAnywhere, Category = "BattleGrid|Selection")
-	TObjectPtr<AUnit> SelectedUnit;
-
 	UPROPERTY()
 	TArray<TObjectPtr<AUnit>> SpawnedUnits;
 

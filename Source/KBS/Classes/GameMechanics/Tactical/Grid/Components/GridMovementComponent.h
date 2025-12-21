@@ -118,4 +118,14 @@ private:
 	 * Check if cell position is a flank cell
 	 */
 	bool IsFlankCell(const FIntPoint& Cell) const;
+
+	/**
+	 * Apply flank rotation when unit enters flank cell
+	 */
+	void ApplyFlankRotation(AUnit* Unit, int32 Row, int32 Col);
+
+	/**
+	 * Restore original rotation when unit exits flank cell
+	 */
+	void RestoreOriginalRotation(AUnit* Unit);
 };

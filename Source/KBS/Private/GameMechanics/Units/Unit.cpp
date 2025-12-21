@@ -7,8 +7,8 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
-#include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/AbilityFactory.h"
 #include "GameplayTypes/CombatTypes.h"
 
 AUnit::AUnit()
@@ -79,26 +79,35 @@ void AUnit::BeginPlay()
 
 	RecalculateModifiedStats();
 
-	// Create and equip default StandardAttackAction
-	if (AbilityInventory)
+	// Create abilities from definition
+	if (AbilityInventory && UnitDefinition)
 	{
-		// Create default ability definition
-		UUnitAbilityDefinition* DefaultAbilityDef = NewObject<UUnitAbilityDefinition>(this);
-		if (DefaultAbilityDef)
+		for (UUnitAbilityDefinition* AbilityDef : UnitDefinition->DefaultAbilities)
 		{
-			DefaultAbilityDef->AbilityName = TEXT("Standard Attack");
-			DefaultAbilityDef->MaxCharges = -1; // Unlimited charges
-			DefaultAbilityDef->Targeting = ETargetReach::None;
-			DefaultAbilityDef->bIsPassive = false;
-
-			// Create ability instance
-			UUnitAutoAttackAbility* StandardAttack = NewObject<UUnitAutoAttackAbility>(this);
-			if (StandardAttack)
+			if (!AbilityDef)
 			{
-				StandardAttack->InitializeFromDefinition(DefaultAbilityDef, this);
-				AbilityInventory->EquipAbility(StandardAttack);
+				continue;
+			}
+
+			UUnitAbilityInstance* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, this);
+			if (!NewAbility)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Failed to create ability from definition '%s'"), *AbilityDef->GetName());
+				continue;
+			}
+
+			if (NewAbility->IsPassive())
+			{
+				AbilityInventory->AddPassiveAbility(NewAbility);
+			}
+			else
+			{
+				AbilityInventory->AddActiveAbility(NewAbility);
 			}
 		}
+
+		// Auto-equip the default (first) active ability
+		AbilityInventory->EquipDefaultAbility();
 
 		// Register passive abilities with the subsystem
 		AbilityInventory->RegisterPassives();
@@ -250,9 +259,17 @@ void AUnit::ApplyEffect(UBattleEffect* Effect)
 	}
 }
 
+void AUnit::SetDefending(bool bDefending)
+{
+	ModifiedStats.Defense.bIsDefending = bDefending;
+}
+
 void AUnit::OnUnitTurnStart()
 {
 	UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
+
+	// Clear defending stance at start of unit's turn
+	ModifiedStats.Defense.bIsDefending = false;
 
 	// Broadcast turn start to effects
 	if (EffectManager)

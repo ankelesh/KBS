@@ -11,15 +11,10 @@ UAbilityExecutorComponent::UAbilityExecutorComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UAbilityExecutorComponent::Initialize(ATacBattleGrid* InGrid)
+void UAbilityExecutorComponent::Initialize(ATacBattleGrid* InGrid, UPresentationTrackerComponent* InPresentationTracker)
 {
 	Grid = InGrid;
-
-	// Cache presentation tracker reference
-	if (Grid)
-	{
-		PresentationTracker = Grid->GetPresentationTracker();
-	}
+	PresentationTracker = InPresentationTracker;
 }
 
 FAbilityValidation UAbilityExecutorComponent::ValidateAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context) const

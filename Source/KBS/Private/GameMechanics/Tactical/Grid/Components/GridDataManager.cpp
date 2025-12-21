@@ -3,15 +3,20 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 
-void UGridDataManager::Initialize(ATacBattleGrid* InGrid, UBattleTeam* InAttackerTeam, UBattleTeam* InDefenderTeam)
+void UGridDataManager::Initialize(ATacBattleGrid* InGrid)
 {
 	Grid = InGrid;
-	AttackerTeam = InAttackerTeam;
-	DefenderTeam = InDefenderTeam;
 
 	if (Grid)
 	{
 		GridWorldLocation = Grid->GetActorLocation();
+
+		// Create and initialize teams
+		AttackerTeam = NewObject<UBattleTeam>(Grid);
+		AttackerTeam->SetTeamSide(ETeamSide::Attacker);
+
+		DefenderTeam = NewObject<UBattleTeam>(Grid);
+		DefenderTeam->SetTeamSide(ETeamSide::Defender);
 	}
 
 	GroundLayer.SetNum(FGridCoordinates::GridSize);
@@ -38,25 +43,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer
 	}
 
 	LayerArray[Row].Cells[Col] = Unit;
-	Unit->SetActorLocation(FGridCoordinates::CellToWorldLocation(Row, Col, Layer, Grid->GetActorLocation()));
-	Unit->SetActorEnableCollision(true);
-
-	// Enable click events on all unit meshes
-	if (Unit->VisualsComponent)
-	{
-		for (USceneComponent* MeshComp : Unit->VisualsComponent->GetAllMeshComponents())
-		{
-			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(MeshComp))
-			{
-				PrimComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-				PrimComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-			}
-		}
-	}
-
-	// Subscribe to unit click events
-	Unit->OnUnitClicked.AddDynamic(TacBattleGrid, &ATacBattleGrid::HandleUnitClicked);
-	UE_LOG(LogTemp, Log, TEXT("Grid subscribed to unit at [%d,%d]"), Row, Col);
+	Unit->SetActorLocation(FGridCoordinates::CellToWorldLocation(Row, Col, Layer, GridWorldLocation));
 
 	return true;
 }
@@ -97,10 +84,6 @@ bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer, ATac
 	{
 		return false;
 	}
-
-	// Unsubscribe from unit click events
-	Unit->OnUnitClicked.RemoveDynamic(TacBattleGrid, &ATacBattleGrid::HandleUnitClicked);
-	UE_LOG(LogTemp, Log, TEXT("Grid unsubscribed from unit at [%d,%d]"), Row, Col);
 
 	// Clean up external state tracking to prevent memory leaks
 	UnitFlankStates.Remove(Unit);
@@ -191,22 +174,22 @@ void UGridDataManager::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rota
 
 bool UGridDataManager::IsValidCell(int32 Row, int32 Col, EBattleLayer Layer) const
 {
-	return Grid ? Grid->IsValidCell(Row, Col, Layer) : false;
+	return FGridCoordinates::IsValidCell(Row, Col);
 }
 
 bool UGridDataManager::IsFlankCell(int32 Row, int32 Col) const
 {
-	return Grid ? Grid->IsFlankCell(Row, Col) : false;
+	return FGridCoordinates::IsFlankCell(Row, Col);
 }
 
 bool UGridDataManager::IsRestrictedCell(int32 Row, int32 Col) const
 {
-	return Grid ? Grid->IsRestrictedCell(Row, Col) : false;
+	return FGridCoordinates::IsRestrictedCell(Row, Col);
 }
 
 FVector UGridDataManager::GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const
 {
-	return Grid ? Grid->GetCellWorldLocation(Row, Col, Layer) : FVector::ZeroVector;
+	return FGridCoordinates::CellToWorldLocation(Row, Col, Layer, GridWorldLocation);
 }
 
 UBattleTeam* UGridDataManager::GetTeamForUnit(AUnit* Unit) const
@@ -227,6 +210,34 @@ UBattleTeam* UGridDataManager::GetTeamForUnit(AUnit* Unit) const
 	}
 
 	return nullptr;
+}
+
+UBattleTeam* UGridDataManager::GetEnemyTeam(AUnit* Unit) const
+{
+	UBattleTeam* UnitTeam = GetTeamForUnit(Unit);
+
+	if (UnitTeam == AttackerTeam)
+	{
+		return DefenderTeam;
+	}
+
+	if (UnitTeam == DefenderTeam)
+	{
+		return AttackerTeam;
+	}
+
+	return nullptr;
+}
+
+TArray<AUnit*> UGridDataManager::GetUnitsFromTeam(bool bIsAttacker) const
+{
+	UBattleTeam* Team = bIsAttacker ? AttackerTeam : DefenderTeam;
+	if (!Team)
+	{
+		return TArray<AUnit*>();
+	}
+
+	return Team->GetUnits();
 }
 
 TArray<FIntPoint> UGridDataManager::GetEmptyCells(EBattleLayer Layer) const

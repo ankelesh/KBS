@@ -1,5 +1,4 @@
 #include "GameMechanics/Tactical/Grid/Components/AIControllerComponent.h"
-#include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
@@ -18,22 +17,22 @@ UAIControllerComponent::UAIControllerComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UAIControllerComponent::Initialize(ATacBattleGrid* InGrid, UGridDataManager* InDataManager,
+void UAIControllerComponent::Initialize(UGridDataManager* InDataManager,
                                         UGridMovementComponent* InMovement, UGridTargetingComponent* InTargeting,
-                                        UAbilityExecutorComponent* InAbilityExecutor)
+                                        UAbilityExecutorComponent* InAbilityExecutor, UTurnManagerComponent* InTurnManager)
 {
-	Grid = InGrid;
 	DataManager = InDataManager;
 	MovementComponent = InMovement;
 	TargetingComponent = InTargeting;
 	AbilityExecutor = InAbilityExecutor;
+	TurnManager = InTurnManager;
 }
 
 void UAIControllerComponent::ExecuteAITurn(AUnit* AIUnit)
 {
-	if (!AIUnit || !Grid)
+	if (!AIUnit || !DataManager || !TurnManager)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AIController: Invalid AIUnit or Grid"));
+		UE_LOG(LogTemp, Warning, TEXT("AIController: Invalid AIUnit or components"));
 		return;
 	}
 
@@ -54,12 +53,12 @@ void UAIControllerComponent::ExecuteAITurn(AUnit* AIUnit)
 
 	// No action possible - end turn
 	UE_LOG(LogTemp, Log, TEXT("AIController: No action possible, ending turn"));
-	Grid->GetTurnManager()->EndCurrentUnitTurn();
+	TurnManager->EndCurrentUnitTurn();
 }
 
 bool UAIControllerComponent::TryExecuteAttack(AUnit* AIUnit)
 {
-	if (!AIUnit || !TargetingComponent || !Grid)
+	if (!AIUnit || !TargetingComponent)
 	{
 		return false;
 	}
@@ -98,7 +97,7 @@ bool UAIControllerComponent::TryExecuteAttack(AUnit* AIUnit)
 	// Get target's grid position
 	int32 TargetRow, TargetCol;
 	EBattleLayer TargetLayer;
-	if (!Grid->GetUnitPosition(BestTarget, TargetRow, TargetCol, TargetLayer))
+	if (!DataManager->GetUnitPosition(BestTarget, TargetRow, TargetCol, TargetLayer))
 	{
 		return false;
 	}
@@ -116,7 +115,7 @@ bool UAIControllerComponent::TryExecuteAttack(AUnit* AIUnit)
 	}
 
 	// Execute ability
-	Grid->AbilityTargetSelected(AIUnit, ResolvedTargets);
+	TurnManager->ExecuteAbilityOnTargets(AIUnit, ResolvedTargets);
 	return true;
 }
 
@@ -174,13 +173,13 @@ AUnit* UAIControllerComponent::FindBestTarget(AUnit* AIUnit, const TArray<AUnit*
 
 bool UAIControllerComponent::TryMoveTowardEnemy(AUnit* AIUnit)
 {
-	if (!AIUnit || !Grid || !DataManager || !MovementComponent)
+	if (!AIUnit || !DataManager || !MovementComponent)
 	{
 		return false;
 	}
 
 	// Get enemy team
-	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(AIUnit);
+	UBattleTeam* EnemyTeam = DataManager->GetEnemyTeam(AIUnit);
 	if (!EnemyTeam)
 	{
 		return false;
@@ -189,7 +188,7 @@ bool UAIControllerComponent::TryMoveTowardEnemy(AUnit* AIUnit)
 	// Get AI unit's current position
 	int32 AIRow, AICol;
 	EBattleLayer AILayer;
-	if (!Grid->GetUnitPosition(AIUnit, AIRow, AICol, AILayer))
+	if (!DataManager->GetUnitPosition(AIUnit, AIRow, AICol, AILayer))
 	{
 		return false;
 	}
@@ -210,7 +209,7 @@ bool UAIControllerComponent::TryMoveTowardEnemy(AUnit* AIUnit)
 
 		int32 EnemyRow, EnemyCol;
 		EBattleLayer EnemyLayer;
-		if (!Grid->GetUnitPosition(Enemy, EnemyRow, EnemyCol, EnemyLayer))
+		if (!DataManager->GetUnitPosition(Enemy, EnemyRow, EnemyCol, EnemyLayer))
 		{
 			continue;
 		}
@@ -238,13 +237,13 @@ bool UAIControllerComponent::TryMoveTowardEnemy(AUnit* AIUnit)
 	}
 
 	// Move unit (BestMove is (Col, Row) format as FIntPoint)
-	bool bMoveSuccess = Grid->MoveUnit(AIUnit, BestMove.Y, BestMove.X);
+	bool bMoveSuccess = MovementComponent->MoveUnit(AIUnit, BestMove.Y, BestMove.X);
 	return bMoveSuccess;
 }
 
 FIntPoint UAIControllerComponent::FindBestMovePosition(AUnit* AIUnit, AUnit* TargetEnemy)
 {
-	if (!AIUnit || !TargetEnemy || !MovementComponent || !Grid || !DataManager)
+	if (!AIUnit || !TargetEnemy || !MovementComponent || !DataManager)
 	{
 		return FIntPoint(-1, -1);
 	}
@@ -259,7 +258,7 @@ FIntPoint UAIControllerComponent::FindBestMovePosition(AUnit* AIUnit, AUnit* Tar
 	// Get target enemy position
 	int32 TargetRow, TargetCol;
 	EBattleLayer TargetLayer;
-	if (!Grid->GetUnitPosition(TargetEnemy, TargetRow, TargetCol, TargetLayer))
+	if (!DataManager->GetUnitPosition(TargetEnemy, TargetRow, TargetCol, TargetLayer))
 	{
 		return FIntPoint(-1, -1);
 	}
@@ -269,7 +268,7 @@ FIntPoint UAIControllerComponent::FindBestMovePosition(AUnit* AIUnit, AUnit* Tar
 	// Get AI unit's layer for world location calculation
 	int32 AIRow, AICol;
 	EBattleLayer AILayer;
-	if (!Grid->GetUnitPosition(AIUnit, AIRow, AICol, AILayer))
+	if (!DataManager->GetUnitPosition(AIUnit, AIRow, AICol, AILayer))
 	{
 		return FIntPoint(-1, -1);
 	}

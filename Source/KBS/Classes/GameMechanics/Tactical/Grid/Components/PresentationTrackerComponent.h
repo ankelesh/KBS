@@ -74,6 +74,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Presentation Tracker")
 	void EndBatch();
 
+	/**
+	 * Set the input lock component for auto-locking during presentations
+	 */
+	void SetInputLockComponent(class UGridInputLockComponent* InInputLockComponent);
+
 	/** Fires when all operations complete AND no batches are open */
 	UPROPERTY(BlueprintAssignable, Category = "Presentation Tracker")
 	FOnAllOperationsComplete OnAllOperationsComplete;
@@ -93,4 +98,8 @@ private:
 	/** Deferred idle check flag for next tick */
 	UPROPERTY()
 	bool bCheckIdleNextFrame;
+
+	/** Input lock component for auto-locking during presentations */
+	UPROPERTY()
+	TObjectPtr<class UGridInputLockComponent> InputLockComponent;
 };

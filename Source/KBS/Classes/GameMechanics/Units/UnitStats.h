@@ -24,6 +24,10 @@ struct FUnitDefenseStats
 	// Flat damage reduction applied to all sources
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defense")
 	int32 DamageReduction = 0;
+
+	// Defending stance flag - halves all incoming damage (applied after all other reductions)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defense")
+	bool bIsDefending = false;
 };
 
 USTRUCT(BlueprintType)

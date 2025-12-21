@@ -7,6 +7,7 @@
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/AbilityBattleContext.h"
 #include "GameplayTypes/AbilityTypes.h"
+#include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
 #include "UnitAbilityInstance.generated.h"
 
 class UUnitAbilityDefinition;
@@ -58,6 +59,9 @@ public:
 	AUnit* GetOwner() const { return Owner; }
 	void ConsumeCharge();
 	void RestoreCharges();
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
+	FAbilityDisplayData GetAbilityDisplayData() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")

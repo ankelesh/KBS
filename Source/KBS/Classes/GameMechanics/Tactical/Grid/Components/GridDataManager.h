@@ -3,10 +3,23 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GridDataManager.generated.h"
 
 class ATacBattleGrid;
+
+USTRUCT()
+struct FGridRow
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TArray<TObjectPtr<AUnit>> Cells;
+
+	FGridRow()
+	{
+		Cells.Init(nullptr, 5);
+	}
+};
 
 /**
  * Manages grid data storage and unit placement
@@ -19,9 +32,9 @@ class KBS_API UGridDataManager : public UObject
 
 public:
 	/**
-	 * Initialize grid layers with team references
+	 * Initialize grid layers and create teams
 	 */
-	void Initialize(ATacBattleGrid* InGrid, UBattleTeam* InAttackerTeam, UBattleTeam* InDefenderTeam);
+	void Initialize(ATacBattleGrid* InGrid);
 
 	/**
 	 * Place a unit in the grid
@@ -74,8 +87,16 @@ public:
 	 * Team query methods
 	 */
 	UBattleTeam* GetTeamForUnit(AUnit* Unit) const;
+	UBattleTeam* GetEnemyTeam(AUnit* Unit) const;
 	UBattleTeam* GetAttackerTeam() const { return AttackerTeam; }
 	UBattleTeam* GetDefenderTeam() const { return DefenderTeam; }
+
+	/**
+	 * Get units from specified team (Blueprint-callable)
+	 * @param bIsAttacker - true for attacker team, false for defender team
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grid|Teams")
+	TArray<AUnit*> GetUnitsFromTeam(bool bIsAttacker) const;
 
 	/**
 	 * Cell state query methods

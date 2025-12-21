@@ -4,6 +4,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "GameplayTypes/AbilityTypesLibrary.h"
 
 void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
 {
@@ -110,6 +111,40 @@ void UUnitAbilityInstance::RestoreCharges()
 	{
 		RemainingCharges = Config->MaxCharges;
 	}
+}
+
+FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
+{
+	FAbilityDisplayData DisplayData;
+
+	if (!Config)
+	{
+		return DisplayData;
+	}
+
+	DisplayData.AbilityName = Config->AbilityName;
+	DisplayData.Icon = Config->Icon;
+	DisplayData.RemainingCharges = RemainingCharges;
+	DisplayData.MaxCharges = Config->MaxCharges;
+	DisplayData.bIsEmpty = false;
+
+	// Simplified execution check: has charges or unlimited
+	if (Config->MaxCharges < 0)
+	{
+		DisplayData.bCanExecuteThisTurn = true; // Unlimited charges
+	}
+	else
+	{
+		DisplayData.bCanExecuteThisTurn = RemainingCharges > 0;
+	}
+
+	// Convert targeting enum to readable string
+	DisplayData.TargetingInfo = UAbilityTypesLibrary::TargetReachToString(Config->Targeting);
+
+	// Description can be expanded later with ability-specific info
+	DisplayData.Description = FString::Printf(TEXT("%s - %s"), *Config->AbilityName, *DisplayData.TargetingInfo);
+
+	return DisplayData;
 }
 
 FAbilityValidation UUnitAbilityInstance::CanExecute(const FAbilityBattleContext& Context) const

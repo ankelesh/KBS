@@ -11,6 +11,8 @@
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/AIControllerComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/TacGridInputRouter.h"
+#include "GameMechanics/Tactical/Grid/Components/GridInputLockComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
 #include "GameplayTypes/CombatTypes.h"
@@ -48,12 +50,8 @@ ATacBattleGrid::ATacBattleGrid()
 	AbilityExecutor = CreateDefaultSubobject<UAbilityExecutorComponent>(TEXT("AbilityExecutor"));
 	PresentationTracker = CreateDefaultSubobject<UPresentationTrackerComponent>(TEXT("PresentationTracker"));
 	AIController = CreateDefaultSubobject<UAIControllerComponent>(TEXT("AIController"));
-
-	AttackerTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("AttackerTeam"));
-	AttackerTeam->SetTeamSide(ETeamSide::Attacker);
-
-	DefenderTeam = CreateDefaultSubobject<UBattleTeam>(TEXT("DefenderTeam"));
-	DefenderTeam->SetTeamSide(ETeamSide::Defender);
+	InputRouter = CreateDefaultSubobject<UTacGridInputRouter>(TEXT("InputRouter"));
+	InputLockComponent = CreateDefaultSubobject<UGridInputLockComponent>(TEXT("InputLockComponent"));
 
 	// Enable click events on grid
 	SetActorEnableCollision(true);
@@ -126,42 +124,6 @@ bool ATacBattleGrid::IsRestrictedCell(int32 Row, int32 Col) const
 	return FGridCoordinates::IsRestrictedCell(Row, Col);
 }
 
-UBattleTeam* ATacBattleGrid::GetTeamForUnit(AUnit* Unit) const
-{
-	if (!Unit)
-	{
-		return nullptr;
-	}
-
-	if (AttackerTeam && AttackerTeam->ContainsUnit(Unit))
-	{
-		return AttackerTeam;
-	}
-
-	if (DefenderTeam && DefenderTeam->ContainsUnit(Unit))
-	{
-		return DefenderTeam;
-	}
-
-	return nullptr;
-}
-
-UBattleTeam* ATacBattleGrid::GetEnemyTeam(AUnit* Unit) const
-{
-	UBattleTeam* UnitTeam = GetTeamForUnit(Unit);
-
-	if (UnitTeam == AttackerTeam)
-	{
-		return DefenderTeam;
-	}
-
-	if (UnitTeam == DefenderTeam)
-	{
-		return AttackerTeam;
-	}
-
-	return nullptr;
-}
 
 TArray<FIntPoint> ATacBattleGrid::GetValidMoveCells(AUnit* Unit) const
 {
@@ -175,106 +137,12 @@ bool ATacBattleGrid::MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol)
 
 TArray<FIntPoint> ATacBattleGrid::GetValidTargetCells(AUnit* Unit) const
 {
-	if (!Unit || !Unit->AbilityInventory)
-	{
-		return TArray<FIntPoint>();
-	}
-
-	UUnitAbilityInstance* CurrentAbility = Unit->AbilityInventory->GetCurrentActiveAbility();
-	if (!CurrentAbility)
-	{
-		return TArray<FIntPoint>();
-	}
-
-	ETargetReach Reach = CurrentAbility->GetTargeting();
-	return TargetingComponent->GetValidTargetCells(Unit, Reach);
+	return TargetingComponent->GetValidTargetCells(Unit);
 }
 
 TArray<AUnit*> ATacBattleGrid::GetValidTargetUnits(AUnit* Unit) const
 {
-	if (!Unit || !Unit->AbilityInventory)
-	{
-		return TArray<AUnit*>();
-	}
-
-	UUnitAbilityInstance* CurrentAbility = Unit->AbilityInventory->GetCurrentActiveAbility();
-	if (!CurrentAbility)
-	{
-		return TArray<AUnit*>();
-	}
-
-	ETargetReach Reach = CurrentAbility->GetTargeting();
-	return TargetingComponent->GetValidTargetUnits(Unit, Reach);
-}
-
-void ATacBattleGrid::SelectUnit(AUnit* Unit)
-{
-	if (!Unit)
-	{
-		ClearSelection();
-		return;
-	}
-
-	SelectedUnit = Unit;
-	UE_LOG(LogTemp, Warning, TEXT("[EVENT] Broadcasting OnCurrentUnitChanged for unit '%s'"), *Unit->GetName());
-	OnCurrentUnitChanged.Broadcast(Unit);
-
-	// Subscribe to ability changes
-	if (Unit->AbilityInventory)
-	{
-		Unit->AbilityInventory->OnAbilityEquipped.AddDynamic(this, &ATacBattleGrid::HandleAbilityEquipped);
-	}
-
-	// Get valid movement cells and show them
-	const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(Unit);
-	HighlightComponent->ShowValidMoves(ValidCells);
-
-	// Get valid target cells and show them
-	const TArray<FIntPoint> TargetCells = GetValidTargetCells(Unit);
-	HighlightComponent->ShowValidTargets(TargetCells);
-
-	UE_LOG(LogTemp, Warning, TEXT("SelectUnit: Found %d target cells"), TargetCells.Num());
-	for (const FIntPoint& Cell : TargetCells)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("  Target at [%d,%d]"), Cell.Y, Cell.X);
-	}
-}
-
-bool ATacBattleGrid::TryMoveSelectedUnit(int32 TargetRow, int32 TargetCol)
-{
-	if (!SelectedUnit)
-	{
-		UE_LOG(LogTemp, Error, TEXT("TryMoveSelectedUnit: No unit selected!"));
-		return false;
-	}
-
-	int32 CurrentRow, CurrentCol;
-	EBattleLayer CurrentLayer;
-	if (GetUnitPosition(SelectedUnit, CurrentRow, CurrentCol, CurrentLayer))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("TryMoveSelectedUnit: Attempting to move unit from [%d,%d] to [%d,%d]"),
-			CurrentRow, CurrentCol, TargetRow, TargetCol);
-	}
-
-	const bool bSuccess = MoveUnit(SelectedUnit, TargetRow, TargetCol);
-
-	if (bSuccess)
-	{
-		UE_LOG(LogTemp, Log, TEXT("TryMoveSelectedUnit: Move successful, clearing selection"));
-		ClearSelection();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("TryMoveSelectedUnit: Move FAILED!"));
-	}
-
-	return bSuccess;
-}
-
-void ATacBattleGrid::ClearSelection()
-{
-	SelectedUnit = nullptr;
-	HighlightComponent->ClearHighlights();
+	return TargetingComponent->GetValidTargetUnits(Unit);
 }
 
 FIntPoint ATacBattleGrid::GetCellFromWorldLocation(FVector WorldLocation) const
@@ -330,7 +198,7 @@ void ATacBattleGrid::HandleBattleEnded(UBattleTeam* Winner)
 
 void ATacBattleGrid::HandleUnitTurnStart(AUnit* Unit)
 {
-	if (!Unit || !TurnManager)
+	if (!Unit || !TurnManager || !DataManager)
 	{
 		return;
 	}
@@ -338,7 +206,7 @@ void ATacBattleGrid::HandleUnitTurnStart(AUnit* Unit)
 	UE_LOG(LogTemp, Warning, TEXT("[HANDLER] Grid received unit turn start for '%s'"), *Unit->GetName());
 
 	// Determine which team this unit belongs to
-	UBattleTeam* UnitTeam = GetTeamForUnit(Unit);
+	UBattleTeam* UnitTeam = DataManager->GetTeamForUnit(Unit);
 	if (!UnitTeam)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[HANDLER] Unit '%s' does not belong to any team!"), *Unit->GetName());
@@ -348,9 +216,19 @@ void ATacBattleGrid::HandleUnitTurnStart(AUnit* Unit)
 	// Check if this unit belongs to the player-controlled team
 	if (UnitTeam->GetTeamSide() == Player1ControlledTeam)
 	{
-		// Player-controlled unit: select it and prepare movement/targeting
-		UE_LOG(LogTemp, Log, TEXT("[HANDLER] Player unit turn started - selecting unit '%s'"), *Unit->GetName());
-		SelectUnit(Unit);
+		// Player-controlled unit: TurnManager already set ActiveUnit, just broadcast event
+		UE_LOG(LogTemp, Log, TEXT("[HANDLER] Player unit turn started: '%s'"), *Unit->GetName());
+		OnCurrentUnitChanged.Broadcast(Unit);
+
+		// Refresh highlights for active unit
+		if (HighlightComponent)
+		{
+			HighlightComponent->ClearHighlights();
+			const TArray<FIntPoint> TargetCells = GetValidTargetCells(Unit);
+			HighlightComponent->ShowValidTargets(TargetCells);
+			const TArray<FIntPoint> ValidCells = GetValidMoveCells(Unit);
+			HighlightComponent->ShowValidMoves(ValidCells);
+		}
 	}
 	else
 	{
@@ -364,248 +242,60 @@ void ATacBattleGrid::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	Super::NotifyActorOnClicked(ButtonPressed);
 
-	UE_LOG(LogTemp, Warning, TEXT("Grid NotifyActorOnClicked called!"));
-
-	// Early exit if no unit is selected
-	if (!SelectedUnit)
+	// Delegate to InputRouter
+	if (InputRouter)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Grid clicked but no unit selected"));
-		return;
+		InputRouter->HandleGridClick(ButtonPressed);
 	}
-
-	// Get clicked cell with layer information
-	int32 ClickedRow, ClickedCol;
-	EBattleLayer ClickedLayer;
-	if (!GetCellUnderMouse(ClickedRow, ClickedCol, ClickedLayer))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Grid clicked: Could not determine clicked cell"));
-		return;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Grid clicked at cell [%d,%d] Layer=%d"), ClickedRow, ClickedCol, (int32)ClickedLayer);
-
-	// Get valid target cells and valid move cells
-	const TArray<FIntPoint> ValidTargetCells = GetValidTargetCells(SelectedUnit);
-	const TArray<FIntPoint> ValidMoveCells = GetValidMoveCells(SelectedUnit);
-
-	FIntPoint ClickedCell(ClickedCol, ClickedRow);
-
-	// PRIORITY 1: Check if clicked cell is a valid target cell
-	if (ValidTargetCells.Contains(ClickedCell))
-	{
-		UE_LOG(LogTemp, Log, TEXT("Clicked cell [%d,%d] is a valid target"), ClickedRow, ClickedCol);
-
-		// Get current ability and its targeting
-		UUnitAbilityInstance* CurrentAbility = SelectedUnit->AbilityInventory ?
-			SelectedUnit->AbilityInventory->GetCurrentActiveAbility() : nullptr;
-
-		if (!CurrentAbility)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("No active ability for selected unit"));
-			return;
-		}
-
-		ETargetReach Reach = CurrentAbility->GetTargeting();
-
-		// Get weapon's area shape if this is an Area ability
-		const FAreaShape* AreaShape = nullptr;
-		FAreaShape LocalAreaShape;
-		if (Reach == ETargetReach::Area)
-		{
-			UWorld* World = GetWorld();
-			if (World)
-			{
-				UDamageCalculator* DamageCalc = World->GetSubsystem<UDamageCalculator>();
-				if (DamageCalc)
-				{
-					UWeapon* Weapon = DamageCalc->SelectMaxReachWeapon(SelectedUnit);
-					if (Weapon)
-					{
-						LocalAreaShape = Weapon->GetStats().AreaShape;
-						AreaShape = &LocalAreaShape;
-					}
-				}
-			}
-		}
-
-		// Resolve all targets based on clicked cell and reach type
-		TArray<AUnit*> Targets = TargetingComponent->ResolveTargetsFromClick(
-			SelectedUnit, ClickedCell, ClickedLayer, Reach, AreaShape);
-
-		if (Targets.Num() > 0)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Executing ability on %d target(s)"), Targets.Num());
-			AbilityTargetSelected(SelectedUnit, Targets);
-			return;
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Valid target cell but no valid targets resolved at [%d,%d] Layer=%d"),
-				ClickedRow, ClickedCol, (int32)ClickedLayer);
-		}
-	}
-
-	// PRIORITY 2: Check if clicked cell is a valid move cell
-	if (ValidMoveCells.Contains(ClickedCell))
-	{
-		UE_LOG(LogTemp, Log, TEXT("Clicked cell [%d,%d] is a valid move destination"), ClickedRow, ClickedCol);
-
-		if (MoveUnit(SelectedUnit, ClickedRow, ClickedCol))
-		{
-			UE_LOG(LogTemp, Log, TEXT("Movement successful, ending turn"));
-			ClearSelection();
-			TurnManager->EndCurrentUnitTurn();
-			return;
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("Movement failed for cell [%d,%d]"), ClickedRow, ClickedCol);
-		}
-	}
-
-	// FALLBACK: Invalid click
-	UE_LOG(LogTemp, Log, TEXT("Clicked cell [%d,%d] is neither a valid target nor a valid move"), ClickedRow, ClickedCol);
-}
-
-void ATacBattleGrid::UnitEntersFlank(AUnit* Unit, int32 Row, int32 Col)
-{
-	if (!Unit)
-	{
-		return;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("UnitEntersFlank: Unit entered flank cell at [%d,%d]"), Row, Col);
-
-	// Store original rotation before applying flank rotation
-	if (!IsUnitOnFlank(Unit))
-	{
-		SetUnitOriginalRotation(Unit, Unit->GetActorRotation());
-	}
-
-	// Apply flank-specific rotation
-	const FRotator FlankRotation = FGridCoordinates::GetFlankRotation(Row, Col);
-	Unit->SetActorRotation(FlankRotation);
-	SetUnitOnFlank(Unit, true);
-}
-
-void ATacBattleGrid::UnitExitsFlank(AUnit* Unit)
-{
-	if (!Unit || !IsUnitOnFlank(Unit))
-	{
-		return;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("UnitExitsFlank: Unit exited flank cell"));
-
-	// Restore original rotation
-	Unit->SetActorRotation(GetUnitOriginalRotation(Unit));
-	SetUnitOnFlank(Unit, false);
 }
 
 void ATacBattleGrid::AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit*>& Targets)
 {
-	if (!SourceUnit || Targets.Num() == 0)
+	// Delegate to TurnManager
+	if (TurnManager)
 	{
-		return;
-	}
-
-	// Get the unit's current active ability
-	if (!SourceUnit->AbilityInventory)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityTargetSelected: Source unit has no AbilityInventory"));
-		return;
-	}
-
-	UUnitAbilityInstance* CurrentAbility = SourceUnit->AbilityInventory->GetCurrentActiveAbility();
-	if (!CurrentAbility)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityTargetSelected: Source unit has no current active ability"));
-		return;
-	}
-
-	// Build context via executor
-	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, Targets);
-
-	// Execute ability via executor
-	FAbilityResult Result = AbilityExecutor->ExecuteAbility(CurrentAbility, Context);
-
-	// Resolve result
-	AbilityExecutor->ResolveResult(Result);
-
-	// Handle turn flow based on result
-	if (Result.bSuccess)
-	{
-		switch (Result.TurnAction)
-		{
-		case EAbilityTurnAction::EndTurn:
-			TurnManager->EndCurrentUnitTurn();
-			break;
-
-		case EAbilityTurnAction::FreeTurn:
-			// Unit keeps turn - refresh selection
-			SelectUnit(SourceUnit);
-			break;
-
-		case EAbilityTurnAction::EndTurnDelayed:
-		case EAbilityTurnAction::RequireConfirm:
-			// For now, just end turn (full implementation later)
-			TurnManager->EndCurrentUnitTurn();
-			break;
-		}
+		TurnManager->ExecuteAbilityOnTargets(SourceUnit, Targets);
 	}
 }
 
-void ATacBattleGrid::HandleAbilityEquipped(UUnitAbilityInstance* Ability)
+void ATacBattleGrid::SwitchAbility(UUnitAbilityInstance* NewAbility)
 {
-	if (!SelectedUnit || !Ability)
+	// Delegate to TurnManager
+	if (TurnManager)
 	{
-		return;
+		TurnManager->SwitchAbility(NewAbility);
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("HandleAbilityEquipped: Refreshing targeting for new ability"));
-
-	// Clear current highlights
-	HighlightComponent->ClearHighlights();
-
-	// Query new ability's targeting and refresh highlights
-	const TArray<FIntPoint> TargetCells = GetValidTargetCells(SelectedUnit);
-	HighlightComponent->ShowValidTargets(TargetCells);
-
-	// Also refresh movement highlights
-	const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(SelectedUnit);
-	HighlightComponent->ShowValidMoves(ValidCells);
 }
 
-bool ATacBattleGrid::IsUnitOnFlank(const AUnit* Unit) const
+void ATacBattleGrid::AbilitySelfExecute(AUnit* SourceUnit, UUnitAbilityInstance* Ability)
 {
-	return DataManager->IsUnitOnFlank(Unit);
-}
-
-void ATacBattleGrid::SetUnitOnFlank(AUnit* Unit, bool bOnFlank)
-{
-	DataManager->SetUnitFlankState(Unit, bOnFlank);
-}
-
-FRotator ATacBattleGrid::GetUnitOriginalRotation(const AUnit* Unit) const
-{
-	return DataManager->GetUnitOriginalRotation(Unit);
-}
-
-void ATacBattleGrid::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation)
-{
-	DataManager->SetUnitOriginalRotation(Unit, Rotation);
+	// Delegate to TurnManager
+	if (TurnManager)
+	{
+		TurnManager->ExecuteAbilityOnSelf(SourceUnit, Ability);
+	}
 }
 
 TArray<AUnit*> ATacBattleGrid::GetTeamUnits(bool bIsAttackerTeam) const
 {
 	if (bIsAttackerTeam)
 	{
-		return AttackerTeam->GetUnits(); // Adjust based on UBattleTeam's API
+		return DataManager->GetAttackerTeam()->GetUnits();
 	}
 	else
 	{
-		return DefenderTeam->GetUnits();
+		return DataManager->GetDefenderTeam()->GetUnits();
 	}
+}
+
+UBattleTeam* ATacBattleGrid::GetTeamForUnit(AUnit* Unit) const
+{
+	return DataManager->GetTeamForUnit(Unit);
+}
+
+UBattleTeam* ATacBattleGrid::GetEnemyTeam(AUnit* Unit) const
+{
+	return DataManager->GetEnemyTeam(Unit);
 }
 
 
@@ -628,34 +318,51 @@ UPresentationTrackerComponent* ATacBattleGrid::GetPresentationTracker() const
 	return PresentationTracker;
 }
 
+UGridDataManager* ATacBattleGrid::GetDataManager()
+{
+	return DataManager;
+}
+
+UGridInputLockComponent* ATacBattleGrid::GetInputLockComponent() const
+{
+	return InputLockComponent;
+}
+
+void ATacBattleGrid::RequestUnitDetails(AUnit* Unit)
+{
+	if (Unit)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[BLUEPRINT] RequestUnitDetails called for unit '%s'"), *Unit->GetName());
+		OnDetailsRequested.Broadcast(Unit);
+	}
+}
+
 void ATacBattleGrid::InitializeComponents()
 {
-	DataManager->Initialize(this, AttackerTeam, DefenderTeam);
+	DataManager->Initialize(this);
 	MovementComponent->Initialize(this, DataManager);
-	TargetingComponent->Initialize(this, DataManager);
+	TargetingComponent->Initialize(DataManager);
 
-	// Initialize presentation tracker and pass to dependent components
+	// Initialize TurnManager with all required component references
 	TurnManager->PresentationTracker = PresentationTracker;
+	TurnManager->AttackerTeam = DataManager->GetAttackerTeam();
+	TurnManager->DefenderTeam = DataManager->GetDefenderTeam();
+	TurnManager->AbilityExecutor = AbilityExecutor;
+	TurnManager->HighlightComponent = HighlightComponent;
+	TurnManager->TargetingComponent = TargetingComponent;
+	TurnManager->MovementComponent = MovementComponent;
+	TurnManager->InputLockComponent = InputLockComponent;
 
-	AbilityExecutor->Initialize(this);
-	AIController->Initialize(this, DataManager, MovementComponent, TargetingComponent, AbilityExecutor);
+	AbilityExecutor->Initialize(this, PresentationTracker);
+	AIController->Initialize(DataManager, MovementComponent, TargetingComponent, AbilityExecutor, TurnManager);
 	HighlightComponent->Initialize(this, Root, Config->MoveAllowedDecalMaterial, Config->EnemyDecalMaterial);
 	HighlightComponent->CreateDecalPool();
 
-	// Subscribe to flank state changes
-	MovementComponent->OnUnitFlankStateChanged.AddLambda(
-		[this](AUnit* Unit, bool bEntering, FIntPoint Cell)
-		{
-			if (bEntering)
-			{
-				UnitEntersFlank(Unit, Cell.Y, Cell.X);
-			}
-			else
-			{
-				UnitExitsFlank(Unit);
-			}
-		}
-	);
+	// Connect input lock to presentation tracker for auto-locking
+	PresentationTracker->SetInputLockComponent(InputLockComponent);
+
+	// Initialize InputRouter
+	InputRouter->Initialize(this, DataManager, MovementComponent, TargetingComponent, TurnManager, InputLockComponent);
 }
 
 void ATacBattleGrid::SpawnAndPlaceUnits()
@@ -692,7 +399,7 @@ void ATacBattleGrid::SpawnAndPlaceUnits()
 				SpawnedUnits.Add(NewUnit);
 
 				const bool bIsFlank = FGridCoordinates::IsFlankCell(Placement.Row, Placement.Col);
-				UBattleTeam* Team = (Placement.bIsAttacker) ? AttackerTeam : DefenderTeam;
+				UBattleTeam* Team = Placement.bIsAttacker ? DataManager->GetAttackerTeam() : DataManager->GetDefenderTeam();
 				Team->AddUnit(NewUnit);
 
 				// Set unit's team side for movement orientation
@@ -700,7 +407,7 @@ void ATacBattleGrid::SpawnAndPlaceUnits()
 
 				if (!bIsFlank)
 				{
-					const float Yaw = (Team == AttackerTeam) ? 0.0f : 180.0f;
+					const float Yaw = (Team == DataManager->GetAttackerTeam()) ? 0.0f : 180.0f;
 					NewUnit->SetActorRotation(FRotator(0.0f, Yaw, 0.0f));
 				}
 				else
@@ -778,9 +485,6 @@ void ATacBattleGrid::ConfigureTurnManager()
 		return;
 	}
 
-	TurnManager->AttackerTeam = AttackerTeam;
-	TurnManager->DefenderTeam = DefenderTeam;
-
 	UE_LOG(LogTemp, Log, TEXT("[SUBSCRIBE] TurnManager subscribed to OnMovementComplete and OnAbilityComplete"));
 
 	TurnManager->OnUnitTurnStart.AddDynamic(this, &ATacBattleGrid::HandleUnitTurnStart);
@@ -798,8 +502,8 @@ void ATacBattleGrid::StartBattle()
 	}
 
 	TArray<AUnit*> AllBattleUnits;
-	AllBattleUnits.Append(AttackerTeam->GetUnits());
-	AllBattleUnits.Append(DefenderTeam->GetUnits());
+	AllBattleUnits.Append(DataManager->GetAttackerTeam()->GetUnits());
+	AllBattleUnits.Append(DataManager->GetDefenderTeam()->GetUnits());
 
 	if (AllBattleUnits.Num() > 0)
 	{

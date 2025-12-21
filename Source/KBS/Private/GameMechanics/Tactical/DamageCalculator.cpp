@@ -84,6 +84,12 @@ FDamageResult UDamageCalculator::CalculateDamage(AUnit* Attacker, UWeapon* Weapo
 	// Apply flat damage reduction
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
 
+	// Halve damage if target is defending
+	if (Defense.bIsDefending)
+	{
+		FinalDamage *= 0.5f;
+	}
+
 	Result.Damage = FMath::RoundToInt(FinalDamage);
 	Result.DamageBlocked = BaseDamage - Result.Damage;
 
@@ -213,6 +219,7 @@ UWeapon* UDamageCalculator::SelectMaxReachWeapon(AUnit* Unit)
 			case ETargetReach::ClosestEnemies:     return 30;
 			case ETargetReach::EmptyCellOrFriendly: return 20;
 			case ETargetReach::EmptyCell:          return 10;
+			case ETargetReach::Self:               return 5;
 			case ETargetReach::None:               return 0;
 			default:                               return 0;
 		}

@@ -1,9 +1,10 @@
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
-#include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/DamageTypes.h"
 
@@ -12,17 +13,33 @@ UGridTargetingComponent::UGridTargetingComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UGridTargetingComponent::Initialize(ATacBattleGrid* InGrid, UGridDataManager* InDataManager)
+void UGridTargetingComponent::Initialize(UGridDataManager* InDataManager)
 {
-	Grid = InGrid;
 	DataManager = InDataManager;
+}
+
+TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit) const
+{
+	if (!Unit || !Unit->AbilityInventory)
+	{
+		return TArray<FIntPoint>();
+	}
+
+	UUnitAbilityInstance* CurrentAbility = Unit->AbilityInventory->GetCurrentActiveAbility();
+	if (!CurrentAbility)
+	{
+		return TArray<FIntPoint>();
+	}
+
+	ETargetReach Reach = CurrentAbility->GetTargeting();
+	return GetValidTargetCells(Unit, Reach);
 }
 
 TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting) const
 {
 	TArray<FIntPoint> TargetCells;
 
-	if (!Unit || !Grid || !DataManager)
+	if (!Unit || !DataManager)
 	{
 		return TargetCells;
 	}
@@ -38,6 +55,17 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 	{
 		case ETargetReach::None:
 			break;
+
+		case ETargetReach::Self:
+		{
+			int32 UnitRow, UnitCol;
+			EBattleLayer UnitLayer;
+			if (DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+			{
+				TargetCells.Add(FIntPoint(UnitRow, UnitCol));
+			}
+			break;
+		}
 
 		case ETargetReach::ClosestEnemies:
 			GetClosestEnemyCells(Unit, TargetCells);
@@ -64,7 +92,7 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 		{
 			int32 UnitRow, UnitCol;
 			EBattleLayer UnitLayer;
-			if (Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+			if (DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 			{
 				TargetCells = DataManager->GetValidPlacementCells(UnitLayer);
 			}
@@ -83,12 +111,12 @@ void UGridTargetingComponent::GetClosestEnemyCells(AUnit* Unit, TArray<FIntPoint
 {
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return;
 	}
 
-	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(Unit);
+	UBattleTeam* EnemyTeam = DataManager->GetEnemyTeam(Unit);
 
 	if (!EnemyTeam)
 	{
@@ -108,7 +136,7 @@ void UGridTargetingComponent::GetClosestEnemyCells(AUnit* Unit, TArray<FIntPoint
 		const int32 TargetRow = UnitRow + Offset.Y;
 		const int32 TargetCol = UnitCol + Offset.X;
 
-		if (!Grid->IsValidCell(TargetRow, TargetCol, UnitLayer))
+		if (!FGridCoordinates::IsValidCell(TargetRow, TargetCol))
 		{
 			continue;
 		}
@@ -125,12 +153,12 @@ void UGridTargetingComponent::GetFlankTargetCells(AUnit* Unit, TArray<FIntPoint>
 {
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return;
 	}
 
-	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(Unit);
+	UBattleTeam* EnemyTeam = DataManager->GetEnemyTeam(Unit);
 
 	if (!EnemyTeam)
 	{
@@ -183,7 +211,7 @@ void UGridTargetingComponent::GetFlankTargetCells(AUnit* Unit, TArray<FIntPoint>
 
 void UGridTargetingComponent::GetAnyEnemyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
 {
-	UBattleTeam* EnemyTeam = Grid->GetEnemyTeam(Unit);
+	UBattleTeam* EnemyTeam = DataManager->GetEnemyTeam(Unit);
 
 	if (!EnemyTeam)
 	{
@@ -196,7 +224,7 @@ void UGridTargetingComponent::GetAnyEnemyCells(AUnit* Unit, TArray<FIntPoint>& O
 		{
 			int32 Row, Col;
 			EBattleLayer Layer;
-			if (Grid->GetUnitPosition(EnemyUnit, Row, Col, Layer))
+			if (DataManager->GetUnitPosition(EnemyUnit, Row, Col, Layer))
 			{
 				OutCells.Add(FIntPoint(Col, Row));
 			}
@@ -204,18 +232,35 @@ void UGridTargetingComponent::GetAnyEnemyCells(AUnit* Unit, TArray<FIntPoint>& O
 	}
 }
 
+TArray<AUnit*> UGridTargetingComponent::GetValidTargetUnits(AUnit* Unit) const
+{
+	if (!Unit || !Unit->AbilityInventory)
+	{
+		return TArray<AUnit*>();
+	}
+
+	UUnitAbilityInstance* CurrentAbility = Unit->AbilityInventory->GetCurrentActiveAbility();
+	if (!CurrentAbility)
+	{
+		return TArray<AUnit*>();
+	}
+
+	ETargetReach Reach = CurrentAbility->GetTargeting();
+	return GetValidTargetUnits(Unit, Reach);
+}
+
 TArray<AUnit*> UGridTargetingComponent::GetValidTargetUnits(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting, bool bIncludeDeadUnits) const
 {
 	TArray<AUnit*> TargetUnits;
 
-	if (!Unit || !Grid || !DataManager)
+	if (!Unit || !DataManager)
 	{
 		return TargetUnits;
 	}
 
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return TargetUnits;
 	}
@@ -243,7 +288,7 @@ TArray<AUnit*> UGridTargetingComponent::GetValidTargetUnits(AUnit* Unit, ETarget
 
 void UGridTargetingComponent::GetAllFriendlyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
 {
-	UBattleTeam* FriendlyTeam = Grid->GetTeamForUnit(Unit);
+	UBattleTeam* FriendlyTeam = DataManager->GetTeamForUnit(Unit);
 
 	if (!FriendlyTeam)
 	{
@@ -256,7 +301,7 @@ void UGridTargetingComponent::GetAllFriendlyCells(AUnit* Unit, TArray<FIntPoint>
 		{
 			int32 Row, Col;
 			EBattleLayer Layer;
-			if (Grid->GetUnitPosition(FriendlyUnit, Row, Col, Layer))
+			if (DataManager->GetUnitPosition(FriendlyUnit, Row, Col, Layer))
 			{
 				OutCells.Add(FIntPoint(Col, Row));
 			}
@@ -273,7 +318,7 @@ void UGridTargetingComponent::GetEmptyCellsOrFriendly(AUnit* Unit, TArray<FIntPo
 {
 	int32 UnitRow, UnitCol;
 	EBattleLayer UnitLayer;
-	if (!Grid->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 	{
 		return;
 	}
@@ -289,7 +334,7 @@ TArray<AUnit*> UGridTargetingComponent::ResolveTargetsFromClick(AUnit* SourceUni
 {
 	TArray<AUnit*> ResolvedTargets;
 
-	if (!SourceUnit || !Grid || !DataManager)
+	if (!SourceUnit || !DataManager)
 	{
 		return ResolvedTargets;
 	}
@@ -351,7 +396,7 @@ TArray<AUnit*> UGridTargetingComponent::GetUnitsInArea(FIntPoint CenterCell, EBa
 {
 	TArray<AUnit*> UnitsInArea;
 
-	if (!Grid || !DataManager)
+	if (!DataManager)
 	{
 		return UnitsInArea;
 	}
@@ -363,7 +408,7 @@ TArray<AUnit*> UGridTargetingComponent::GetUnitsInArea(FIntPoint CenterCell, EBa
 		const int32 TargetRow = CenterCell.Y + RelativeOffset.Y;
 
 		// Check if target cell is valid
-		if (!Grid->IsValidCell(TargetRow, TargetCol, Layer))
+		if (!FGridCoordinates::IsValidCell(TargetRow, TargetCol))
 		{
 			continue;
 		}
@@ -380,7 +425,7 @@ TArray<AUnit*> UGridTargetingComponent::GetUnitsInArea(FIntPoint CenterCell, EBa
 		{
 			EBattleLayer OtherLayer = (Layer == EBattleLayer::Ground) ? EBattleLayer::Air : EBattleLayer::Ground;
 
-			if (Grid->IsValidCell(TargetRow, TargetCol, OtherLayer))
+			if (FGridCoordinates::IsValidCell(TargetRow, TargetCol))
 			{
 				AUnit* UnitAtOtherLayer = DataManager->GetUnit(TargetRow, TargetCol, OtherLayer);
 				if (UnitAtOtherLayer && !UnitAtOtherLayer->IsDead())

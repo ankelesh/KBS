@@ -5,11 +5,11 @@
 #include "AIControllerComponent.generated.h"
 
 class AUnit;
-class ATacBattleGrid;
 class UGridDataManager;
 class UGridMovementComponent;
 class UGridTargetingComponent;
 class UAbilityExecutorComponent;
+class UTurnManagerComponent;
 
 /**
  * AI decision-making component for enemy units on the tactical grid
@@ -23,11 +23,11 @@ public:
 	UAIControllerComponent();
 
 	/**
-	 * Initialize component with grid and component references
+	 * Initialize component with component references
 	 */
-	void Initialize(ATacBattleGrid* InGrid, UGridDataManager* InDataManager,
+	void Initialize(UGridDataManager* InDataManager,
 	                UGridMovementComponent* InMovement, UGridTargetingComponent* InTargeting,
-	                UAbilityExecutorComponent* InAbilityExecutor);
+	                UAbilityExecutorComponent* InAbilityExecutor, UTurnManagerComponent* InTurnManager);
 
 	/**
 	 * Main AI entry point - evaluate attack/move/skip priority chain
@@ -35,9 +35,6 @@ public:
 	void ExecuteAITurn(AUnit* AIUnit);
 
 private:
-	UPROPERTY()
-	TObjectPtr<ATacBattleGrid> Grid;
-
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;
 
@@ -49,6 +46,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UAbilityExecutorComponent> AbilityExecutor;
+
+	UPROPERTY()
+	TObjectPtr<UTurnManagerComponent> TurnManager;
 
 	/**
 	 * Attempt to attack valid target with highest expected damage

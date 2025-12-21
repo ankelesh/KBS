@@ -9,6 +9,8 @@
 class AUnit;
 class UBattleTeam;
 class UPresentationTrackerComponent;
+class UGridTargetingComponent;
+class UGridMovementComponent;
 
 USTRUCT(BlueprintType)
 struct FTurnQueueEntry
@@ -77,9 +79,24 @@ public:
 	UPROPERTY()
 	TObjectPtr<UBattleTeam> DefenderTeam;
 
-	// Presentation tracking
+	// Component references
 	UPROPERTY()
 	TObjectPtr<UPresentationTrackerComponent> PresentationTracker;
+
+	UPROPERTY()
+	TObjectPtr<class UAbilityExecutorComponent> AbilityExecutor;
+
+	UPROPERTY()
+	TObjectPtr<class UGridHighlightComponent> HighlightComponent;
+
+	UPROPERTY()
+	TObjectPtr<UGridTargetingComponent> TargetingComponent;
+
+	UPROPERTY()
+	TObjectPtr<UGridMovementComponent> MovementComponent;
+
+	UPROPERTY()
+	TObjectPtr<class UGridInputLockComponent> InputLockComponent;
 
 	// Events
 	UPROPERTY(BlueprintAssignable, Category = "Turn Events")
@@ -96,6 +113,10 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Turn Events")
 	FOnBattleEnded OnBattleEnded;
+
+	// Active unit tracking
+	UFUNCTION(BlueprintCallable, Category = "Turn")
+	AUnit* GetActiveUnit() const { return ActiveUnit; }
 
 	// Battle lifecycle
 	UFUNCTION(BlueprintCallable, Category = "Turn")
@@ -116,6 +137,7 @@ public:
 	void BuildInitiativeQueue();
 	void InsertUnitIntoQueue(AUnit* Unit);
 	void RemoveUnitFromQueue(AUnit* Unit);
+	void WaitCurrentUnit();
 
 	// Validation
 	UFUNCTION(BlueprintCallable, Category = "Turn")
@@ -123,8 +145,11 @@ public:
 
 	bool BattleIsOver() const;
 
-	// Ability result handling
+	// Ability handling
 	void HandleAbilityComplete(const FAbilityResult& Result);
+	void SwitchAbility(class UUnitAbilityInstance* NewAbility);
+	void ExecuteAbilityOnTargets(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
+	void ExecuteAbilityOnSelf(AUnit* SourceUnit, class UUnitAbilityInstance* Ability);
 
 	// UI Data
 	UFUNCTION(BlueprintCallable, Category = "Turn")

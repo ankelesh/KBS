@@ -5,7 +5,6 @@
 #include "GridTargetingComponent.generated.h"
 
 class AUnit;
-class ATacBattleGrid;
 class UBattleTeam;
 class UGridDataManager;
 enum class EBattleLayer : uint8;
@@ -23,15 +22,27 @@ public:
 	UGridTargetingComponent();
 
 	/**
-	 * Initialize component with grid reference
+	 * Initialize component with data manager reference
 	 */
-	void Initialize(ATacBattleGrid* InGrid, UGridDataManager* InDataManager);
+	void Initialize(UGridDataManager* InDataManager);
+
+	/**
+	 * Get all valid target cells for unit's current ability
+	 * Automatically extracts reach from unit's active ability
+	 */
+	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit) const;
 
 	/**
 	 * Get all valid target cells based on reach type
 	 * @param bUseFlankTargeting - Override to use flank targeting (only for ClosestEnemies)
 	 */
 	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting = false) const;
+
+	/**
+	 * Get all valid target units for unit's current ability
+	 * Automatically extracts reach from unit's active ability
+	 */
+	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit) const;
 
 	/**
 	 * Get all valid target units based on reach type
@@ -52,9 +63,6 @@ public:
 	TArray<AUnit*> ResolveTargetsFromClick(AUnit* SourceUnit, FIntPoint ClickedCell, EBattleLayer ClickedLayer, ETargetReach Reach, const struct FAreaShape* AreaShape = nullptr) const;
 
 private:
-	UPROPERTY()
-	TObjectPtr<ATacBattleGrid> Grid;
-
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;
 

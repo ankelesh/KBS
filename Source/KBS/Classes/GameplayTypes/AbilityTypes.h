@@ -14,7 +14,8 @@ enum class EAbilityTurnAction : uint8
 	EndTurn UMETA(DisplayName = "End Turn"),
 	FreeTurn UMETA(DisplayName = "Free Turn"),
 	EndTurnDelayed UMETA(DisplayName = "End Turn Delayed"),
-	RequireConfirm UMETA(DisplayName = "Require Confirm")
+	RequireConfirm UMETA(DisplayName = "Require Confirm"),
+	Wait UMETA(DisplayName = "Wait")
 };
 
 UENUM(BlueprintType)
