@@ -1,6 +1,7 @@
 #include "GameMechanics/Units/Abilities/UnitMovementAbility.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/AbilityBattleContext.h"
@@ -67,14 +68,14 @@ FAbilityValidation UUnitMovementAbility::CanExecute(const FAbilityBattleContext&
 			FText::FromString("No target cell specified"));
 	}
 
-	UGridMovementComponent* MovementComponent = Context.Grid->FindComponentByClass<UGridMovementComponent>();
-	if (!MovementComponent)
+	UGridTargetingComponent* TargetingComponent = Context.Grid->FindComponentByClass<UGridTargetingComponent>();
+	if (!TargetingComponent)
 	{
 		return FAbilityValidation::Failure(EAbilityFailureReason::Custom,
-			FText::FromString("No movement component"));
+			FText::FromString("No targeting component"));
 	}
 
-	TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(Context.SourceUnit);
+	TArray<FIntPoint> ValidCells = TargetingComponent->GetValidTargetCells(Context.SourceUnit, ETargetReach::Movement);
 	if (!ValidCells.Contains(Context.TargetCell))
 	{
 		return FAbilityValidation::Failure(EAbilityFailureReason::OutOfRange,

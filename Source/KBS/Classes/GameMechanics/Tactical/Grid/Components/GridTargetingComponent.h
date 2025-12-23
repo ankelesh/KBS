@@ -14,7 +14,6 @@ class KBS_API UGridTargetingComponent : public UActorComponent
 public:
 	UGridTargetingComponent();
 	void Initialize(UGridDataManager* InDataManager);
-	void SetMovementComponent(class UGridMovementComponent* InMovementComponent);
 	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit) const;
 	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting = false) const;
 	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit) const;
@@ -23,13 +22,18 @@ public:
 private:
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;
-	UPROPERTY()
-	TObjectPtr<class UGridMovementComponent> MovementComponent;
 	void GetClosestEnemyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetFlankTargetCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetAnyEnemyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetAllFriendlyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetAnyFriendlyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetEmptyCellsOrFriendly(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetMovementCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	bool CanEnterFlankCell(const FIntPoint& UnitPos, const FIntPoint& FlankCell, class UBattleTeam* UnitTeam) const;
+	bool IsAdjacentCell(const FIntPoint& CellA, const FIntPoint& CellB) const;
+	bool IsFlankCell(const FIntPoint& Cell) const;
 	TArray<AUnit*> GetUnitsInArea(FIntPoint CenterCell, EBattleLayer Layer, const struct FAreaShape& AreaShape) const;
 };

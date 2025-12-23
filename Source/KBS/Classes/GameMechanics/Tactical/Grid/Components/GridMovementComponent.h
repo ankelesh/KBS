@@ -30,7 +30,6 @@ public:
 	UGridMovementComponent();
 	void Initialize(ATacBattleGrid* InGrid, UGridDataManager* InDataManager);
 	FOnUnitFlankStateChanged OnUnitFlankStateChanged;
-	TArray<FIntPoint> GetValidMoveCells(AUnit* Unit) const;
 	bool MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol);
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	static constexpr float ModelForwardOffset = -90.0f;  
@@ -42,15 +41,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;
 	TMap<TObjectPtr<AUnit>, FMovementInterpData> UnitsBeingMoved;
-	void GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
-	void GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
-	void GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void StartMovementInterpolation(AUnit* Unit, FVector StartLocation, FVector TargetLocation, FVector Direction, float Distance, float Speed, int32 TargetRow, int32 TargetCol);
 	FRotator CalculateDefaultCellOrientation(int32 Row, int32 Col, ETeamSide TeamSide) const;
 	FIntPoint FindClosestNonFlankCell(int32 FlankRow, int32 FlankCol) const;
-	bool CanEnterFlankCell(const FIntPoint& UnitPos, const FIntPoint& FlankCell, UBattleTeam* UnitTeam) const;
-	bool IsAdjacentCell(const FIntPoint& CellA, const FIntPoint& CellB) const;
-	bool IsFlankCell(const FIntPoint& Cell) const;
 	void ApplyFlankRotation(AUnit* Unit, int32 Row, int32 Col);
 	void RestoreOriginalRotation(AUnit* Unit);
 };
