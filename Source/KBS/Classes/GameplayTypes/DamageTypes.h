@@ -1,7 +1,5 @@
 #pragma once
-
 #include "CoreMinimal.h"
-
 UENUM(BlueprintType)
 enum class EDamageSource : uint8
 {
@@ -15,7 +13,6 @@ enum class EDamageSource : uint8
 	Death UMETA(DisplayName = "Death"),
 	Mind UMETA(DisplayName = "Mind")
 };
-
 UENUM(BlueprintType)
 enum class ETargetReach : uint8
 {

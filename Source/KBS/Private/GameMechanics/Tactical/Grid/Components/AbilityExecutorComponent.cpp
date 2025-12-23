@@ -1,36 +1,27 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Unit.h"
-
 UAbilityExecutorComponent::UAbilityExecutorComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 void UAbilityExecutorComponent::Initialize(ATacBattleGrid* InGrid, UPresentationTrackerComponent* InPresentationTracker)
 {
 	Grid = InGrid;
 	PresentationTracker = InPresentationTracker;
 }
-
 FAbilityValidation UAbilityExecutorComponent::ValidateAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context) const
 {
 	if (!Ability)
 	{
 		return FAbilityValidation::Failure(EAbilityFailureReason::Custom, FText::FromString("Ability is null"));
 	}
-
-	// Call ability's own validation
 	return Ability->CanExecute(Context);
 }
-
 FAbilityResult UAbilityExecutorComponent::ExecuteAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context)
 {
-	// Validate first
 	FAbilityValidation Validation = ValidateAbility(Ability, Context);
 	if (!Validation.bIsValid)
 	{
@@ -38,44 +29,30 @@ FAbilityResult UAbilityExecutorComponent::ExecuteAbility(UUnitAbilityInstance* A
 			*Validation.FailureMessage.ToString());
 		return FAbilityResult::Failure(Validation.FailureReason, Validation.FailureMessage);
 	}
-
-	// Begin presentation batch to group all operations from this ability
 	FString AbilityName = Ability ? Ability->GetName() : TEXT("Unknown");
 	if (PresentationTracker)
 	{
 		PresentationTracker->BeginBatch(FString::Printf(TEXT("Ability_%s"), *AbilityName));
 	}
-
-	// Trigger ability
 	FAbilityResult TriggerResult = Ability->TriggerAbility(Context);
 	if (!TriggerResult.bSuccess)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AbilityExecutor: Ability trigger failed"));
-
-		// End batch even on failure
 		if (PresentationTracker)
 		{
 			PresentationTracker->EndBatch();
 		}
-
 		return TriggerResult;
 	}
-
-	// Apply ability effects
 	FAbilityResult ApplyResult = Ability->ApplyAbilityEffect(Context);
-
-	// End presentation batch - all operations for this ability are now registered
 	if (PresentationTracker)
 	{
 		PresentationTracker->EndBatch();
 	}
-
 	UE_LOG(LogTemp, Log, TEXT("AbilityExecutor: Ability executed successfully, affected %d units"),
 		ApplyResult.UnitsAffected.Num());
-
 	return ApplyResult;
 }
-
 FAbilityBattleContext UAbilityExecutorComponent::BuildContext(AUnit* SourceUnit, const TArray<AUnit*>& Targets) const
 {
 	FAbilityBattleContext Context;
@@ -84,15 +61,12 @@ FAbilityBattleContext UAbilityExecutorComponent::BuildContext(AUnit* SourceUnit,
 	Context.Grid = Grid;
 	return Context;
 }
-
 void UAbilityExecutorComponent::ResolveResult(const FAbilityResult& Result)
 {
 	if (Result.bSuccess)
 	{
 		UE_LOG(LogTemp, Log, TEXT("AbilityExecutor: Resolving successful ability - Turn action: %d"),
 			static_cast<uint8>(Result.TurnAction));
-
-		// Broadcast completion event
 		if (Grid)
 		{
 			Grid->OnAbilityComplete.Broadcast();
@@ -103,13 +77,10 @@ void UAbilityExecutorComponent::ResolveResult(const FAbilityResult& Result)
 		UE_LOG(LogTemp, Warning, TEXT("AbilityExecutor: Ability failed - %s"),
 			*Result.FailureMessage.ToString());
 	}
-
-	// Log effects and units affected
 	if (Result.EffectsApplied.Num() > 0)
 	{
 		UE_LOG(LogTemp, Log, TEXT("  - Applied %d effects"), Result.EffectsApplied.Num());
 	}
-
 	if (Result.UnitsAffected.Num() > 0)
 	{
 		UE_LOG(LogTemp, Log, TEXT("  - Affected %d units"), Result.UnitsAffected.Num());

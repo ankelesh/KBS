@@ -3,12 +3,10 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "Engine/StaticMesh.h"
-
 UWeapon::UWeapon()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 void UWeapon::Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* Data)
 {
 	if (!Data)
@@ -16,11 +14,9 @@ void UWeapon::Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* D
 		UE_LOG(LogTemp, Error, TEXT("UWeapon::Initialize - No WeaponDataAsset provided"));
 		return;
 	}
-
 	Config = Data;
 	BaseStats = Data->BaseStats;
 	ModifiedStats = BaseStats;
-
 	ActiveEffects.Empty();
 	for (const TSubclassOf<UBattleEffect>& EffectClass : Data->EffectClasses)
 	{
@@ -33,7 +29,6 @@ void UWeapon::Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* D
 			}
 		}
 	}
-
 	if (VisualsComp && !Data->WeaponMesh.IsNull())
 	{
 		UStaticMesh* LoadedMesh = Data->WeaponMesh.LoadSynchronous();
@@ -43,20 +38,15 @@ void UWeapon::Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* D
 		}
 	}
 }
-
 void UWeapon::InitializeFromDataAsset()
 {
 	if (!Config)
 	{
 		return;
 	}
-
 	BaseStats = Config->BaseStats;
 	ModifiedStats = BaseStats;
-
 	ActiveEffects.Empty();
-	// Note: BattleEffects are spawned from EffectClasses but not initialized with DataAsset
-	// since they don't store DataAsset references in the weapon config
 	for (const TSubclassOf<UBattleEffect>& EffectClass : Config->EffectClasses)
 	{
 		if (EffectClass)
@@ -69,12 +59,10 @@ void UWeapon::InitializeFromDataAsset()
 		}
 	}
 }
-
 void UWeapon::RecalculateModifiedStats()
 {
 	ModifiedStats = BaseStats;
 }
-
 void UWeapon::Restore()
 {
 	ModifiedStats = BaseStats;

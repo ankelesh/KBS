@@ -11,12 +11,10 @@
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/UnitStats.h"
 #include "GameplayTypes/AbilityTypes.h"
-
 UTurnManagerComponent::UTurnManagerComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 void UTurnManagerComponent::StartBattle(const TArray<AUnit*>& Units)
 {
 	AllUnits.Empty();
@@ -27,69 +25,55 @@ void UTurnManagerComponent::StartBattle(const TArray<AUnit*>& Units)
 			AllUnits.Add(Unit);
 		}
 	}
-
 	bBattleActive = true;
 	CurrentTurnNumber = 1;
 	ActiveUnit = nullptr;
-
 	BuildInitiativeQueue();
 	StartGlobalTurn();
 }
-
 void UTurnManagerComponent::EndBattle()
 {
 	bBattleActive = false;
 	TurnQueue.Empty();
 	ActiveUnit = nullptr;
-
 	UE_LOG(LogTemp, Log, TEXT("Battle ended at turn %d"), CurrentTurnNumber);
 }
-
 void UTurnManagerComponent::BuildInitiativeQueue()
 {
 	TurnQueue.Empty();
-
 	for (AUnit* Unit : AllUnits)
 	{
 		if (!Unit || Unit->GetCurrentHealth() <= 0.0f)
 		{
 			continue;
 		}
-
 		FTurnQueueEntry Entry;
 		Entry.Unit = Unit;
 		Entry.InitiativeRoll = RollInitiative();
 		Entry.TotalInitiative = Unit->GetModifiedStats().Initiative + Entry.InitiativeRoll;
-
 		TurnQueue.Add(Entry);
-
 		UE_LOG(LogTemp, Log, TEXT("Unit %s - Initiative: %d (Base: %d + Roll: %d)"),
 			*Unit->GetName(),
 			Entry.TotalInitiative,
 			Unit->GetModifiedStats().Initiative,
 			Entry.InitiativeRoll);
 	}
-
 	TurnQueue.Sort();
 }
-
 void UTurnManagerComponent::StartGlobalTurn()
 {
 	UE_LOG(LogTemp, Log, TEXT("=== Global Turn %d Started ==="), CurrentTurnNumber);
 	OnGlobalTurnStarted.Broadcast(CurrentTurnNumber);
 	ActivateNextUnit();
 }
-
 void UTurnManagerComponent::EndGlobalTurn()
 {
 	UE_LOG(LogTemp, Log, TEXT("=== Global Turn %d Ended ==="), CurrentTurnNumber);
 	OnGlobalTurnEnded.Broadcast(CurrentTurnNumber);
-
 	CurrentTurnNumber++;
 	BuildInitiativeQueue();
 	StartGlobalTurn();
 }
-
 void UTurnManagerComponent::ActivateNextUnit()
 {
 	if (TurnQueue.Num() == 0)
@@ -97,11 +81,9 @@ void UTurnManagerComponent::ActivateNextUnit()
 		EndGlobalTurn();
 		return;
 	}
-
 	if (BattleIsOver())
 	{
 		UBattleTeam* Winner = nullptr;
-
 		if (AttackerTeam)
 		{
 			bool bAttackerAlive = false;
@@ -118,7 +100,6 @@ void UTurnManagerComponent::ActivateNextUnit()
 				Winner = AttackerTeam;
 			}
 		}
-
 		if (!Winner && DefenderTeam)
 		{
 			bool bDefenderAlive = false;
@@ -135,61 +116,46 @@ void UTurnManagerComponent::ActivateNextUnit()
 				Winner = DefenderTeam;
 			}
 		}
-
 		OnBattleEnded.Broadcast(Winner);
 		EndBattle();
 		return;
 	}
-
 	FTurnQueueEntry Entry = TurnQueue[0];
 	TurnQueue.RemoveAt(0);
-
 	ActiveUnit = Entry.Unit;
 	ActiveUnitInitiative = Entry.TotalInitiative;
-
 	UE_LOG(LogTemp, Log, TEXT(">>> %s's turn begins (Initiative: %d)"),
 		*ActiveUnit->GetName(),
 		Entry.TotalInitiative);
-
 	OnUnitTurnStart.Broadcast(ActiveUnit);
 	ActiveUnit->OnUnitTurnStart();
-
 	if (InputLockComponent)
 	{
 		InputLockComponent->ReleaseLock(EInputLockSource::TurnTransition);
 	}
 }
-
 void UTurnManagerComponent::EndCurrentUnitTurn()
 {
 	if (!ActiveUnit)
 	{
 		return;
 	}
-
 	UE_LOG(LogTemp, Log, TEXT("<<< %s's turn ends"), *ActiveUnit->GetName());
-
 	ActiveUnit->OnUnitTurnEnd();
 	OnUnitTurnEnd.Broadcast(ActiveUnit);
-
 	ActiveUnit = nullptr;
-
 	ActivateNextUnit();
 }
-
 void UTurnManagerComponent::InsertUnitIntoQueue(AUnit* Unit)
 {
 	if (!Unit)
 	{
 		return;
 	}
-
 	FTurnQueueEntry Entry;
 	Entry.Unit = Unit;
 	Entry.InitiativeRoll = RollInitiative();
 	Entry.TotalInitiative = Unit->GetModifiedStats().Initiative + Entry.InitiativeRoll;
-
-	// Find insertion point to maintain sort order
 	int32 InsertIndex = 0;
 	for (int32 i = 0; i < TurnQueue.Num(); ++i)
 	{
@@ -202,21 +168,16 @@ void UTurnManagerComponent::InsertUnitIntoQueue(AUnit* Unit)
 			break;
 		}
 	}
-
 	TurnQueue.Insert(Entry, InsertIndex);
-
 	UE_LOG(LogTemp, Log, TEXT("Unit %s inserted into queue at position %d (Initiative: %d)"),
 		*Unit->GetName(), InsertIndex, Entry.TotalInitiative);
 }
-
 void UTurnManagerComponent::RemoveUnitFromQueue(AUnit* Unit)
 {
 	if (!Unit)
 	{
 		return;
 	}
-
-	// Remove from queue
 	for (int32 i = TurnQueue.Num() - 1; i >= 0; --i)
 	{
 		if (TurnQueue[i].Unit == Unit)
@@ -225,8 +186,6 @@ void UTurnManagerComponent::RemoveUnitFromQueue(AUnit* Unit)
 			UE_LOG(LogTemp, Log, TEXT("Unit %s removed from turn queue"), *Unit->GetName());
 		}
 	}
-
-	// If this was the active unit, end their turn
 	if (Unit == ActiveUnit)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Active unit %s died, advancing turn"), *Unit->GetName());
@@ -234,7 +193,6 @@ void UTurnManagerComponent::RemoveUnitFromQueue(AUnit* Unit)
 		ActivateNextUnit();
 	}
 }
-
 void UTurnManagerComponent::WaitCurrentUnit()
 {
 	if (!ActiveUnit)
@@ -242,20 +200,13 @@ void UTurnManagerComponent::WaitCurrentUnit()
 		UE_LOG(LogTemp, Warning, TEXT("WaitCurrentUnit called but no active unit"));
 		return;
 	}
-
-	// Calculate negated initiative
 	int32 NewInitiative = -ActiveUnitInitiative;
-
 	UE_LOG(LogTemp, Log, TEXT("%s waiting - Initiative negated from %d to %d"),
 		*ActiveUnit->GetName(), ActiveUnitInitiative, NewInitiative);
-
-	// Create entry with negated initiative (no new roll)
 	FTurnQueueEntry Entry;
 	Entry.Unit = ActiveUnit;
 	Entry.InitiativeRoll = 0;
 	Entry.TotalInitiative = NewInitiative;
-
-	// Insert maintaining sort order (descending by TotalInitiative)
 	int32 InsertIndex = 0;
 	for (int32 i = 0; i < TurnQueue.Num(); ++i)
 	{
@@ -268,31 +219,23 @@ void UTurnManagerComponent::WaitCurrentUnit()
 			break;
 		}
 	}
-
 	TurnQueue.Insert(Entry, InsertIndex);
-
 	UE_LOG(LogTemp, Log, TEXT("Unit reinserted at queue position %d"), InsertIndex);
-
-	// Clear active unit and advance WITHOUT calling OnUnitTurnEnd
 	ActiveUnit = nullptr;
 	ActivateNextUnit();
 }
-
 bool UTurnManagerComponent::CanUnitAct(AUnit* Unit) const
 {
 	return Unit == ActiveUnit && bBattleActive;
 }
-
 bool UTurnManagerComponent::BattleIsOver() const
 {
 	if (!AttackerTeam || !DefenderTeam)
 	{
 		return false;
 	}
-
 	bool bAttackerHasLivingUnits = false;
 	bool bDefenderHasLivingUnits = false;
-
 	for (AUnit* Unit : AttackerTeam->GetUnits())
 	{
 		if (Unit && Unit->GetCurrentHealth() > 0.0f)
@@ -301,7 +244,6 @@ bool UTurnManagerComponent::BattleIsOver() const
 			break;
 		}
 	}
-
 	for (AUnit* Unit : DefenderTeam->GetUnits())
 	{
 		if (Unit && Unit->GetCurrentHealth() > 0.0f)
@@ -310,10 +252,8 @@ bool UTurnManagerComponent::BattleIsOver() const
 			break;
 		}
 	}
-
 	return !bAttackerHasLivingUnits || !bDefenderHasLivingUnits;
 }
-
 void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 {
 	if (!Result.bSuccess)
@@ -321,15 +261,12 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Ability failed, not ending turn"));
 		return;
 	}
-
 	UE_LOG(LogTemp, Log, TEXT("TurnManager: Handling ability result with TurnAction: %d"),
 		static_cast<uint8>(Result.TurnAction));
-
 	switch (Result.TurnAction)
 	{
 	case EAbilityTurnAction::EndTurn:
 	case EAbilityTurnAction::EndTurnDelayed:
-		// Check if presentation operations are still running
 		if (PresentationTracker && !PresentationTracker->IsIdle())
 		{
 			UE_LOG(LogTemp, Log, TEXT("TurnManager: Waiting for presentation to complete before ending turn"));
@@ -346,18 +283,14 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 			EndCurrentUnitTurn();
 		}
 		break;
-
 	case EAbilityTurnAction::FreeTurn:
-		// Do nothing - unit keeps turn
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Free turn - unit keeps acting"));
 		if (InputLockComponent)
 		{
 			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
 		}
 		break;
-
 	case EAbilityTurnAction::RequireConfirm:
-		// TODO: Set flag, wait for confirmation
 		UE_LOG(LogTemp, Warning, TEXT("TurnManager: RequireConfirm not fully implemented - ending turn now"));
 		if (InputLockComponent)
 		{
@@ -365,7 +298,6 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 		}
 		EndCurrentUnitTurn();
 		break;
-
 	case EAbilityTurnAction::Wait:
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Unit waiting - reinserting with negated initiative"));
 		if (InputLockComponent)
@@ -374,7 +306,6 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 		}
 		WaitCurrentUnit();
 		break;
-
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Unknown TurnAction, ending turn"));
 		if (InputLockComponent)
@@ -385,7 +316,6 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 		break;
 	}
 }
-
 void UTurnManagerComponent::SwitchAbility(UUnitAbilityInstance* NewAbility)
 {
 	if (!NewAbility)
@@ -393,53 +323,36 @@ void UTurnManagerComponent::SwitchAbility(UUnitAbilityInstance* NewAbility)
 		UE_LOG(LogTemp, Warning, TEXT("SwitchAbility: NewAbility is null"));
 		return;
 	}
-
-	// Get active unit
 	if (!ActiveUnit)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SwitchAbility: No active unit"));
 		return;
 	}
-
-	// Verify unit has ability inventory
 	if (!ActiveUnit->AbilityInventory)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SwitchAbility: Active unit has no AbilityInventory"));
 		return;
 	}
-
-	// Verify ability exists in unit's available abilities
 	const TArray<UUnitAbilityInstance*>& AvailableAbilities = ActiveUnit->AbilityInventory->GetAvailableActiveAbilities();
 	if (!AvailableAbilities.Contains(NewAbility))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SwitchAbility: Ability not in unit's inventory"));
 		return;
 	}
-
-	// Equip the new ability
 	ActiveUnit->AbilityInventory->EquipAbility(NewAbility);
-
 	UE_LOG(LogTemp, Log, TEXT("SwitchAbility: Equipped %s on %s"),
 		*NewAbility->GetAbilityDisplayData().AbilityName, *ActiveUnit->GetName());
-
-	// Refresh highlights
 	if (HighlightComponent)
 	{
 		HighlightComponent->ClearHighlights();
-
-		// Query new ability's targeting and refresh highlights
 		if (TargetingComponent && MovementComponent && HighlightComponent)
 		{
 			const TArray<FIntPoint> TargetCells = TargetingComponent->GetValidTargetCells(ActiveUnit);
 			HighlightComponent->ShowValidTargets(TargetCells);
-
-			// Also refresh movement highlights
 			const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(ActiveUnit);
 			HighlightComponent->ShowValidMoves(ValidCells);
 		}
 	}
-
-	// Check if ability targets self and auto-execute
 	ETargetReach Targeting = NewAbility->GetTargeting();
 	if (Targeting == ETargetReach::Self)
 	{
@@ -447,45 +360,32 @@ void UTurnManagerComponent::SwitchAbility(UUnitAbilityInstance* NewAbility)
 		ExecuteAbilityOnSelf(ActiveUnit, NewAbility);
 	}
 }
-
 void UTurnManagerComponent::ExecuteAbilityOnTargets(AUnit* SourceUnit, const TArray<AUnit*>& Targets)
 {
 	if (!SourceUnit || Targets.Num() == 0 || !AbilityExecutor)
 	{
 		return;
 	}
-
-	// Get the unit's current active ability
 	if (!SourceUnit->AbilityInventory)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnTargets: Source unit has no AbilityInventory"));
 		return;
 	}
-
 	UUnitAbilityInstance* CurrentAbility = SourceUnit->AbilityInventory->GetCurrentActiveAbility();
 	if (!CurrentAbility)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnTargets: Source unit has no current active ability"));
 		return;
 	}
-
-	// Build context via executor
 	if (InputLockComponent)
 	{
 		InputLockComponent->RequestLock(EInputLockSource::AbilityExecution);
 	}
 	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, Targets);
-
-	// Execute ability via executor
 	FAbilityResult Result = AbilityExecutor->ExecuteAbility(CurrentAbility, Context);
-
-	// Resolve result
 	AbilityExecutor->ResolveResult(Result);
-
-	// Handle turn flow via existing method
 	HandleAbilityComplete(Result);
 }
-
 void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbilityInstance* Ability)
 {
 	if (!SourceUnit || !Ability || !AbilityExecutor)
@@ -493,8 +393,6 @@ void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbility
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnSelf: Invalid source unit or ability"));
 		return;
 	}
-
-	// Build context with source unit as both source and target
 	if (InputLockComponent)
 	{
 		InputLockComponent->RequestLock(EInputLockSource::AbilityExecution);
@@ -502,8 +400,6 @@ void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbility
 	TArray<AUnit*> SelfTarget;
 	SelfTarget.Add(SourceUnit);
 	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, SelfTarget);
-
-	// Validate ability can execute
 	FAbilityValidation Validation = AbilityExecutor->ValidateAbility(Ability, Context);
 	if (!Validation.bIsValid)
 	{
@@ -511,61 +407,43 @@ void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbility
 			*Validation.FailureMessage.ToString());
 		return;
 	}
-
-	// Execute ability
 	FAbilityResult Result = AbilityExecutor->ExecuteAbility(Ability, Context);
-
-	// Resolve result
 	AbilityExecutor->ResolveResult(Result);
-
-	// Handle turn flow via existing method
 	HandleAbilityComplete(Result);
 }
-
 int32 UTurnManagerComponent::RollInitiative() const
 {
 	return FMath::RandRange(InitiativeRollMin, InitiativeRollMax);
 }
-
 FUnitTurnQueueDisplay UTurnManagerComponent::MakeUnitTurnQueueDisplay(AUnit* Unit, int32 Initiative, bool bIsActiveUnit) const
 {
 	FUnitTurnQueueDisplay QueueDisplay;
-
 	if (!Unit)
 	{
 		return QueueDisplay;
 	}
-
 	FUnitDisplayData UnitData = Unit->GetDisplayData();
-
 	QueueDisplay.UnitName = UnitData.UnitName;
 	QueueDisplay.CurrentInitiative = Initiative;
 	QueueDisplay.PortraitTexture = UnitData.PortraitTexture;
 	QueueDisplay.bIsActiveUnit = bIsActiveUnit;
 	QueueDisplay.BelongsToAttackerTeam = AttackerTeam ? AttackerTeam->ContainsUnit(Unit) : false;
-
 	return QueueDisplay;
 }
-
 TArray<FUnitTurnQueueDisplay> UTurnManagerComponent::GetQueueDisplayData() const
 {
 	TArray<FUnitTurnQueueDisplay> DisplayData;
-
 	for (const FTurnQueueEntry& Entry : TurnQueue)
 	{
 		if (!Entry.Unit)
 		{
 			continue;
 		}
-
-		// Active unit is not in the queue, so bIsActive is always false
 		FUnitTurnQueueDisplay QueueDisplay = MakeUnitTurnQueueDisplay(Entry.Unit, Entry.TotalInitiative, false);
 		DisplayData.Add(QueueDisplay);
 	}
-
 	return DisplayData;
 }
-
 FUnitTurnQueueDisplay UTurnManagerComponent::GetActiveUnitDisplayData() const
 {
 	if (!ActiveUnit)
@@ -574,25 +452,17 @@ FUnitTurnQueueDisplay UTurnManagerComponent::GetActiveUnitDisplayData() const
 	}
 	return MakeUnitTurnQueueDisplay(ActiveUnit, ActiveUnitInitiative, true);
 }
-
 void UTurnManagerComponent::OnPresentationComplete()
 {
 	UE_LOG(LogTemp, Log, TEXT("TurnManager: Presentation complete, ending turn"));
-
 	bWaitingForPresentation = false;
-
-	// Unbind from tracker event
 	if (PresentationTracker)
 	{
 		PresentationTracker->OnAllOperationsComplete.RemoveDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
 	}
-
-	// Release ability execution lock
 	if (InputLockComponent)
 	{
 		InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
 	}
-
-	// Now safe to end the turn
 	EndCurrentUnitTurn();
 }

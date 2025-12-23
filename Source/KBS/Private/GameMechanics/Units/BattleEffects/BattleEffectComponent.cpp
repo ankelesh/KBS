@@ -1,12 +1,10 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Unit.h"
-
 UBattleEffectComponent::UBattleEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 void UBattleEffectComponent::AddEffect(UBattleEffect* Effect)
 {
 	if (Effect)
@@ -15,7 +13,6 @@ void UBattleEffectComponent::AddEffect(UBattleEffect* Effect)
 		Effect->OnApplied(GetOwnerUnit());
 	}
 }
-
 void UBattleEffectComponent::RemoveEffect(UBattleEffect* Effect)
 {
 	if (Effect)
@@ -24,7 +21,6 @@ void UBattleEffectComponent::RemoveEffect(UBattleEffect* Effect)
 		ActiveEffects.Remove(Effect);
 	}
 }
-
 void UBattleEffectComponent::ClearAllEffects()
 {
 	AUnit* Owner = GetOwnerUnit();
@@ -37,7 +33,6 @@ void UBattleEffectComponent::ClearAllEffects()
 	}
 	ActiveEffects.Empty();
 }
-
 void UBattleEffectComponent::BroadcastTurnStart()
 {
 	AUnit* Owner = GetOwnerUnit();
@@ -47,7 +42,6 @@ void UBattleEffectComponent::BroadcastTurnStart()
 		{
 			Effect->OnTurnStart(Owner);
 			Effect->DecrementTurns();
-
 			if (Effect->GetRemainingTurns() <= 0)
 			{
 				RemoveEffect(Effect);
@@ -55,7 +49,6 @@ void UBattleEffectComponent::BroadcastTurnStart()
 		}
 	}
 }
-
 void UBattleEffectComponent::BroadcastTurnEnd()
 {
 	AUnit* Owner = GetOwnerUnit();
@@ -67,7 +60,6 @@ void UBattleEffectComponent::BroadcastTurnEnd()
 		}
 	}
 }
-
 void UBattleEffectComponent::BroadcastAttacked(AUnit* Attacker)
 {
 	AUnit* Owner = GetOwnerUnit();
@@ -79,7 +71,6 @@ void UBattleEffectComponent::BroadcastAttacked(AUnit* Attacker)
 		}
 	}
 }
-
 void UBattleEffectComponent::BroadcastAttacks(AUnit* Target)
 {
 	AUnit* Owner = GetOwnerUnit();
@@ -91,7 +82,6 @@ void UBattleEffectComponent::BroadcastAttacks(AUnit* Target)
 		}
 	}
 }
-
 void UBattleEffectComponent::BroadcastMoved()
 {
 	AUnit* Owner = GetOwnerUnit();
@@ -103,7 +93,6 @@ void UBattleEffectComponent::BroadcastMoved()
 		}
 	}
 }
-
 void UBattleEffectComponent::BroadcastDied()
 {
 	AUnit* Owner = GetOwnerUnit();
@@ -115,7 +104,6 @@ void UBattleEffectComponent::BroadcastDied()
 		}
 	}
 }
-
 AUnit* UBattleEffectComponent::GetOwnerUnit() const
 {
 	return Cast<AUnit>(GetOwner());
