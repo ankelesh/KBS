@@ -1,5 +1,4 @@
 #include "GameplayTypes/AbilityTypesLibrary.h"
-
 FString UAbilityTypesLibrary::TargetReachToString(ETargetReach Reach)
 {
 	static const TMap<ETargetReach, FString> TargetReachStrings = {
@@ -14,7 +13,6 @@ FString UAbilityTypesLibrary::TargetReachToString(ETargetReach Reach)
 		{ ETargetReach::EmptyCell, TEXT("Empty Cell") },
 		{ ETargetReach::EmptyCellOrFriendly, TEXT("Empty Cell Or Friendly") }
 	};
-
 	const FString* Found = TargetReachStrings.Find(Reach);
 	return Found ? *Found : TEXT("Unknown");
 }

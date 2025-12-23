@@ -1,19 +1,14 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Tactical/UnitAbilitySubsystem.h"
-
 UAbilityInventoryComponent::UAbilityInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 UUnitAbilityInstance* UAbilityInventoryComponent::GetCurrentActiveAbility() const
 {
 	return CurrentActiveAbility;
 }
-
 TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAvailableActiveAbilities() const
 {
 	TArray<UUnitAbilityInstance*> Result;
@@ -23,7 +18,6 @@ TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAvailableActiveAbil
 	}
 	return Result;
 }
-
 TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetPassiveAbilities() const
 {
 	TArray<UUnitAbilityInstance*> Result;
@@ -33,17 +27,14 @@ TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetPassiveAbilities() 
 	}
 	return Result;
 }
-
 void UAbilityInventoryComponent::EquipAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability)
 	{
 		return;
 	}
-
 	CurrentActiveAbility = Ability;
 }
-
 void UAbilityInventoryComponent::EquipDefaultAbility()
 {
 	if (AvailableActiveAbilities.Num() > 0)
@@ -57,26 +48,21 @@ void UAbilityInventoryComponent::EquipDefaultAbility()
 		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: No available active abilities to equip"));
 	}
 }
-
 void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability || Ability->IsPassive())
 	{
 		return;
 	}
-
 	AvailableActiveAbilities.Add(Ability);
 }
-
 void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability || !Ability->IsPassive())
 	{
 		return;
 	}
-
 	PassiveAbilities.Add(Ability);
-
 	UWorld* World = GetWorld();
 	if (World)
 	{
@@ -88,14 +74,12 @@ void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability
 		}
 	}
 }
-
 void UAbilityInventoryComponent::RemovePassiveAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability)
 	{
 		return;
 	}
-
 	UWorld* World = GetWorld();
 	if (World)
 	{
@@ -106,10 +90,8 @@ void UAbilityInventoryComponent::RemovePassiveAbility(UUnitAbilityInstance* Abil
 			AbilitySubsystem->UnregisterAbility(Ability);
 		}
 	}
-
 	PassiveAbilities.Remove(Ability);
 }
-
 void UAbilityInventoryComponent::RegisterPassives()
 {
 	UWorld* World = GetWorld();
@@ -117,13 +99,11 @@ void UAbilityInventoryComponent::RegisterPassives()
 	{
 		return;
 	}
-
 	UUnitAbilitySubsystem* AbilitySubsystem = World->GetSubsystem<UUnitAbilitySubsystem>();
 	if (!AbilitySubsystem)
 	{
 		return;
 	}
-
 	for (UUnitAbilityInstance* Ability : PassiveAbilities)
 	{
 		if (Ability)
@@ -133,7 +113,6 @@ void UAbilityInventoryComponent::RegisterPassives()
 		}
 	}
 }
-
 void UAbilityInventoryComponent::UnregisterPassives()
 {
 	UWorld* World = GetWorld();
@@ -141,13 +120,11 @@ void UAbilityInventoryComponent::UnregisterPassives()
 	{
 		return;
 	}
-
 	UUnitAbilitySubsystem* AbilitySubsystem = World->GetSubsystem<UUnitAbilitySubsystem>();
 	if (!AbilitySubsystem)
 	{
 		return;
 	}
-
 	for (UUnitAbilityInstance* Ability : PassiveAbilities)
 	{
 		if (Ability)
@@ -157,11 +134,9 @@ void UAbilityInventoryComponent::UnregisterPassives()
 		}
 	}
 }
-
 TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetActiveAbilitiesDisplayData() const
 {
 	TArray<FAbilityDisplayData> DisplayDataArray;
-
 	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
 	{
 		if (Ability)
@@ -169,14 +144,11 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetActiveAbilitiesDispla
 			DisplayDataArray.Add(Ability->GetAbilityDisplayData());
 		}
 	}
-
 	return DisplayDataArray;
 }
-
 TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetPassiveAbilitiesDisplayData() const
 {
 	TArray<FAbilityDisplayData> DisplayDataArray;
-
 	for (const TObjectPtr<UUnitAbilityInstance>& Ability : PassiveAbilities)
 	{
 		if (Ability)
@@ -184,6 +156,5 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetPassiveAbilitiesDispl
 			DisplayDataArray.Add(Ability->GetAbilityDisplayData());
 		}
 	}
-
 	return DisplayDataArray;
 }
