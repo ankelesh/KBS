@@ -25,5 +25,6 @@ enum class ETargetReach : uint8
 	AnyFriendly UMETA(DisplayName = "Any Friendly"),
 	AllFriendlies UMETA(DisplayName = "All Friendlies"),
 	EmptyCell UMETA(DisplayName = "Empty Cell"),
-	EmptyCellOrFriendly UMETA(DisplayName = "Empty Cell Or Friendly")
+	EmptyCellOrFriendly UMETA(DisplayName = "Empty Cell Or Friendly"),
+	Movement UMETA(DisplayName = "Movement")
 };

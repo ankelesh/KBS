@@ -13,4 +13,8 @@ struct FAbilityBattleContext
 	TArray<TObjectPtr<AUnit>> TargetUnits;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<ATacBattleGrid> Grid = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FIntPoint TargetCell = FIntPoint(-1, -1);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint8 TargetLayer = 0;
 };

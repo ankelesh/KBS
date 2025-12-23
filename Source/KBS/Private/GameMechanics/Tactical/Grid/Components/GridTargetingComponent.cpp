@@ -1,5 +1,6 @@
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
+#include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
@@ -14,6 +15,11 @@ UGridTargetingComponent::UGridTargetingComponent()
 void UGridTargetingComponent::Initialize(UGridDataManager* InDataManager)
 {
 	DataManager = InDataManager;
+}
+
+void UGridTargetingComponent::SetMovementComponent(UGridMovementComponent* InMovementComponent)
+{
+	MovementComponent = InMovementComponent;
 }
 TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit) const
 {
@@ -84,6 +90,14 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 		case ETargetReach::EmptyCellOrFriendly:
 			GetEmptyCellsOrFriendly(Unit, TargetCells);
 			break;
+		case ETargetReach::Movement:
+		{
+			if (MovementComponent)
+			{
+				TargetCells = MovementComponent->GetValidMoveCells(Unit);
+			}
+			break;
+		}
 	}
 	return TargetCells;
 }

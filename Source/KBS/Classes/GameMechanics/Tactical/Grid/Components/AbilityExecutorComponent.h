@@ -18,6 +18,7 @@ public:
 	FAbilityValidation ValidateAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context) const;
 	FAbilityResult ExecuteAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context);
 	FAbilityBattleContext BuildContext(AUnit* SourceUnit, const TArray<AUnit*>& Targets) const;
+	FAbilityBattleContext BuildContext(AUnit* SourceUnit, const TArray<AUnit*>& Targets, FIntPoint ClickedCell, uint8 ClickedLayer) const;
 	void ResolveResult(const FAbilityResult& Result);
 private:
 	UPROPERTY()

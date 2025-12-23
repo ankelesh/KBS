@@ -14,6 +14,7 @@ class KBS_API UGridTargetingComponent : public UActorComponent
 public:
 	UGridTargetingComponent();
 	void Initialize(UGridDataManager* InDataManager);
+	void SetMovementComponent(class UGridMovementComponent* InMovementComponent);
 	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit) const;
 	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting = false) const;
 	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit) const;
@@ -22,6 +23,8 @@ public:
 private:
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;
+	UPROPERTY()
+	TObjectPtr<class UGridMovementComponent> MovementComponent;
 	void GetClosestEnemyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetFlankTargetCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetAnyEnemyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;

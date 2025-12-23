@@ -61,6 +61,18 @@ FAbilityBattleContext UAbilityExecutorComponent::BuildContext(AUnit* SourceUnit,
 	Context.Grid = Grid;
 	return Context;
 }
+
+FAbilityBattleContext UAbilityExecutorComponent::BuildContext(AUnit* SourceUnit, const TArray<AUnit*>& Targets, FIntPoint ClickedCell, uint8 ClickedLayer) const
+{
+	FAbilityBattleContext Context;
+	Context.SourceUnit = SourceUnit;
+	Context.TargetUnits = Targets;
+	Context.Grid = Grid;
+	Context.TargetCell = ClickedCell;
+	Context.TargetLayer = ClickedLayer;
+	return Context;
+}
+
 void UAbilityExecutorComponent::ResolveResult(const FAbilityResult& Result)
 {
 	if (Result.bSuccess)
