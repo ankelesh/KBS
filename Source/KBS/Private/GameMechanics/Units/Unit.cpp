@@ -211,6 +211,10 @@ void AUnit::OnUnitTurnStart()
 {
 	UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
 	ModifiedStats.Defense.bIsDefending = false;
+	if (AbilityInventory)
+	{
+		AbilityInventory->SelectAttackAbility();
+	}
 	if (EffectManager)
 	{
 		EffectManager->BroadcastTurnStart();
