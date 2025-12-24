@@ -56,7 +56,6 @@ public:
 	ATacBattleGrid();
 	FVector GetCellWorldLocation(int32 Row, int32 Col, EBattleLayer Layer) const;
 	FIntPoint GetCellFromWorldLocation(FVector WorldLocation) const;
-	TArray<FIntPoint> GetValidMoveCells(AUnit* Unit) const;
 	TArray<FIntPoint> GetValidTargetCells(AUnit* Unit) const;
 	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit) const;
 	UFUNCTION(BlueprintCallable, Category = "Battle")
@@ -64,8 +63,6 @@ public:
 	UBattleTeam* GetTeamForUnit(AUnit* Unit) const;
 	UBattleTeam* GetEnemyTeam(AUnit* Unit) const;
 	void AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
-	UFUNCTION(BlueprintCallable, Category = "Battle|Abilities")
-	void SwitchAbility(UUnitAbilityInstance* NewAbility);
 	void AbilitySelfExecute(AUnit* SourceUnit, UUnitAbilityInstance* Ability);
 	UFUNCTION(BlueprintCallable, Category="Getters")
 	UTurnManagerComponent* GetTurnManager();
@@ -106,7 +103,6 @@ protected:
 	AUnit* GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const;
 	bool RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer);
 	bool GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
-	bool MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol);
 	TArray<AUnit*> GetTeamUnits(bool bIsAttackerTeam) const;
 private:
 	void InitializeComponents();

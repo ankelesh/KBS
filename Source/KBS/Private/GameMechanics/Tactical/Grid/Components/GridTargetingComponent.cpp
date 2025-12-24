@@ -53,7 +53,7 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 			EBattleLayer UnitLayer;
 			if (DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
 			{
-				TargetCells.Add(FIntPoint(UnitRow, UnitCol));
+				TargetCells.Add(FIntPoint(UnitCol, UnitRow));
 			}
 			break;
 		}

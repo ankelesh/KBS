@@ -101,14 +101,6 @@ bool ATacBattleGrid::IsRestrictedCell(int32 Row, int32 Col) const
 {
 	return FGridCoordinates::IsRestrictedCell(Row, Col);
 }
-TArray<FIntPoint> ATacBattleGrid::GetValidMoveCells(AUnit* Unit) const
-{
-	return MovementComponent->GetValidMoveCells(Unit);
-}
-bool ATacBattleGrid::MoveUnit(AUnit* Unit, int32 TargetRow, int32 TargetCol)
-{
-	return MovementComponent->MoveUnit(Unit, TargetRow, TargetCol);
-}
 TArray<FIntPoint> ATacBattleGrid::GetValidTargetCells(AUnit* Unit) const
 {
 	return TargetingComponent->GetValidTargetCells(Unit);
@@ -204,13 +196,6 @@ void ATacBattleGrid::AbilityTargetSelected(AUnit* SourceUnit, const TArray<AUnit
 	if (TurnManager)
 	{
 		TurnManager->ExecuteAbilityOnTargets(SourceUnit, Targets);
-	}
-}
-void ATacBattleGrid::SwitchAbility(UUnitAbilityInstance* NewAbility)
-{
-	if (TurnManager)
-	{
-		TurnManager->SwitchAbility(NewAbility);
 	}
 }
 void ATacBattleGrid::AbilitySelfExecute(AUnit* SourceUnit, UUnitAbilityInstance* Ability)

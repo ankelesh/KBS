@@ -45,6 +45,10 @@ FAbilityResult UAbilityExecutorComponent::ExecuteAbility(UUnitAbilityInstance* A
 		return TriggerResult;
 	}
 	FAbilityResult ApplyResult = Ability->ApplyAbilityEffect(Context);
+	if (ApplyResult.bSuccess)
+	{
+		Ability->ConsumeCharge();
+	}
 	if (PresentationTracker)
 	{
 		PresentationTracker->EndBatch();

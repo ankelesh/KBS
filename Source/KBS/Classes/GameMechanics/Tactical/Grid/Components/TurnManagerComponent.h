@@ -96,6 +96,7 @@ public:
 	bool CanUnitAct(AUnit* Unit) const;
 	bool BattleIsOver() const;
 	void HandleAbilityComplete(const FAbilityResult& Result);
+	UFUNCTION(BlueprintCallable, Category = "Turn")
 	void SwitchAbility(class UUnitAbilityInstance* NewAbility);
 	void ExecuteAbilityOnTargets(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
 	void ExecuteAbilityOnTargets(AUnit* SourceUnit, const TArray<AUnit*>& Targets, FIntPoint ClickedCell, uint8 ClickedLayer);
