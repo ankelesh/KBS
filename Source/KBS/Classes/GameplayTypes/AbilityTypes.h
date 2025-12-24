@@ -4,6 +4,15 @@
 class UBattleEffect;
 class AUnit;
 UENUM(BlueprintType)
+enum class EDefaultAbilitySlot : uint8
+{
+	Attack UMETA(DisplayName = "Attack"),
+	Move UMETA(DisplayName = "Move"),
+	Wait UMETA(DisplayName = "Wait"),
+	Defend UMETA(DisplayName = "Defend"),
+	Flee UMETA(DisplayName = "Flee")
+};
+UENUM(BlueprintType)
 enum class EAbilityTurnAction : uint8
 {
 	EndTurn UMETA(DisplayName = "End Turn"),
