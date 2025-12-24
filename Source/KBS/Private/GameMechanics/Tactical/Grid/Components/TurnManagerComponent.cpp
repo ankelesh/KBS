@@ -345,12 +345,10 @@ void UTurnManagerComponent::SwitchAbility(UUnitAbilityInstance* NewAbility)
 	if (HighlightComponent)
 	{
 		HighlightComponent->ClearHighlights();
-		if (TargetingComponent && MovementComponent && HighlightComponent)
+		if (TargetingComponent)
 		{
 			const TArray<FIntPoint> TargetCells = TargetingComponent->GetValidTargetCells(ActiveUnit);
 			HighlightComponent->ShowValidTargets(TargetCells);
-			const TArray<FIntPoint> ValidCells = MovementComponent->GetValidMoveCells(ActiveUnit);
-			HighlightComponent->ShowValidMoves(ValidCells);
 		}
 	}
 	ETargetReach Targeting = NewAbility->GetTargeting();
@@ -386,6 +384,34 @@ void UTurnManagerComponent::ExecuteAbilityOnTargets(AUnit* SourceUnit, const TAr
 	AbilityExecutor->ResolveResult(Result);
 	HandleAbilityComplete(Result);
 }
+
+void UTurnManagerComponent::ExecuteAbilityOnTargets(AUnit* SourceUnit, const TArray<AUnit*>& Targets, FIntPoint ClickedCell, uint8 ClickedLayer)
+{
+	if (!SourceUnit || !AbilityExecutor)
+	{
+		return;
+	}
+	if (!SourceUnit->AbilityInventory)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnTargets: Source unit has no AbilityInventory"));
+		return;
+	}
+	UUnitAbilityInstance* CurrentAbility = SourceUnit->AbilityInventory->GetCurrentActiveAbility();
+	if (!CurrentAbility)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnTargets: Source unit has no current active ability"));
+		return;
+	}
+	if (InputLockComponent)
+	{
+		InputLockComponent->RequestLock(EInputLockSource::AbilityExecution);
+	}
+	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, Targets, ClickedCell, ClickedLayer);
+	FAbilityResult Result = AbilityExecutor->ExecuteAbility(CurrentAbility, Context);
+	AbilityExecutor->ResolveResult(Result);
+	HandleAbilityComplete(Result);
+}
+
 void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbilityInstance* Ability)
 {
 	if (!SourceUnit || !Ability || !AbilityExecutor)

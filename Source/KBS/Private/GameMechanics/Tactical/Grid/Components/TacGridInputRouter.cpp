@@ -60,7 +60,6 @@ void UTacGridInputRouter::HandleGridClick(FKey ButtonPressed)
 	}
 	UE_LOG(LogTemp, Warning, TEXT("InputRouter: Grid clicked at cell [%d,%d] Layer=%d"), ClickedRow, ClickedCol, (int32)ClickedLayer);
 	const TArray<FIntPoint> ValidTargetCells = TargetingComponent->GetValidTargetCells(ActiveUnit);
-	const TArray<FIntPoint> ValidMoveCells = MovementComponent->GetValidMoveCells(ActiveUnit);
 	FIntPoint ClickedCell(ClickedCol, ClickedRow);
 	if (ValidTargetCells.Contains(ClickedCell))
 	{
@@ -94,33 +93,11 @@ void UTacGridInputRouter::HandleGridClick(FKey ButtonPressed)
 		}
 		TArray<AUnit*> Targets = TargetingComponent->ResolveTargetsFromClick(
 			ActiveUnit, ClickedCell, ClickedLayer, Reach, AreaShape);
-		if (Targets.Num() > 0)
-		{
-			UE_LOG(LogTemp, Log, TEXT("InputRouter: Executing ability on %d target(s)"), Targets.Num());
-			TurnManager->ExecuteAbilityOnTargets(ActiveUnit, Targets);
-			return;
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("InputRouter: Valid target cell but no valid targets resolved at [%d,%d] Layer=%d"),
-				ClickedRow, ClickedCol, (int32)ClickedLayer);
-		}
+		UE_LOG(LogTemp, Log, TEXT("InputRouter: Executing ability on %d target(s) at cell [%d,%d]"), Targets.Num(), ClickedRow, ClickedCol);
+		TurnManager->ExecuteAbilityOnTargets(ActiveUnit, Targets, ClickedCell, static_cast<uint8>(ClickedLayer));
+		return;
 	}
-	if (ValidMoveCells.Contains(ClickedCell))
-	{
-		UE_LOG(LogTemp, Log, TEXT("InputRouter: Clicked cell [%d,%d] is a valid move destination"), ClickedRow, ClickedCol);
-		if (MovementComponent->MoveUnit(ActiveUnit, ClickedRow, ClickedCol))
-		{
-			UE_LOG(LogTemp, Log, TEXT("InputRouter: Movement successful, ending turn"));
-			TurnManager->EndCurrentUnitTurn();
-			return;
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("InputRouter: Movement failed for cell [%d,%d]"), ClickedRow, ClickedCol);
-		}
-	}
-	UE_LOG(LogTemp, Log, TEXT("InputRouter: Clicked cell [%d,%d] is neither a valid target nor a valid move"), ClickedRow, ClickedCol);
+	UE_LOG(LogTemp, Log, TEXT("InputRouter: Clicked cell [%d,%d] is not a valid target for current ability"), ClickedRow, ClickedCol);
 }
 bool UTacGridInputRouter::GetCellUnderMouse(int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const
 {

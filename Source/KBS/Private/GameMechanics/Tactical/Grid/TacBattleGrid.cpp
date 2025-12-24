@@ -183,8 +183,6 @@ void ATacBattleGrid::HandleUnitTurnStart(AUnit* Unit)
 			HighlightComponent->ClearHighlights();
 			const TArray<FIntPoint> TargetCells = GetValidTargetCells(Unit);
 			HighlightComponent->ShowValidTargets(TargetCells);
-			const TArray<FIntPoint> ValidCells = GetValidMoveCells(Unit);
-			HighlightComponent->ShowValidMoves(ValidCells);
 		}
 	}
 	else

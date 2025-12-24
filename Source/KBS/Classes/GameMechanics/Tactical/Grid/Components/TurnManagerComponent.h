@@ -98,6 +98,7 @@ public:
 	void HandleAbilityComplete(const FAbilityResult& Result);
 	void SwitchAbility(class UUnitAbilityInstance* NewAbility);
 	void ExecuteAbilityOnTargets(AUnit* SourceUnit, const TArray<AUnit*>& Targets);
+	void ExecuteAbilityOnTargets(AUnit* SourceUnit, const TArray<AUnit*>& Targets, FIntPoint ClickedCell, uint8 ClickedLayer);
 	void ExecuteAbilityOnSelf(AUnit* SourceUnit, class UUnitAbilityInstance* Ability);
 	UFUNCTION(BlueprintCallable, Category = "Turn")
 	TArray<FUnitTurnQueueDisplay> GetQueueDisplayData() const;

@@ -7,6 +7,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/FlankCellDefinitions.h"
 UGridTargetingComponent::UGridTargetingComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -15,6 +16,7 @@ void UGridTargetingComponent::Initialize(UGridDataManager* InDataManager)
 {
 	DataManager = InDataManager;
 }
+
 TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit) const
 {
 	if (!Unit || !Unit->AbilityInventory)
@@ -84,6 +86,11 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 		case ETargetReach::EmptyCellOrFriendly:
 			GetEmptyCellsOrFriendly(Unit, TargetCells);
 			break;
+		case ETargetReach::Movement:
+		{
+			GetMovementCells(Unit, TargetCells);
+			break;
+		}
 	}
 	return TargetCells;
 }
@@ -346,4 +353,206 @@ TArray<AUnit*> UGridTargetingComponent::GetUnitsInArea(FIntPoint CenterCell, EBa
 		}
 	}
 	return UnitsInArea;
+}
+
+void UGridTargetingComponent::GetMovementCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	if (!Unit || !DataManager)
+	{
+		return;
+	}
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+	if (UnitLayer == EBattleLayer::Air)
+	{
+		GetAirMoveCells(Unit, OutCells);
+	}
+	else
+	{
+		GetAdjacentMoveCells(Unit, OutCells);
+		GetFlankMoveCells(Unit, OutCells);
+	}
+}
+
+void UGridTargetingComponent::GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+	UBattleTeam* UnitTeam = DataManager->GetTeamForUnit(Unit);
+	const TArray<FIntPoint> AdjacentOffsets = {
+		FIntPoint(0, -1), FIntPoint(0, 1), FIntPoint(-1, 0), FIntPoint(1, 0)
+	};
+	for (const FIntPoint& Offset : AdjacentOffsets)
+	{
+		const int32 TargetRow = UnitRow + Offset.Y;
+		const int32 TargetCol = UnitCol + Offset.X;
+		if (!DataManager->IsValidCell(TargetRow, TargetCol, UnitLayer))
+		{
+			continue;
+		}
+		if (DataManager->IsFlankCell(TargetRow, TargetCol))
+		{
+			UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
+			if (UnitTeam == AttackerTeam && FFlankCellDefinitions::IsAttackerFlankColumn(TargetCol))
+			{
+				continue;
+			}
+			if (UnitTeam != AttackerTeam && FFlankCellDefinitions::IsDefenderFlankColumn(TargetCol))
+			{
+				continue;
+			}
+		}
+		AUnit* OccupyingUnit = DataManager->GetUnit(TargetRow, TargetCol, UnitLayer);
+		if (!OccupyingUnit || (UnitTeam && UnitTeam->ContainsUnit(OccupyingUnit)))
+		{
+			OutCells.Add(FIntPoint(TargetCol, TargetRow));
+		}
+	}
+}
+
+void UGridTargetingComponent::GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+	UBattleTeam* UnitTeam = DataManager->GetTeamForUnit(Unit);
+	if (!UnitTeam)
+	{
+		return;
+	}
+	const FIntPoint UnitPos(UnitCol, UnitRow);
+	UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
+	const bool bIsAttacker = (UnitTeam == AttackerTeam);
+	TArray<int32> EnemyFlankColumns;
+	if (bIsAttacker)
+	{
+		EnemyFlankColumns = FFlankCellDefinitions::DefenderFlankColumns;
+	}
+	else
+	{
+		EnemyFlankColumns = FFlankCellDefinitions::AttackerFlankColumns;
+	}
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col : EnemyFlankColumns)
+		{
+			if (!DataManager->IsValidCell(Row, Col, UnitLayer))
+			{
+				continue;
+			}
+			if (!DataManager->IsFlankCell(Row, Col))
+			{
+				continue;
+			}
+			const FIntPoint FlankCell(Col, Row);
+			if (CanEnterFlankCell(UnitPos, FlankCell, UnitTeam))
+			{
+				AUnit* Occupant = DataManager->GetUnit(Row, Col, UnitLayer);
+				if (!Occupant || UnitTeam->ContainsUnit(Occupant))
+				{
+					OutCells.Add(FlankCell);
+				}
+			}
+		}
+	}
+}
+
+void UGridTargetingComponent::GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+	UBattleTeam* UnitTeam = DataManager->GetTeamForUnit(Unit);
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			if (DataManager->IsRestrictedCell(Row, Col))
+			{
+				continue;
+			}
+			AUnit* OccupyingUnit = DataManager->GetUnit(Row, Col, UnitLayer);
+			if (!OccupyingUnit || (UnitTeam && UnitTeam->ContainsUnit(OccupyingUnit)))
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+}
+
+bool UGridTargetingComponent::CanEnterFlankCell(const FIntPoint& UnitPos, const FIntPoint& FlankCell, UBattleTeam* UnitTeam) const
+{
+	if (!DataManager || !UnitTeam)
+	{
+		return false;
+	}
+	const int32 UnitRow = UnitPos.Y;
+	const int32 UnitCol = UnitPos.X;
+	const int32 FlankRow = FlankCell.Y;
+	const int32 FlankCol = FlankCell.X;
+	UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
+	const bool bIsAttacker = (UnitTeam == AttackerTeam);
+	const bool bIsEnemyFlank = (bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(FlankCol)) ||
+	                           (!bIsAttacker && FFlankCellDefinitions::IsAttackerFlankColumn(FlankCol));
+	if (!bIsEnemyFlank)
+	{
+		return false;
+	}
+	const bool bIsClosestFlank = FFlankCellDefinitions::IsClosestFlankColumn(FlankCol);
+	const bool bIsFarFlank = FFlankCellDefinitions::IsFarFlankColumn(FlankCol);
+	if (bIsClosestFlank && FFlankCellDefinitions::IsCenterLineCell(UnitRow, UnitCol))
+	{
+		return IsAdjacentCell(UnitPos, FlankCell);
+	}
+	if (bIsClosestFlank && IsFlankCell(UnitPos))
+	{
+		const bool bIsOwnFlank = (bIsAttacker && FFlankCellDefinitions::IsAttackerFlankColumn(UnitCol)) ||
+		                         (!bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(UnitCol));
+		if (bIsOwnFlank && IsAdjacentCell(UnitPos, FlankCell))
+		{
+			return true;
+		}
+	}
+	if (bIsFarFlank && IsFlankCell(UnitPos))
+	{
+		const bool bIsInClosestEnemyFlank = (bIsAttacker && UnitCol == 3) || (!bIsAttacker && UnitCol == 1);
+		if (bIsInClosestEnemyFlank && IsAdjacentCell(UnitPos, FlankCell))
+		{
+			return true;
+		}
+	}
+	if (bIsFarFlank && !IsFlankCell(UnitPos))
+	{
+		return IsAdjacentCell(UnitPos, FlankCell);
+	}
+	return false;
+}
+
+bool UGridTargetingComponent::IsAdjacentCell(const FIntPoint& CellA, const FIntPoint& CellB) const
+{
+	const int32 ManhattanDistance = FMath::Abs(CellA.X - CellB.X) + FMath::Abs(CellA.Y - CellB.Y);
+	return ManhattanDistance == 1;
+}
+
+bool UGridTargetingComponent::IsFlankCell(const FIntPoint& Cell) const
+{
+	if (!DataManager)
+	{
+		return false;
+	}
+	return DataManager->IsFlankCell(Cell.Y, Cell.X);
 }

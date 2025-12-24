@@ -189,7 +189,7 @@ FIntPoint UAIControllerComponent::FindBestMovePosition(AUnit* AIUnit, AUnit* Tar
 	{
 		return FIntPoint(-1, -1);
 	}
-	TArray<FIntPoint> ValidMoves = MovementComponent->GetValidMoveCells(AIUnit);
+	TArray<FIntPoint> ValidMoves = TargetingComponent->GetValidTargetCells(AIUnit, ETargetReach::Movement);
 	if (ValidMoves.Num() == 0)
 	{
 		return FIntPoint(-1, -1);

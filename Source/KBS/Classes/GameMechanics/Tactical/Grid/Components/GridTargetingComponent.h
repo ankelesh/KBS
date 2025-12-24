@@ -28,5 +28,12 @@ private:
 	void GetAllFriendlyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetAnyFriendlyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetEmptyCellsOrFriendly(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetMovementCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	bool CanEnterFlankCell(const FIntPoint& UnitPos, const FIntPoint& FlankCell, class UBattleTeam* UnitTeam) const;
+	bool IsAdjacentCell(const FIntPoint& CellA, const FIntPoint& CellB) const;
+	bool IsFlankCell(const FIntPoint& Cell) const;
 	TArray<AUnit*> GetUnitsInArea(FIntPoint CenterCell, EBattleLayer Layer, const struct FAreaShape& AreaShape) const;
 };
