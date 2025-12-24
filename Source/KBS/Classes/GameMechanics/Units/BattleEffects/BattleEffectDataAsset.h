@@ -3,6 +3,7 @@
 #include "Engine/DataAsset.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "BattleEffectDataAsset.generated.h"
+class UNiagaraSystem;
 UENUM(BlueprintType)
 enum class EEffectTarget : uint8
 {
@@ -23,7 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
 	EEffectTarget EffectTarget = EEffectTarget::Enemy;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	int32 Duration = 1;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	float EffectMagnitude = 0.0f;
+	FName StackingId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	TSoftObjectPtr<UNiagaraSystem> AppliedVFX;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	float VFXDuration = 3.0f;
 };

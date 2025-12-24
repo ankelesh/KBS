@@ -1,8 +1,7 @@
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
-#include "Engine/StaticMesh.h"
+#include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
 UWeapon::UWeapon()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -18,23 +17,16 @@ void UWeapon::Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* D
 	BaseStats = Data->BaseStats;
 	ModifiedStats = BaseStats;
 	ActiveEffects.Empty();
-	for (const TSubclassOf<UBattleEffect>& EffectClass : Data->EffectClasses)
+	for (const FWeaponEffectConfig& EffectConfig : Data->Effects)
 	{
-		if (EffectClass)
+		if (EffectConfig.EffectClass && EffectConfig.EffectConfig)
 		{
-			UBattleEffect* NewEffect = NewObject<UBattleEffect>(this, EffectClass);
+			UBattleEffect* NewEffect = NewObject<UBattleEffect>(this, EffectConfig.EffectClass);
 			if (NewEffect)
 			{
+				NewEffect->Initialize(EffectConfig.EffectConfig, this, nullptr);
 				ActiveEffects.Add(NewEffect);
 			}
-		}
-	}
-	if (VisualsComp && !Data->WeaponMesh.IsNull())
-	{
-		UStaticMesh* LoadedMesh = Data->WeaponMesh.LoadSynchronous();
-		if (LoadedMesh)
-		{
-			VisualsComp->AttachWeaponMesh(LoadedMesh, Data->AttachSocketName);
 		}
 	}
 }
@@ -47,13 +39,14 @@ void UWeapon::InitializeFromDataAsset()
 	BaseStats = Config->BaseStats;
 	ModifiedStats = BaseStats;
 	ActiveEffects.Empty();
-	for (const TSubclassOf<UBattleEffect>& EffectClass : Config->EffectClasses)
+	for (const FWeaponEffectConfig& EffectConfig : Config->Effects)
 	{
-		if (EffectClass)
+		if (EffectConfig.EffectClass && EffectConfig.EffectConfig)
 		{
-			UBattleEffect* NewEffect = NewObject<UBattleEffect>(this, EffectClass);
+			UBattleEffect* NewEffect = NewObject<UBattleEffect>(this, EffectConfig.EffectClass);
 			if (NewEffect)
 			{
+				NewEffect->Initialize(EffectConfig.EffectConfig, this, nullptr);
 				ActiveEffects.Add(NewEffect);
 			}
 		}

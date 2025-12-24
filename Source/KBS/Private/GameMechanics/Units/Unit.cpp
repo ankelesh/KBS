@@ -10,6 +10,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/AbilityFactory.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "GameplayTypes/AbilityTypes.h"
 AUnit::AUnit()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -24,20 +25,25 @@ AUnit::AUnit()
 void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
-	UE_LOG(LogTemp, Error, TEXT("===== AUnit::BeginPlay START - Actor: %s ====="), *GetName());
+
+	// Verify critical components exist
+	if (!EffectManager)
+	{
+		EffectManager = NewObject<UBattleEffectComponent>(this, TEXT("EffectManager"));
+		if (EffectManager)
+		{
+			EffectManager->RegisterComponent();
+		}
+	}
+
 	if (!UnitDefinition)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unit has no UnitDefinition assigned!"));
 		return;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("AUnit::BeginPlay - UnitDefinition: %s"), *UnitDefinition->GetName());
 	if (VisualsComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AUnit::BeginPlay - Calling InitializeFromDefinition"));
 		VisualsComponent->InitializeFromDefinition(UnitDefinition);
-		UE_LOG(LogTemp, Error, TEXT("AUnit::BeginPlay - AFTER Init: SpawnedMeshComponents=%d, PrimaryMesh=%s"),
-			VisualsComponent->GetAllMeshComponents().Num(),
-			VisualsComponent->GetPrimarySkeletalMesh() ? TEXT("Valid") : TEXT("NULL"));
 	}
 	BaseStats = UnitDefinition->BaseStatsTemplate;
 	Progression = UnitDefinition->BaseProgressionTemplate;
@@ -62,7 +68,59 @@ void AUnit::BeginPlay()
 	RecalculateModifiedStats();
 	if (AbilityInventory && UnitDefinition)
 	{
-		for (UUnitAbilityDefinition* AbilityDef : UnitDefinition->DefaultAbilities)
+		// Initialize default slot abilities
+		if (UnitDefinition->DefaultAttackAbility)
+		{
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultAttackAbility, this);
+			if (Ability)
+			{
+				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Attack, Ability);
+				AbilityInventory->AddActiveAbility(Ability);
+			}
+		}
+
+		if (UnitDefinition->DefaultMoveAbility)
+		{
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultMoveAbility, this);
+			if (Ability)
+			{
+				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Move, Ability);
+				AbilityInventory->AddActiveAbility(Ability);
+			}
+		}
+
+		if (UnitDefinition->DefaultWaitAbility)
+		{
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultWaitAbility, this);
+			if (Ability)
+			{
+				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Wait, Ability);
+				AbilityInventory->AddActiveAbility(Ability);
+			}
+		}
+
+		if (UnitDefinition->DefaultDefendAbility)
+		{
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultDefendAbility, this);
+			if (Ability)
+			{
+				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Defend, Ability);
+				AbilityInventory->AddActiveAbility(Ability);
+			}
+		}
+
+		if (UnitDefinition->DefaultFleeAbility)
+		{
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultFleeAbility, this);
+			if (Ability)
+			{
+				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Flee, Ability);
+				AbilityInventory->AddActiveAbility(Ability);
+			}
+		}
+
+		// Initialize additional abilities
+		for (UUnitAbilityDefinition* AbilityDef : UnitDefinition->AdditionalAbilities)
 		{
 			if (!AbilityDef)
 			{
@@ -83,6 +141,7 @@ void AUnit::BeginPlay()
 				AbilityInventory->AddActiveAbility(NewAbility);
 			}
 		}
+
 		AbilityInventory->EquipDefaultAbility();
 		AbilityInventory->RegisterPassives();
 	}
@@ -198,9 +257,17 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 }
 void AUnit::ApplyEffect(UBattleEffect* Effect)
 {
+	UE_LOG(LogTemp, Log, TEXT("AUnit::ApplyEffect - Called on %s with effect %s, EffectManager = %s"),
+		*GetName(),
+		Effect ? *Effect->GetClass()->GetName() : TEXT("NULL"),
+		EffectManager ? TEXT("Valid") : TEXT("NULL"));
 	if (EffectManager && Effect)
 	{
 		EffectManager->AddEffect(Effect);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("AUnit::ApplyEffect - Cannot apply effect (EffectManager or Effect is NULL)"));
 	}
 }
 void AUnit::SetDefending(bool bDefending)

@@ -83,7 +83,9 @@ void UTurnManagerComponent::ActivateNextUnit()
 	}
 	if (BattleIsOver())
 	{
-		UBattleTeam* Winner = nullptr;
+		bool bHasWinner = false;
+		ETeamSide WinningSide = ETeamSide::Attacker;
+
 		if (AttackerTeam)
 		{
 			bool bAttackerAlive = false;
@@ -97,10 +99,11 @@ void UTurnManagerComponent::ActivateNextUnit()
 			}
 			if (bAttackerAlive)
 			{
-				Winner = AttackerTeam;
+				bHasWinner = true;
+				WinningSide = AttackerTeam->GetTeamSide();
 			}
 		}
-		if (!Winner && DefenderTeam)
+		if (!bHasWinner && DefenderTeam)
 		{
 			bool bDefenderAlive = false;
 			for (AUnit* Unit : DefenderTeam->GetUnits())
@@ -113,10 +116,11 @@ void UTurnManagerComponent::ActivateNextUnit()
 			}
 			if (bDefenderAlive)
 			{
-				Winner = DefenderTeam;
+				bHasWinner = true;
+				WinningSide = DefenderTeam->GetTeamSide();
 			}
 		}
-		OnBattleEnded.Broadcast(Winner);
+		OnBattleEnded.Broadcast(bHasWinner, WinningSide);
 		EndBattle();
 		return;
 	}
@@ -129,10 +133,6 @@ void UTurnManagerComponent::ActivateNextUnit()
 		Entry.TotalInitiative);
 	OnUnitTurnStart.Broadcast(ActiveUnit);
 	ActiveUnit->OnUnitTurnStart();
-	if (InputLockComponent)
-	{
-		InputLockComponent->ReleaseLock(EInputLockSource::TurnTransition);
-	}
 }
 void UTurnManagerComponent::EndCurrentUnitTurn()
 {
@@ -144,7 +144,21 @@ void UTurnManagerComponent::EndCurrentUnitTurn()
 	ActiveUnit->OnUnitTurnEnd();
 	OnUnitTurnEnd.Broadcast(ActiveUnit);
 	ActiveUnit = nullptr;
-	ActivateNextUnit();
+
+	// Wait for any pending presentations before starting next turn
+	if (PresentationTracker && !PresentationTracker->IsIdle())
+	{
+		UE_LOG(LogTemp, Log, TEXT("TurnManager: Waiting for presentation to complete before starting next turn"));
+		if (!bWaitingForPresentation)
+		{
+			bWaitingForPresentation = true;
+			PresentationTracker->OnAllOperationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+		}
+	}
+	else
+	{
+		ActivateNextUnit();
+	}
 }
 void UTurnManagerComponent::InsertUnitIntoQueue(AUnit* Unit)
 {
@@ -259,10 +273,24 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 	if (!Result.bSuccess)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Ability failed, not ending turn"));
+		if (HighlightComponent)
+		{
+			HighlightComponent->ClearHighlights();
+		}
+		if (InputLockComponent)
+		{
+			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+		}
 		return;
 	}
 	UE_LOG(LogTemp, Log, TEXT("TurnManager: Handling ability result with TurnAction: %d"),
 		static_cast<uint8>(Result.TurnAction));
+
+	if (HighlightComponent)
+	{
+		HighlightComponent->ClearHighlights();
+	}
+
 	switch (Result.TurnAction)
 	{
 	case EAbilityTurnAction::EndTurn:
@@ -270,8 +298,11 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 		if (PresentationTracker && !PresentationTracker->IsIdle())
 		{
 			UE_LOG(LogTemp, Log, TEXT("TurnManager: Waiting for presentation to complete before ending turn"));
-			bWaitingForPresentation = true;
-			PresentationTracker->OnAllOperationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+			if (!bWaitingForPresentation)
+			{
+				bWaitingForPresentation = true;
+				PresentationTracker->OnAllOperationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+			}
 		}
 		else
 		{
@@ -342,16 +373,16 @@ void UTurnManagerComponent::SwitchAbility(UUnitAbilityInstance* NewAbility)
 	ActiveUnit->AbilityInventory->EquipAbility(NewAbility);
 	UE_LOG(LogTemp, Log, TEXT("SwitchAbility: Equipped %s on %s"),
 		*NewAbility->GetAbilityDisplayData().AbilityName, *ActiveUnit->GetName());
+	ETargetReach Targeting = NewAbility->GetTargeting();
 	if (HighlightComponent)
 	{
 		HighlightComponent->ClearHighlights();
 		if (TargetingComponent)
 		{
 			const TArray<FIntPoint> TargetCells = TargetingComponent->GetValidTargetCells(ActiveUnit);
-			HighlightComponent->ShowValidTargets(TargetCells);
+			HighlightComponent->ShowHighlightsForTargeting(TargetCells, Targeting);
 		}
 	}
-	ETargetReach Targeting = NewAbility->GetTargeting();
 	if (Targeting == ETargetReach::Self)
 	{
 		UE_LOG(LogTemp, Log, TEXT("SwitchAbility: Self-targeting ability, executing immediately"));
@@ -431,6 +462,10 @@ void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbility
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnSelf: Validation failed - %s"),
 			*Validation.FailureMessage.ToString());
+		if (InputLockComponent)
+		{
+			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+		}
 		return;
 	}
 	FAbilityResult Result = AbilityExecutor->ExecuteAbility(Ability, Context);
@@ -480,15 +515,27 @@ FUnitTurnQueueDisplay UTurnManagerComponent::GetActiveUnitDisplayData() const
 }
 void UTurnManagerComponent::OnPresentationComplete()
 {
-	UE_LOG(LogTemp, Log, TEXT("TurnManager: Presentation complete, ending turn"));
 	bWaitingForPresentation = false;
 	if (PresentationTracker)
 	{
 		PresentationTracker->OnAllOperationsComplete.RemoveDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
 	}
-	if (InputLockComponent)
+
+	// Check if we're waiting after ability execution or after turn end
+	if (ActiveUnit)
 	{
-		InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+		// We're still in a turn, end it now
+		UE_LOG(LogTemp, Log, TEXT("TurnManager: Presentation complete, ending turn"));
+		if (InputLockComponent)
+		{
+			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+		}
+		EndCurrentUnitTurn();
 	}
-	EndCurrentUnitTurn();
+	else
+	{
+		// Turn already ended, just activate next unit
+		UE_LOG(LogTemp, Log, TEXT("TurnManager: Presentation complete, starting next turn"));
+		ActivateNextUnit();
+	}
 }

@@ -15,7 +15,8 @@
       "Bash(git mv:*)",
       "Bash(copy:*)",
       "Bash(move:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

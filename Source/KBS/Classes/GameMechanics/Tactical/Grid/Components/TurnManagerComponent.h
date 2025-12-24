@@ -28,7 +28,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalTurnStarted, int32, TurnNum
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalTurnEnded, int32, TurnNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStart, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnEnd, AUnit*, Unit);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattleEnded, UBattleTeam*, Winner);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattleEnded, bool, bHasWinner, ETeamSide, WinningSide);
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class KBS_API UTurnManagerComponent : public UActorComponent
 {

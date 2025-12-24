@@ -2,6 +2,7 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "Components/DecalComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
+#include "GameplayTypes/DamageTypes.h"
 UGridHighlightComponent::UGridHighlightComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -75,6 +76,17 @@ void UGridHighlightComponent::ShowValidTargets(const TArray<FIntPoint>& TargetCe
 		EnemyDecals[i]->SetWorldLocation(CellLocation);
 		EnemyDecals[i]->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
 		EnemyDecals[i]->SetVisibility(true);
+	}
+}
+void UGridHighlightComponent::ShowHighlightsForTargeting(const TArray<FIntPoint>& Cells, ETargetReach TargetType)
+{
+	if (TargetType == ETargetReach::Movement)
+	{
+		ShowValidMoves(Cells);
+	}
+	else
+	{
+		ShowValidTargets(Cells);
 	}
 }
 void UGridHighlightComponent::ClearHighlights()

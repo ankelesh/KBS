@@ -18,6 +18,7 @@ public:
 	void CreateDecalPool();
 	void ShowValidMoves(const TArray<FIntPoint>& ValidCells);
 	void ShowValidTargets(const TArray<FIntPoint>& TargetCells);
+	void ShowHighlightsForTargeting(const TArray<FIntPoint>& Cells, ETargetReach TargetType);
 	void ClearHighlights();
 private:
 	UPROPERTY()

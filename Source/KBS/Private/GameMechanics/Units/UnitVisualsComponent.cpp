@@ -5,6 +5,10 @@
 #include "Materials/MaterialInterface.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "TimerManager.h"
 UUnitVisualsComponent::UUnitVisualsComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -356,4 +360,59 @@ void UUnitVisualsComponent::HandleMontageCompleted(UAnimMontage* Montage, bool b
 {
 	OnMontageCompleted.Broadcast(Montage);
 	OnMontageCompletedNative.Broadcast(Montage);
+}
+UNiagaraComponent* UUnitVisualsComponent::SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration)
+{
+	if (!System)
+	{
+		return nullptr;
+	}
+	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		System,
+		WorldLocation,
+		FRotator::ZeroRotator,
+		FVector::OneVector,
+		true,
+		true,
+		ENCPoolMethod::None,
+		true
+	);
+
+	if (NiagaraComponent && PresentationTracker && Duration > 0.0f)
+	{
+		FOperationHandle Handle = PresentationTracker->RegisterOperation(FString::Printf(TEXT("VFX: %s"), *System->GetName()));
+		FVFXTrackingData TrackingData;
+		TrackingData.OperationHandle = Handle;
+
+		FTimerHandle TimerHandle;
+		FTimerDelegate TimerDelegate;
+		TimerDelegate.BindUObject(this, &UUnitVisualsComponent::OnVFXCompleted, NiagaraComponent);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, Duration, false);
+		TrackingData.TimerHandle = TimerHandle;
+
+		ActiveVFXOperations.Add(NiagaraComponent, TrackingData);
+	}
+
+	return NiagaraComponent;
+}
+
+void UUnitVisualsComponent::SetPresentationTracker(UPresentationTrackerComponent* InTracker)
+{
+	PresentationTracker = InTracker;
+}
+
+void UUnitVisualsComponent::OnVFXCompleted(UNiagaraComponent* Component)
+{
+	if (!Component)
+	{
+		return;
+	}
+
+	FVFXTrackingData* TrackingData = ActiveVFXOperations.Find(Component);
+	if (TrackingData && PresentationTracker)
+	{
+		PresentationTracker->UnregisterOperation(TrackingData->OperationHandle);
+		ActiveVFXOperations.Remove(Component);
+	}
 }

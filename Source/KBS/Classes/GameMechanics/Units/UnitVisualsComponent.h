@@ -1,11 +1,14 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
+#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "UnitVisualsComponent.generated.h"
 class UUnitDefinition;
 class USkeletalMeshComponent;
 class UStaticMesh;
 class UAnimMontage;
+class UNiagaraSystem;
+class UNiagaraComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageCompleted, UAnimMontage*, Montage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRotationCompleted);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMontageCompletedNative, UAnimMontage*);
@@ -30,6 +33,8 @@ public:
 	void SetIsMoving(bool bMoving);
 	void RotateTowardTarget(FRotator TargetRotation, float Speed = 360.0f);
 	bool IsRotating() const { return bIsRotating; }
+	UNiagaraComponent* SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration);
+	void SetPresentationTracker(class UPresentationTrackerComponent* InTracker);
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UPROPERTY(BlueprintAssignable, Category = "Animation")
 	FOnMontageCompleted OnMontageCompleted;
@@ -51,4 +56,13 @@ private:
 	FRotator PendingRotation;
 	bool bIsRotating = false;
 	float CurrentRotationSpeed = 360.0f;
+	UPROPERTY()
+	TObjectPtr<class UPresentationTrackerComponent> PresentationTracker;
+	struct FVFXTrackingData
+	{
+		FTimerHandle TimerHandle;
+		FOperationHandle OperationHandle;
+	};
+	TMap<TObjectPtr<UNiagaraComponent>, FVFXTrackingData> ActiveVFXOperations;
+	void OnVFXCompleted(UNiagaraComponent* Component);
 };

@@ -247,17 +247,37 @@ FCombatHitResult UDamageCalculator::ProcessHit(AUnit* Attacker, AUnit* Target, E
 	}
 	Target->TakeHit(DamageResult);
 	const TArray<TObjectPtr<UBattleEffect>>& Effects = SelectedWeapon->GetEffects();
+	UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: %s's weapon has %d effects"), *Attacker->GetName(), Effects.Num());
 	for (UBattleEffect* Effect : Effects)
 	{
 		if (!Effect)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("EFFECT CHECK: Null effect in weapon"));
 			continue;
 		}
+		UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Processing effect class %s"), *Effect->GetClass()->GetName());
 		float EffectChance = CalculateEffectApplication(Attacker, Effect, Target);
+		UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Effect chance = %.1f%%"), EffectChance);
 		if (PerformAccuracyRoll(EffectChance))
 		{
-			Target->ApplyEffect(Effect);
-			HitResult.EffectsApplied.Add(Effect);
+			UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Roll succeeded, duplicating effect"));
+			UBattleEffect* EffectInstance = DuplicateObject(Effect, Target);
+			if (EffectInstance)
+			{
+				UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Effect duplicated, initializing and applying"));
+				EffectInstance->Initialize(Effect->GetConfig(), SelectedWeapon, Attacker);
+				Target->ApplyEffect(EffectInstance);
+				HitResult.EffectsApplied.Add(EffectInstance);
+				UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Effect applied to %s"), *Target->GetName());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("EFFECT CHECK: Failed to duplicate effect"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Roll failed (needed <= %.1f%%)"), EffectChance);
 		}
 	}
 	return HitResult;

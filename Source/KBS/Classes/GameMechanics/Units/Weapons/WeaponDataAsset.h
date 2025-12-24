@@ -4,8 +4,17 @@
 #include "Weapon.h"
 #include "WeaponDataAsset.generated.h"
 class UBattleEffect;
-class UStaticMesh;
+class UBattleEffectDataAsset;
 class UAnimMontage;
+USTRUCT(BlueprintType)
+struct FWeaponEffectConfig
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
+	TSubclassOf<UBattleEffect> EffectClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
+	TObjectPtr<UBattleEffectDataAsset> EffectConfig;
+};
 UCLASS(BlueprintType)
 class KBS_API UWeaponDataAsset : public UPrimaryDataAsset
 {
@@ -18,11 +27,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Stats")
 	FWeaponStats BaseStats;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Effects")
-	TArray<TSubclassOf<UBattleEffect>> EffectClasses;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Visual")
-	TSoftObjectPtr<UStaticMesh> WeaponMesh;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Visual")
-	FName AttachSocketName = TEXT("weapon_socket");
+	TArray<FWeaponEffectConfig> Effects;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Animation")
 	TObjectPtr<UAnimMontage> AttackMontage;
 };

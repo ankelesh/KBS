@@ -93,7 +93,7 @@ protected:
 	UFUNCTION()
 	void HandleUnitDied(AUnit* Unit);
 	UFUNCTION()
-	void HandleBattleEnded(UBattleTeam* Winner);
+	void HandleBattleEnded(bool bHasWinner, ETeamSide WinningSide);
 	UFUNCTION()
 	void HandleUnitTurnStart(AUnit* Unit);
 	bool IsValidCell(int32 Row, int32 Col, EBattleLayer Layer) const;

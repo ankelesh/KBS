@@ -141,11 +141,11 @@ void ATacBattleGrid::HandleUnitDied(AUnit* Unit)
 	UE_LOG(LogTemp, Warning, TEXT("[HANDLER] Grid received death event from unit '%s'"), *Unit->GetName());
 	TurnManager->RemoveUnitFromQueue(Unit);
 }
-void ATacBattleGrid::HandleBattleEnded(UBattleTeam* Winner)
+void ATacBattleGrid::HandleBattleEnded(bool bHasWinner, ETeamSide WinningSide)
 {
-	if (Winner)
+	if (bHasWinner)
 	{
-		FString TeamName = (Winner->GetTeamSide() == ETeamSide::Attacker) ? TEXT("Attacker") : TEXT("Defender");
+		FString TeamName = (WinningSide == ETeamSide::Attacker) ? TEXT("Attacker") : TEXT("Defender");
 		UE_LOG(LogTemp, Warning, TEXT("[HANDLER] === BATTLE ENDED - Winner: %s Team ==="), *TeamName);
 	}
 	else
@@ -166,10 +166,12 @@ void ATacBattleGrid::HandleUnitTurnStart(AUnit* Unit)
 		UE_LOG(LogTemp, Error, TEXT("[HANDLER] Unit '%s' does not belong to any team!"), *Unit->GetName());
 		return;
 	}
+
+	OnCurrentUnitChanged.Broadcast(Unit);
+
 	if (UnitTeam->GetTeamSide() == Player1ControlledTeam)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[HANDLER] Player unit turn started: '%s'"), *Unit->GetName());
-		OnCurrentUnitChanged.Broadcast(Unit);
 		if (HighlightComponent)
 		{
 			HighlightComponent->ClearHighlights();
@@ -303,6 +305,10 @@ void ATacBattleGrid::SpawnAndPlaceUnits()
 			if (bPlaced)
 			{
 				SpawnedUnits.Add(NewUnit);
+				if (NewUnit->VisualsComponent && PresentationTracker)
+				{
+					NewUnit->VisualsComponent->SetPresentationTracker(PresentationTracker);
+				}
 				const bool bIsFlank = FGridCoordinates::IsFlankCell(Placement.Row, Placement.Col);
 				UBattleTeam* Team = Placement.bIsAttacker ? DataManager->GetAttackerTeam() : DataManager->GetDefenderTeam();
 				Team->AddUnit(NewUnit);

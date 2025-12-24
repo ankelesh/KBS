@@ -54,8 +54,18 @@ public:
 	FUnitProgressionData BaseProgressionTemplate;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<TObjectPtr<UWeaponDataAsset>> DefaultWeapons;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Attack"))
+	TObjectPtr<UUnitAbilityDefinition> DefaultAttackAbility;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Move"))
+	TObjectPtr<UUnitAbilityDefinition> DefaultMoveAbility;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Wait"))
+	TObjectPtr<UUnitAbilityDefinition> DefaultWaitAbility;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Defend"))
+	TObjectPtr<UUnitAbilityDefinition> DefaultDefendAbility;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Flee"))
+	TObjectPtr<UUnitAbilityDefinition> DefaultFleeAbility;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities")
-	TArray<TObjectPtr<UUnitAbilityDefinition>> DefaultAbilities;
+	TArray<TObjectPtr<UUnitAbilityDefinition>> AdditionalAbilities;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")

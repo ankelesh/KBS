@@ -50,6 +50,7 @@ public:
 	void LevelUp();
 	void SetUnitDefinition(UUnitDefinition* InDefinition);
 	const FUnitCoreStats& GetStats() const { return ModifiedStats; }
+	const FUnitCoreStats& GetBaseStats() const { return BaseStats; }
 	float GetCurrentHealth() const { return CurrentHealth; }
 	bool IsDead() const { return CurrentHealth <= 0.0f; }
 	const FUnitProgressionData& GetProgression() const { return Progression; }
@@ -67,6 +68,8 @@ public:
 	const FUnitCoreStats& GetModifiedStats() const { return ModifiedStats; }
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UAbilityInventoryComponent* GetAbilityInventory() const { return AbilityInventory; }
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UUnitVisualsComponent* GetVisualsComponent() { return VisualsComponent; }
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UUnitVisualsComponent> VisualsComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
