@@ -14,9 +14,7 @@ class UGridTargetingComponent;
 class UGridHighlightComponent;
 class UTurnManagerComponent;
 class UAbilityExecutorComponent;
-class UPresentationTrackerComponent;
 class UUnitAbilityInstance;
-class UGridInputLockComponent;
 USTRUCT(BlueprintType)
 struct FUnitPlacement
 {
@@ -66,12 +64,9 @@ public:
 	void AbilitySelfExecute(AUnit* SourceUnit, UUnitAbilityInstance* Ability);
 	UFUNCTION(BlueprintCallable, Category="Getters")
 	UTurnManagerComponent* GetTurnManager();
-	UFUNCTION(BlueprintCallable, Category="Getters")
-	UPresentationTrackerComponent* GetPresentationTracker() const;
 	UFUNCTION(BlueprintCallable, Category = "Getters")
 	UGridDataManager* GetDataManager();
-	UFUNCTION(BlueprintCallable, Category = "Getters")
-	UGridInputLockComponent* GetInputLockComponent() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void RequestUnitDetails(AUnit* Unit);
 	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
@@ -132,13 +127,10 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<UAbilityExecutorComponent> AbilityExecutor;
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
-	TObjectPtr<UPresentationTrackerComponent> PresentationTracker;
-	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<class UAIControllerComponent> AIController;
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<class UTacGridInputRouter> InputRouter;
-	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
-	TObjectPtr<UGridInputLockComponent> InputLockComponent;
+
 	UPROPERTY(EditAnywhere, Category = "BattleGrid|Teams")
 	ETeamSide Player1ControlledTeam = ETeamSide::Attacker;
 	UPROPERTY(EditAnywhere, Category = "BattleGrid")

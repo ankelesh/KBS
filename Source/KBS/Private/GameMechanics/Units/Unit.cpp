@@ -9,6 +9,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/AbilityFactory.h"
+#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/AbilityTypes.h"
 AUnit::AUnit()
@@ -239,6 +240,8 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 		if (EffectManager)
 		{
 			EffectManager->BroadcastDied();
+			// Clear all effects immediately on death to prevent dead units from ticking effects
+			EffectManager->ClearAllEffects();
 		}
 		if (VisualsComponent && UnitDefinition && UnitDefinition->DeathMontage)
 		{
@@ -251,6 +254,7 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 	{
 		if (VisualsComponent && UnitDefinition && UnitDefinition->HitReactionMontage)
 		{
+			VisualsComponent->RegisterMontageOperation();
 			VisualsComponent->PlayHitReactionMontage(UnitDefinition->HitReactionMontage);
 		}
 	}

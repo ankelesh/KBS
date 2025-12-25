@@ -40,6 +40,20 @@ public:
 	TArray<UUnitAbilityInstance*> GetAllDefaultAbilities() const;
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void SelectAttackAbility();
+
+	// Spellbook functionality
+	UFUNCTION(BlueprintPure, Category = "Abilities|Spellbook")
+	TArray<UUnitAbilityInstance*> GetSpellbookAbilities() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook|Display")
+	TArray<FAbilityDisplayData> GetSpellbookDisplayData() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
+	void AddSpellbookAbility(UUnitAbilityInstance* Ability);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
+	void ActivateSpellbookSpell(UUnitAbilityInstance* Spell);
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
 	TObjectPtr<UUnitAbilityInstance> CurrentActiveAbility;
@@ -57,4 +71,6 @@ protected:
 	TArray<TObjectPtr<UUnitAbilityInstance>> AvailableActiveAbilities;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
 	TArray<TObjectPtr<UUnitAbilityInstance>> PassiveAbilities;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|Spellbook")
+	TArray<TObjectPtr<UUnitAbilityInstance>> SpellbookAbilities;
 };

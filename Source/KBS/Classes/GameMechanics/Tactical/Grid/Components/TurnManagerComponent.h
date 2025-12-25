@@ -3,12 +3,41 @@
 #include "Components/ActorComponent.h"
 #include "GameMechanics/Units/UnitDisplayData.h"
 #include "GameplayTypes/AbilityTypes.h"
+#include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "TurnManagerComponent.generated.h"
 class AUnit;
 class UBattleTeam;
-class UPresentationTrackerComponent;
 class UGridTargetingComponent;
 class UGridMovementComponent;
+
+UENUM(BlueprintType)
+enum class EBattleState : uint8
+{
+	Idle,
+	PlayerTurn,
+	EnemyTurn,
+	TurnTransition,
+	RoundTransition
+};
+
+UENUM(BlueprintType)
+enum class EPlayerTurnSubstate : uint8
+{
+	None,
+	AwaitingInput,        // Input ENABLED
+	ProcessingAbility,    // Input BLOCKED
+	PlayingPresentation   // Input BLOCKED
+};
+
+UENUM(BlueprintType)
+enum class EEnemyTurnSubstate : uint8
+{
+	None,
+	Thinking,             // Input BLOCKED
+	ExecutingAction,      // Input BLOCKED
+	PlayingPresentation   // Input BLOCKED
+};
+
 USTRUCT(BlueprintType)
 struct FTurnQueueEntry
 {
@@ -29,12 +58,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGlobalTurnEnded, int32, TurnNumbe
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStart, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnEnd, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBattleEnded, bool, bHasWinner, ETeamSide, WinningSide);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnBattleStateChanged, EBattleState, NewBattleState, EPlayerTurnSubstate, NewPlayerSubstate, EEnemyTurnSubstate, NewEnemySubstate);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class KBS_API UTurnManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()
 public:
 	UTurnManagerComponent();
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn")
 	TArray<FTurnQueueEntry> TurnQueue;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn")
@@ -56,8 +89,6 @@ public:
 	UPROPERTY()
 	TObjectPtr<UBattleTeam> DefenderTeam;
 	UPROPERTY()
-	TObjectPtr<UPresentationTrackerComponent> PresentationTracker;
-	UPROPERTY()
 	TObjectPtr<class UAbilityExecutorComponent> AbilityExecutor;
 	UPROPERTY()
 	TObjectPtr<class UGridHighlightComponent> HighlightComponent;
@@ -66,7 +97,8 @@ public:
 	UPROPERTY()
 	TObjectPtr<UGridMovementComponent> MovementComponent;
 	UPROPERTY()
-	TObjectPtr<class UGridInputLockComponent> InputLockComponent;
+	ETeamSide PlayerControlledTeam = ETeamSide::Attacker;
+
 	UPROPERTY(BlueprintAssignable, Category = "Turn Events")
 	FOnGlobalTurnStarted OnGlobalTurnStarted;
 	UPROPERTY(BlueprintAssignable, Category = "Turn Events")
@@ -77,6 +109,9 @@ public:
 	FOnUnitTurnEnd OnUnitTurnEnd;
 	UPROPERTY(BlueprintAssignable, Category = "Turn Events")
 	FOnBattleEnded OnBattleEnded;
+	UPROPERTY(BlueprintAssignable, Category = "Turn Events")
+	FOnBattleStateChanged OnBattleStateChanged;
+
 	UFUNCTION(BlueprintCallable, Category = "Turn")
 	AUnit* GetActiveUnit() const { return ActiveUnit; }
 	UFUNCTION(BlueprintCallable, Category = "Turn")
@@ -105,6 +140,16 @@ public:
 	TArray<FUnitTurnQueueDisplay> GetQueueDisplayData() const;
 	UFUNCTION(BlueprintCallable, Category = "Turn")
 	FUnitTurnQueueDisplay GetActiveUnitDisplayData() const;
+
+	// State Machine - Input control
+	bool CanAcceptInput() const;
+
+	// State Machine - Accessors
+	EBattleState GetBattleState() const { return CurrentState; }
+	EPlayerTurnSubstate GetPlayerSubstate() const { return PlayerSubstate; }
+	EEnemyTurnSubstate GetEnemySubstate() const { return EnemySubstate; }
+	FString GetCurrentStateName() const;
+
 private:
 	int32 RollInitiative() const;
 	FUnitTurnQueueDisplay MakeUnitTurnQueueDisplay(AUnit* Unit, int32 Initiative, bool bIsActiveUnit) const;
@@ -112,4 +157,16 @@ private:
 	bool bWaitingForPresentation = false;
 	UFUNCTION()
 	void OnPresentationComplete();
+
+	// State Machine - Members
+	EBattleState CurrentState;
+	EPlayerTurnSubstate PlayerSubstate;
+	EEnemyTurnSubstate EnemySubstate;
+	float StateEnterTime;
+	float MaxStateTimeout;
+
+	// State Machine - Methods
+	bool IsValidTransition(EBattleState NewState, EPlayerTurnSubstate NewPlayerSubstate, EEnemyTurnSubstate NewEnemySubstate) const;
+	void TransitionToState(EBattleState NewState, EPlayerTurnSubstate NewPlayerSubstate = EPlayerTurnSubstate::None, EEnemyTurnSubstate NewEnemySubstate = EEnemyTurnSubstate::None);
+	FString GetStateName(EBattleState State, EPlayerTurnSubstate PlayerSub, EEnemyTurnSubstate EnemySub) const;
 };

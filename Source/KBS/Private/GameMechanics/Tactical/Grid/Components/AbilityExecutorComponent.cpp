@@ -1,5 +1,5 @@
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
-#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
+#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Unit.h"
@@ -7,10 +7,9 @@ UAbilityExecutorComponent::UAbilityExecutorComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-void UAbilityExecutorComponent::Initialize(ATacBattleGrid* InGrid, UPresentationTrackerComponent* InPresentationTracker)
+void UAbilityExecutorComponent::Initialize(ATacBattleGrid* InGrid)
 {
 	Grid = InGrid;
-	PresentationTracker = InPresentationTracker;
 }
 FAbilityValidation UAbilityExecutorComponent::ValidateAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context) const
 {
@@ -30,18 +29,22 @@ FAbilityResult UAbilityExecutorComponent::ExecuteAbility(UUnitAbilityInstance* A
 		return FAbilityResult::Failure(Validation.FailureReason, Validation.FailureMessage);
 	}
 	FString AbilityName = Ability ? Ability->GetName() : TEXT("Unknown");
-	if (PresentationTracker)
+
+	// Create a scoped batch - all presentation operations during ability execution will auto-register to this batch
+	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+	TUniquePtr<UPresentationSubsystem::FScopedBatch> AbilityBatch;
+	if (PresentationSys)
 	{
-		PresentationTracker->BeginBatch(FString::Printf(TEXT("Ability_%s"), *AbilityName));
+		AbilityBatch = MakeUnique<UPresentationSubsystem::FScopedBatch>(
+			PresentationSys,
+			FString::Printf(TEXT("Ability_%s"), *AbilityName)
+		);
 	}
+
 	FAbilityResult TriggerResult = Ability->TriggerAbility(Context);
 	if (!TriggerResult.bSuccess)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AbilityExecutor: Ability trigger failed"));
-		if (PresentationTracker)
-		{
-			PresentationTracker->EndBatch();
-		}
 		return TriggerResult;
 	}
 	FAbilityResult ApplyResult = Ability->ApplyAbilityEffect(Context);
@@ -49,10 +52,7 @@ FAbilityResult UAbilityExecutorComponent::ExecuteAbility(UUnitAbilityInstance* A
 	{
 		Ability->ConsumeCharge();
 	}
-	if (PresentationTracker)
-	{
-		PresentationTracker->EndBatch();
-	}
+	// Batch automatically ends when AbilityBatch goes out of scope
 	UE_LOG(LogTemp, Log, TEXT("AbilityExecutor: Ability executed successfully, affected %d units"),
 		ApplyResult.UnitsAffected.Num());
 	return ApplyResult;

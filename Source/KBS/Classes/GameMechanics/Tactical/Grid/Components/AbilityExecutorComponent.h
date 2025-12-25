@@ -6,7 +6,6 @@
 #include "AbilityExecutorComponent.generated.h"
 class ATacBattleGrid;
 class UUnitAbilityInstance;
-class UPresentationTrackerComponent;
 class AUnit;
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UAbilityExecutorComponent : public UActorComponent
@@ -14,7 +13,7 @@ class KBS_API UAbilityExecutorComponent : public UActorComponent
 	GENERATED_BODY()
 public:
 	UAbilityExecutorComponent();
-	void Initialize(ATacBattleGrid* InGrid, UPresentationTrackerComponent* InPresentationTracker);
+	void Initialize(ATacBattleGrid* InGrid);
 	FAbilityValidation ValidateAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context) const;
 	FAbilityResult ExecuteAbility(UUnitAbilityInstance* Ability, const FAbilityBattleContext& Context);
 	FAbilityBattleContext BuildContext(AUnit* SourceUnit, const TArray<AUnit*>& Targets) const;
@@ -23,6 +22,4 @@ public:
 private:
 	UPROPERTY()
 	TObjectPtr<ATacBattleGrid> Grid;
-	UPROPERTY()
-	TObjectPtr<UPresentationTrackerComponent> PresentationTracker;
 };

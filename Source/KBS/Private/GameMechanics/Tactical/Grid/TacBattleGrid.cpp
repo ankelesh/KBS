@@ -9,10 +9,8 @@
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
-#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/AIControllerComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TacGridInputRouter.h"
-#include "GameMechanics/Tactical/Grid/Components/GridInputLockComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
 #include "GameplayTypes/CombatTypes.h"
@@ -41,10 +39,8 @@ ATacBattleGrid::ATacBattleGrid()
 	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
 	TurnManager = CreateDefaultSubobject<UTurnManagerComponent>(TEXT("TurnManager"));
 	AbilityExecutor = CreateDefaultSubobject<UAbilityExecutorComponent>(TEXT("AbilityExecutor"));
-	PresentationTracker = CreateDefaultSubobject<UPresentationTrackerComponent>(TEXT("PresentationTracker"));
 	AIController = CreateDefaultSubobject<UAIControllerComponent>(TEXT("AIController"));
 	InputRouter = CreateDefaultSubobject<UTacGridInputRouter>(TEXT("InputRouter"));
-	InputLockComponent = CreateDefaultSubobject<UGridInputLockComponent>(TEXT("InputLockComponent"));
 	SetActorEnableCollision(true);
 }
 void ATacBattleGrid::OnConstruction(const FTransform& Transform)
@@ -238,18 +234,11 @@ UTurnManagerComponent* ATacBattleGrid::GetTurnManager()
 {
 	return TurnManager;
 }
-UPresentationTrackerComponent* ATacBattleGrid::GetPresentationTracker() const
-{
-	return PresentationTracker;
-}
 UGridDataManager* ATacBattleGrid::GetDataManager()
 {
 	return DataManager;
 }
-UGridInputLockComponent* ATacBattleGrid::GetInputLockComponent() const
-{
-	return InputLockComponent;
-}
+
 void ATacBattleGrid::RequestUnitDetails(AUnit* Unit)
 {
 	if (Unit)
@@ -263,20 +252,17 @@ void ATacBattleGrid::InitializeComponents()
 	DataManager->Initialize(this);
 	MovementComponent->Initialize(this, DataManager);
 	TargetingComponent->Initialize(DataManager);
-	TurnManager->PresentationTracker = PresentationTracker;
 	TurnManager->AttackerTeam = DataManager->GetAttackerTeam();
 	TurnManager->DefenderTeam = DataManager->GetDefenderTeam();
 	TurnManager->AbilityExecutor = AbilityExecutor;
 	TurnManager->HighlightComponent = HighlightComponent;
 	TurnManager->TargetingComponent = TargetingComponent;
 	TurnManager->MovementComponent = MovementComponent;
-	TurnManager->InputLockComponent = InputLockComponent;
-	AbilityExecutor->Initialize(this, PresentationTracker);
+	AbilityExecutor->Initialize(this);
 	AIController->Initialize(DataManager, MovementComponent, TargetingComponent, AbilityExecutor, TurnManager);
 	HighlightComponent->Initialize(this, Root, Config->MoveAllowedDecalMaterial, Config->EnemyDecalMaterial);
 	HighlightComponent->CreateDecalPool();
-	PresentationTracker->SetInputLockComponent(InputLockComponent);
-	InputRouter->Initialize(this, DataManager, MovementComponent, TargetingComponent, TurnManager, InputLockComponent);
+	InputRouter->Initialize(this, DataManager, MovementComponent, TargetingComponent, TurnManager);
 }
 void ATacBattleGrid::SpawnAndPlaceUnits()
 {
@@ -305,10 +291,6 @@ void ATacBattleGrid::SpawnAndPlaceUnits()
 			if (bPlaced)
 			{
 				SpawnedUnits.Add(NewUnit);
-				if (NewUnit->VisualsComponent && PresentationTracker)
-				{
-					NewUnit->VisualsComponent->SetPresentationTracker(PresentationTracker);
-				}
 				const bool bIsFlank = FGridCoordinates::IsFlankCell(Placement.Row, Placement.Col);
 				UBattleTeam* Team = Placement.bIsAttacker ? DataManager->GetAttackerTeam() : DataManager->GetDefenderTeam();
 				Team->AddUnit(NewUnit);
@@ -383,6 +365,7 @@ void ATacBattleGrid::ConfigureTurnManager()
 	{
 		return;
 	}
+	TurnManager->PlayerControlledTeam = Player1ControlledTeam;
 	UE_LOG(LogTemp, Log, TEXT("[SUBSCRIBE] TurnManager subscribed to OnMovementComplete and OnAbilityComplete"));
 	TurnManager->OnUnitTurnStart.AddDynamic(this, &ATacBattleGrid::HandleUnitTurnStart);
 	UE_LOG(LogTemp, Log, TEXT("[SUBSCRIBE] Grid subscribed to TurnManager->OnUnitTurnStart"));

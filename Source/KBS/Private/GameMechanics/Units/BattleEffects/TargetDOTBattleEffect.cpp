@@ -59,6 +59,7 @@ bool UTargetDOTBattleEffect::HandleReapply(UBattleEffect* NewEffect, AUnit* Owne
 	{
 		Config = NewDOTConfig;
 		RemainingTurns = NewDOTConfig->Duration;
+		SpawnEffectVFX(Owner);
 		UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' replaced (new magnitude %.1f > old %.1f), duration reset to %d"),
 			*Owner->GetName(),
 			*Config->Name.ToString(),
@@ -68,6 +69,7 @@ bool UTargetDOTBattleEffect::HandleReapply(UBattleEffect* NewEffect, AUnit* Owne
 		return true;
 	}
 	RemainingTurns = DOTConfig->Duration;
+	SpawnEffectVFX(Owner);
 	UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' refreshed (magnitude %.1f <= %.1f), duration reset to %d"),
 		*Owner->GetName(),
 		*Config->Name.ToString(),

@@ -1,11 +1,14 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Tactical/UnitAbilitySubsystem.h"
 #include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
 #include "GameMechanics/Units/Abilities/UnitMovementAbility.h"
 #include "GameMechanics/Units/Abilities/UnitWaitAbility.h"
 #include "GameMechanics/Units/Abilities/UnitDefendAbility.h"
 #include "GameMechanics/Units/Abilities/UnitFleeAbility.h"
+#include "GameplayTypes/AbilityBattleContext.h"
+#include "GameMechanics/Units/Unit.h"
 UAbilityInventoryComponent::UAbilityInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -79,6 +82,14 @@ void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
 	{
 		return;
 	}
+
+	// Check if this is a spellbook ability
+	if (Ability->GetConfig() && Ability->GetConfig()->bIsSpellbookAbility)
+	{
+		SpellbookAbilities.Add(Ability);
+		return;
+	}
+
 	if (Ability->IsA<UUnitAutoAttackAbility>())
 	{
 		DefaultAttackAbility = Ability;
@@ -300,5 +311,75 @@ void UAbilityInventoryComponent::SelectAttackAbility()
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: No Attack ability to auto-select"));
+	}
+}
+
+// Spellbook methods
+TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetSpellbookAbilities() const
+{
+	TArray<UUnitAbilityInstance*> Result;
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : SpellbookAbilities)
+	{
+		Result.Add(Ability);
+	}
+	return Result;
+}
+
+TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetSpellbookDisplayData() const
+{
+	TArray<FAbilityDisplayData> DisplayDataArray;
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : SpellbookAbilities)
+	{
+		if (Ability)
+		{
+			DisplayDataArray.Add(Ability->GetAbilityDisplayData());
+		}
+	}
+	return DisplayDataArray;
+}
+
+void UAbilityInventoryComponent::AddSpellbookAbility(UUnitAbilityInstance* Ability)
+{
+	if (!Ability)
+	{
+		return;
+	}
+	SpellbookAbilities.Add(Ability);
+}
+
+void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Spell)
+{
+	if (!Spell)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: Attempted to activate null spell"));
+		return;
+	}
+
+	// Validate the spell can be used (check charges, etc.)
+	FAbilityBattleContext ValidationContext;
+	ValidationContext.SourceUnit = Cast<AUnit>(GetOwner());
+	FAbilityValidation Validation = Spell->CanExecute(ValidationContext);
+
+	if (!Validation.bIsValid)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: Spell '%s' cannot be activated: %s"),
+			*Spell->GetConfig()->AbilityName, *Validation.FailureMessage.ToString());
+		return;
+	}
+
+	// Execute the spell (will swap weapons and equip auto-attack)
+	FAbilityBattleContext Context;
+	Context.SourceUnit = Cast<AUnit>(GetOwner());
+	FAbilityResult Result = Spell->ApplyAbilityEffect(Context);
+
+	if (Result.bSuccess)
+	{
+		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Spell '%s' activated successfully"),
+			*Spell->GetConfig()->AbilityName);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: Spell '%s' failed: %s"),
+			*Spell->GetConfig()->AbilityName, *Result.FailureMessage.ToString());
 	}
 }

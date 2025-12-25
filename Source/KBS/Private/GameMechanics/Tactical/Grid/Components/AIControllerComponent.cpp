@@ -40,7 +40,8 @@ void UAIControllerComponent::ExecuteAITurn(AUnit* AIUnit)
 	}
 	if (TryMoveTowardEnemy(AIUnit))
 	{
-		UE_LOG(LogTemp, Log, TEXT("AIController: Movement executed"));
+		UE_LOG(LogTemp, Log, TEXT("AIController: Movement executed, ending turn"));
+		TurnManager->EndCurrentUnitTurn();
 		return;
 	}
 	UE_LOG(LogTemp, Log, TEXT("AIController: No action possible, ending turn"));

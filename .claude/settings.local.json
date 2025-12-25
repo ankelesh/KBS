@@ -16,7 +16,9 @@
       "Bash(copy:*)",
       "Bash(move:*)",
       "Bash(mv:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Classes\\GameMechanics\\Tactical\\Grid\\Components\\GridInputLockComponent.h\")",
+      "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Private\\GameMechanics\\Tactical\\Grid\\Components\\GridInputLockComponent.cpp\")"
     ],
     "deny": [],
     "ask": []

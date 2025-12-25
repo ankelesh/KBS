@@ -1,5 +1,6 @@
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInterface.h"
@@ -350,6 +351,7 @@ void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 			{
 				Owner->SetActorRotation(PendingRotation);
 				bIsRotating = false;
+				CompleteRotationOperation();
 				OnRotationCompleted.Broadcast();
 				OnRotationCompletedNative.Broadcast();
 			}
@@ -358,6 +360,7 @@ void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 }
 void UUnitVisualsComponent::HandleMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
 {
+	CompleteMontageOperation();
 	OnMontageCompleted.Broadcast(Montage);
 	OnMontageCompletedNative.Broadcast(Montage);
 }
@@ -379,27 +382,32 @@ UNiagaraComponent* UUnitVisualsComponent::SpawnNiagaraEffect(UNiagaraSystem* Sys
 		true
 	);
 
-	if (NiagaraComponent && PresentationTracker && Duration > 0.0f)
+	if (NiagaraComponent && Duration > 0.0f)
 	{
-		FOperationHandle Handle = PresentationTracker->RegisterOperation(FString::Printf(TEXT("VFX: %s"), *System->GetName()));
-		FVFXTrackingData TrackingData;
-		TrackingData.OperationHandle = Handle;
+		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+		if (PresentationSys)
+		{
+			// Create RAII scoped operation for VFX
+			TSharedPtr<UPresentationSubsystem::FScopedOperation> VFXOp =
+				MakeShared<UPresentationSubsystem::FScopedOperation>(
+					PresentationSys,
+					FString::Printf(TEXT("VFX: %s"), *System->GetName())
+				);
 
-		FTimerHandle TimerHandle;
-		FTimerDelegate TimerDelegate;
-		TimerDelegate.BindUObject(this, &UUnitVisualsComponent::OnVFXCompleted, NiagaraComponent);
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, Duration, false);
-		TrackingData.TimerHandle = TimerHandle;
+			FVFXTrackingData TrackingData;
+			TrackingData.ScopedOperation = VFXOp;
 
-		ActiveVFXOperations.Add(NiagaraComponent, TrackingData);
+			FTimerHandle TimerHandle;
+			FTimerDelegate TimerDelegate;
+			TimerDelegate.BindUObject(this, &UUnitVisualsComponent::OnVFXCompleted, NiagaraComponent);
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, Duration, false);
+			TrackingData.TimerHandle = TimerHandle;
+
+			ActiveVFXOperations.Add(NiagaraComponent, TrackingData);
+		}
 	}
 
 	return NiagaraComponent;
-}
-
-void UUnitVisualsComponent::SetPresentationTracker(UPresentationTrackerComponent* InTracker)
-{
-	PresentationTracker = InTracker;
 }
 
 void UUnitVisualsComponent::OnVFXCompleted(UNiagaraComponent* Component)
@@ -410,9 +418,58 @@ void UUnitVisualsComponent::OnVFXCompleted(UNiagaraComponent* Component)
 	}
 
 	FVFXTrackingData* TrackingData = ActiveVFXOperations.Find(Component);
-	if (TrackingData && PresentationTracker)
+	if (TrackingData)
 	{
-		PresentationTracker->UnregisterOperation(TrackingData->OperationHandle);
+		// ScopedOperation will auto-complete when removed from map
 		ActiveVFXOperations.Remove(Component);
+	}
+}
+
+void UUnitVisualsComponent::RegisterRotationOperation()
+{
+	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+	if (PresentationSys)
+	{
+		CurrentRotationOperation = PresentationSys->RegisterOperation(
+			FString::Printf(TEXT("Rotation_%s"), *GetOwner()->GetName())
+		);
+	}
+}
+
+void UUnitVisualsComponent::RegisterMontageOperation()
+{
+	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+	if (PresentationSys)
+	{
+		FOperationHandle NewOperation = PresentationSys->RegisterOperation(
+			FString::Printf(TEXT("Montage_%s"), *GetOwner()->GetName())
+		);
+		MontageOperationQueue.Enqueue(NewOperation);
+	}
+}
+
+void UUnitVisualsComponent::CompleteRotationOperation()
+{
+	if (CurrentRotationOperation.IsValid())
+	{
+		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+		if (PresentationSys)
+		{
+			PresentationSys->UnregisterOperation(CurrentRotationOperation);
+			CurrentRotationOperation = FOperationHandle();
+		}
+	}
+}
+
+void UUnitVisualsComponent::CompleteMontageOperation()
+{
+	FOperationHandle CompletedOperation;
+	if (MontageOperationQueue.Dequeue(CompletedOperation) && CompletedOperation.IsValid())
+	{
+		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+		if (PresentationSys)
+		{
+			PresentationSys->UnregisterOperation(CompletedOperation);
+		}
 	}
 }

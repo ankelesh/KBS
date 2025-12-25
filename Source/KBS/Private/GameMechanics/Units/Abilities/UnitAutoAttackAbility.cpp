@@ -6,7 +6,7 @@
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Tactical/DamageCalculator.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
-#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
+#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "Kismet/KismetMathLibrary.h"
 ETargetReach UUnitAutoAttackAbility::GetTargeting() const
@@ -89,35 +89,14 @@ FAbilityResult UUnitAutoAttackAbility::ApplyAbilityEffect(const FAbilityBattleCo
 			const FVector SourceLoc = Context.SourceUnit->GetActorLocation();
 			const FVector TargetLoc = FirstTarget->GetActorLocation();
 			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
-			LookAtRotation.Yaw -= 90.0f;  
+			LookAtRotation.Yaw -= 90.0f;
 			if (Context.SourceUnit->VisualsComponent)
 			{
-				UPresentationTrackerComponent* Tracker = Context.Grid ? Context.Grid->GetPresentationTracker() : nullptr;
-				if (Tracker)
-				{
-					FOperationHandle RotationHandle = Tracker->RegisterOperation(
-						FString::Printf(TEXT("Rotation_%s"), *Context.SourceUnit->GetName()));
-					Context.SourceUnit->VisualsComponent->OnRotationCompletedNative.AddLambda(
-						[Tracker, RotationHandle]()
-						{
-							Tracker->UnregisterOperation(RotationHandle);
-						}
-					);
-				}
+				Context.SourceUnit->VisualsComponent->RegisterRotationOperation();
 				Context.SourceUnit->VisualsComponent->RotateTowardTarget(LookAtRotation, 540.0f);
 				if (AttackMontage)
 				{
-					if (Tracker)
-					{
-						FOperationHandle MontageHandle = Tracker->RegisterOperation(
-							FString::Printf(TEXT("AttackMontage_%s"), *Context.SourceUnit->GetName()));
-						Context.SourceUnit->VisualsComponent->OnMontageCompletedNative.AddLambda(
-							[Tracker, MontageHandle](UAnimMontage* Montage)
-							{
-								Tracker->UnregisterOperation(MontageHandle);
-							}
-						);
-					}
+					Context.SourceUnit->VisualsComponent->RegisterMontageOperation();
 					Context.SourceUnit->VisualsComponent->PlayAttackMontage(AttackMontage);
 				}
 			}

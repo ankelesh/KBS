@@ -4,7 +4,6 @@
 #include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
-#include "GameMechanics/Tactical/Grid/Components/GridInputLockComponent.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
@@ -22,15 +21,13 @@ void UTacGridInputRouter::Initialize(
 	UGridDataManager* InDataManager,
 	UGridMovementComponent* InMovementComponent,
 	UGridTargetingComponent* InTargetingComponent,
-	UTurnManagerComponent* InTurnManager,
-	UGridInputLockComponent* InInputLockComponent)
+	UTurnManagerComponent* InTurnManager)
 {
 	Grid = InGrid;
 	DataManager = InDataManager;
 	MovementComponent = InMovementComponent;
 	TargetingComponent = InTargetingComponent;
 	TurnManager = InTurnManager;
-	InputLockComponent = InInputLockComponent;
 }
 void UTacGridInputRouter::HandleGridClick(FKey ButtonPressed)
 {
@@ -38,12 +35,15 @@ void UTacGridInputRouter::HandleGridClick(FKey ButtonPressed)
 	{
 		return;
 	}
-	if (InputLockComponent && InputLockComponent->IsLocked())
+
+	// Check if TurnManager accepts input
+	if (!TurnManager->CanAcceptInput())
 	{
-		UE_LOG(LogTemp, Log, TEXT("InputRouter: Input locked (%s), ignoring click"),
-			*InputLockComponent->GetLockDebugInfo());
+		UE_LOG(LogTemp, Log, TEXT("InputRouter: Input blocked - Current state: %s"),
+			*TurnManager->GetCurrentStateName());
 		return;
 	}
+
 	UE_LOG(LogTemp, Warning, TEXT("InputRouter: HandleGridClick called!"));
 	AUnit* ActiveUnit = TurnManager->GetActiveUnit();
 	if (!ActiveUnit)

@@ -8,7 +8,6 @@ class UGridDataManager;
 class UGridMovementComponent;
 class UGridTargetingComponent;
 class UTurnManagerComponent;
-class UGridInputLockComponent;
 enum class EBattleLayer : uint8;
 UCLASS()
 class KBS_API UTacGridInputRouter : public UActorComponent
@@ -21,8 +20,7 @@ public:
 		UGridDataManager* InDataManager,
 		UGridMovementComponent* InMovementComponent,
 		UGridTargetingComponent* InTargetingComponent,
-		UTurnManagerComponent* InTurnManager,
-		UGridInputLockComponent* InInputLockComponent
+		UTurnManagerComponent* InTurnManager
 	);
 	void HandleGridClick(FKey ButtonPressed);
 private:
@@ -36,7 +34,6 @@ private:
 	TObjectPtr<UGridTargetingComponent> TargetingComponent;
 	UPROPERTY()
 	TObjectPtr<UTurnManagerComponent> TurnManager;
-	UPROPERTY()
-	TObjectPtr<class UGridInputLockComponent> InputLockComponent;
+
 	bool GetCellUnderMouse(int32& OutRow, int32& OutCol, EBattleLayer& OutLayer) const;
 };

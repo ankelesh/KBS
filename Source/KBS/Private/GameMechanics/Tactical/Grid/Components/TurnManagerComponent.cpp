@@ -1,10 +1,9 @@
 #include "GameMechanics/Tactical/Grid/Components/TurnManagerComponent.h"
-#include "GameMechanics/Tactical/Grid/Components/PresentationTrackerComponent.h"
+#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Components/AbilityExecutorComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
-#include "GameMechanics/Tactical/Grid/Components/GridInputLockComponent.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
@@ -13,7 +12,14 @@
 #include "GameplayTypes/AbilityTypes.h"
 UTurnManagerComponent::UTurnManagerComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+
+	// State Machine initialization
+	CurrentState = EBattleState::Idle;
+	PlayerSubstate = EPlayerTurnSubstate::None;
+	EnemySubstate = EEnemyTurnSubstate::None;
+	StateEnterTime = 0.0f;
+	MaxStateTimeout = 30.0f;
 }
 void UTurnManagerComponent::StartBattle(const TArray<AUnit*>& Units)
 {
@@ -131,28 +137,51 @@ void UTurnManagerComponent::ActivateNextUnit()
 	UE_LOG(LogTemp, Log, TEXT(">>> %s's turn begins (Initiative: %d)"),
 		*ActiveUnit->GetName(),
 		Entry.TotalInitiative);
-	OnUnitTurnStart.Broadcast(ActiveUnit);
+
+	// State transition based on team affiliation
+	bool bIsPlayerControlled = (ActiveUnit->GetTeamSide() == PlayerControlledTeam);
+
+	if (bIsPlayerControlled)
+	{
+		TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::AwaitingInput, EEnemyTurnSubstate::None);
+	}
+	else
+	{
+		TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::Thinking);
+	}
+
+	// Call unit's turn start BEFORE broadcasting (so DOT ticks before AI acts)
 	ActiveUnit->OnUnitTurnStart();
+	OnUnitTurnStart.Broadcast(ActiveUnit);
 }
 void UTurnManagerComponent::EndCurrentUnitTurn()
 {
 	if (!ActiveUnit)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("EndCurrentUnitTurn called but ActiveUnit is null - likely already ended"));
+		// If already waiting for presentation, let it complete naturally
+		if (!bWaitingForPresentation)
+		{
+			ActivateNextUnit();
+		}
 		return;
 	}
-	UE_LOG(LogTemp, Log, TEXT("<<< %s's turn ends"), *ActiveUnit->GetName());
-	ActiveUnit->OnUnitTurnEnd();
-	OnUnitTurnEnd.Broadcast(ActiveUnit);
+
+	AUnit* UnitEndingTurn = ActiveUnit;
+	UE_LOG(LogTemp, Log, TEXT("<<< %s's turn ends"), *UnitEndingTurn->GetName());
+	UnitEndingTurn->OnUnitTurnEnd();
+	OnUnitTurnEnd.Broadcast(UnitEndingTurn);
 	ActiveUnit = nullptr;
 
 	// Wait for any pending presentations before starting next turn
-	if (PresentationTracker && !PresentationTracker->IsIdle())
+	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+	if (PresentationSys && !PresentationSys->IsIdle())
 	{
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Waiting for presentation to complete before starting next turn"));
 		if (!bWaitingForPresentation)
 		{
 			bWaitingForPresentation = true;
-			PresentationTracker->OnAllOperationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+			PresentationSys->OnAllPresentationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
 		}
 	}
 	else
@@ -204,7 +233,13 @@ void UTurnManagerComponent::RemoveUnitFromQueue(AUnit* Unit)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Active unit %s died, advancing turn"), *Unit->GetName());
 		ActiveUnit = nullptr;
-		ActivateNextUnit();
+
+		// Only activate next unit if we're not waiting for presentation to complete
+		// If waiting, OnPresentationComplete will handle activation
+		if (!bWaitingForPresentation)
+		{
+			ActivateNextUnit();
+		}
 	}
 }
 void UTurnManagerComponent::WaitCurrentUnit()
@@ -277,9 +312,15 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 		{
 			HighlightComponent->ClearHighlights();
 		}
-		if (InputLockComponent)
+
+		// Revert to awaiting input on failure
+		if (CurrentState == EBattleState::PlayerTurn)
 		{
-			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+			TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::AwaitingInput, EEnemyTurnSubstate::None);
+		}
+		else if (CurrentState == EBattleState::EnemyTurn)
+		{
+			TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::Thinking);
 		}
 		return;
 	}
@@ -295,54 +336,62 @@ void UTurnManagerComponent::HandleAbilityComplete(const FAbilityResult& Result)
 	{
 	case EAbilityTurnAction::EndTurn:
 	case EAbilityTurnAction::EndTurnDelayed:
-		if (PresentationTracker && !PresentationTracker->IsIdle())
 		{
-			UE_LOG(LogTemp, Log, TEXT("TurnManager: Waiting for presentation to complete before ending turn"));
-			if (!bWaitingForPresentation)
+			UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+			if (PresentationSys && !PresentationSys->IsIdle())
 			{
-				bWaitingForPresentation = true;
-				PresentationTracker->OnAllOperationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+				UE_LOG(LogTemp, Log, TEXT("TurnManager: Waiting for presentation to complete before ending turn"));
+
+				// Transition to PlayingPresentation
+				if (CurrentState == EBattleState::PlayerTurn)
+				{
+					TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::PlayingPresentation, EEnemyTurnSubstate::None);
+				}
+				else if (CurrentState == EBattleState::EnemyTurn)
+				{
+					TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::PlayingPresentation);
+				}
+
+				if (!bWaitingForPresentation)
+				{
+					bWaitingForPresentation = true;
+					PresentationSys->OnAllPresentationsComplete.AddDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+				}
 			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Log, TEXT("TurnManager: No pending presentation, ending turn immediately"));
-			if (InputLockComponent)
+			else
 			{
-				InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+				UE_LOG(LogTemp, Log, TEXT("TurnManager: No pending presentation, ending turn immediately"));
+				TransitionToState(EBattleState::TurnTransition, EPlayerTurnSubstate::None, EEnemyTurnSubstate::None);
+				EndCurrentUnitTurn();
 			}
-			EndCurrentUnitTurn();
 		}
 		break;
 	case EAbilityTurnAction::FreeTurn:
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Free turn - unit keeps acting"));
-		if (InputLockComponent)
+
+		// Return to AwaitingInput for free turn
+		if (CurrentState == EBattleState::PlayerTurn)
 		{
-			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+			TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::AwaitingInput, EEnemyTurnSubstate::None);
+		}
+		else if (CurrentState == EBattleState::EnemyTurn)
+		{
+			TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::Thinking);
 		}
 		break;
 	case EAbilityTurnAction::RequireConfirm:
 		UE_LOG(LogTemp, Warning, TEXT("TurnManager: RequireConfirm not fully implemented - ending turn now"));
-		if (InputLockComponent)
-		{
-			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
-		}
+		TransitionToState(EBattleState::TurnTransition, EPlayerTurnSubstate::None, EEnemyTurnSubstate::None);
 		EndCurrentUnitTurn();
 		break;
 	case EAbilityTurnAction::Wait:
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Unit waiting - reinserting with negated initiative"));
-		if (InputLockComponent)
-		{
-			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
-		}
+		TransitionToState(EBattleState::TurnTransition, EPlayerTurnSubstate::None, EEnemyTurnSubstate::None);
 		WaitCurrentUnit();
 		break;
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("TurnManager: Unknown TurnAction, ending turn"));
-		if (InputLockComponent)
-		{
-			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
-		}
+		TransitionToState(EBattleState::TurnTransition, EPlayerTurnSubstate::None, EEnemyTurnSubstate::None);
 		EndCurrentUnitTurn();
 		break;
 	}
@@ -406,10 +455,17 @@ void UTurnManagerComponent::ExecuteAbilityOnTargets(AUnit* SourceUnit, const TAr
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnTargets: Source unit has no current active ability"));
 		return;
 	}
-	if (InputLockComponent)
+
+	// State transition to ProcessingAbility or ExecutingAction
+	if (CurrentState == EBattleState::PlayerTurn)
 	{
-		InputLockComponent->RequestLock(EInputLockSource::AbilityExecution);
+		TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::ProcessingAbility, EEnemyTurnSubstate::None);
 	}
+	else if (CurrentState == EBattleState::EnemyTurn)
+	{
+		TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::ExecutingAction);
+	}
+
 	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, Targets);
 	FAbilityResult Result = AbilityExecutor->ExecuteAbility(CurrentAbility, Context);
 	AbilityExecutor->ResolveResult(Result);
@@ -433,10 +489,17 @@ void UTurnManagerComponent::ExecuteAbilityOnTargets(AUnit* SourceUnit, const TAr
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnTargets: Source unit has no current active ability"));
 		return;
 	}
-	if (InputLockComponent)
+
+	// State transition to ProcessingAbility or ExecutingAction
+	if (CurrentState == EBattleState::PlayerTurn)
 	{
-		InputLockComponent->RequestLock(EInputLockSource::AbilityExecution);
+		TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::ProcessingAbility, EEnemyTurnSubstate::None);
 	}
+	else if (CurrentState == EBattleState::EnemyTurn)
+	{
+		TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::ExecutingAction);
+	}
+
 	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, Targets, ClickedCell, ClickedLayer);
 	FAbilityResult Result = AbilityExecutor->ExecuteAbility(CurrentAbility, Context);
 	AbilityExecutor->ResolveResult(Result);
@@ -450,10 +513,17 @@ void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbility
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnSelf: Invalid source unit or ability"));
 		return;
 	}
-	if (InputLockComponent)
+
+	// State transition to ProcessingAbility or ExecutingAction
+	if (CurrentState == EBattleState::PlayerTurn)
 	{
-		InputLockComponent->RequestLock(EInputLockSource::AbilityExecution);
+		TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::ProcessingAbility, EEnemyTurnSubstate::None);
 	}
+	else if (CurrentState == EBattleState::EnemyTurn)
+	{
+		TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::ExecutingAction);
+	}
+
 	TArray<AUnit*> SelfTarget;
 	SelfTarget.Add(SourceUnit);
 	FAbilityBattleContext Context = AbilityExecutor->BuildContext(SourceUnit, SelfTarget);
@@ -462,9 +532,15 @@ void UTurnManagerComponent::ExecuteAbilityOnSelf(AUnit* SourceUnit, UUnitAbility
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ExecuteAbilityOnSelf: Validation failed - %s"),
 			*Validation.FailureMessage.ToString());
-		if (InputLockComponent)
+
+		// Revert state on validation failure
+		if (CurrentState == EBattleState::PlayerTurn)
 		{
-			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
+			TransitionToState(EBattleState::PlayerTurn, EPlayerTurnSubstate::AwaitingInput, EEnemyTurnSubstate::None);
+		}
+		else if (CurrentState == EBattleState::EnemyTurn)
+		{
+			TransitionToState(EBattleState::EnemyTurn, EPlayerTurnSubstate::None, EEnemyTurnSubstate::Thinking);
 		}
 		return;
 	}
@@ -516,20 +592,20 @@ FUnitTurnQueueDisplay UTurnManagerComponent::GetActiveUnitDisplayData() const
 void UTurnManagerComponent::OnPresentationComplete()
 {
 	bWaitingForPresentation = false;
-	if (PresentationTracker)
+	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
+	if (PresentationSys)
 	{
-		PresentationTracker->OnAllOperationsComplete.RemoveDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
+		PresentationSys->OnAllPresentationsComplete.RemoveDynamic(this, &UTurnManagerComponent::OnPresentationComplete);
 	}
+
+	// Transition out of presentation state
+	TransitionToState(EBattleState::TurnTransition, EPlayerTurnSubstate::None, EEnemyTurnSubstate::None);
 
 	// Check if we're waiting after ability execution or after turn end
 	if (ActiveUnit)
 	{
 		// We're still in a turn, end it now
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Presentation complete, ending turn"));
-		if (InputLockComponent)
-		{
-			InputLockComponent->ReleaseLock(EInputLockSource::AbilityExecution);
-		}
 		EndCurrentUnitTurn();
 	}
 	else
@@ -538,4 +614,137 @@ void UTurnManagerComponent::OnPresentationComplete()
 		UE_LOG(LogTemp, Log, TEXT("TurnManager: Presentation complete, starting next turn"));
 		ActivateNextUnit();
 	}
+}
+
+// State Machine Implementation
+void UTurnManagerComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	float TimeInState = GetWorld()->GetTimeSeconds() - StateEnterTime;
+	if (TimeInState > MaxStateTimeout && CurrentState != EBattleState::Idle)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[STATE] Stuck in %s for %.1fs - MANUAL RECOVERY REQUIRED"),
+			*GetCurrentStateName(), TimeInState);
+	}
+}
+
+bool UTurnManagerComponent::CanAcceptInput() const
+{
+	if (CurrentState != EBattleState::PlayerTurn)
+	{
+		return false;
+	}
+	return PlayerSubstate == EPlayerTurnSubstate::AwaitingInput;
+}
+
+void UTurnManagerComponent::TransitionToState(EBattleState NewState, EPlayerTurnSubstate NewPlayerSubstate, EEnemyTurnSubstate NewEnemySubstate)
+{
+	if (!IsValidTransition(NewState, NewPlayerSubstate, NewEnemySubstate))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[STATE] Invalid transition from %s to %s"),
+			*GetCurrentStateName(), *GetStateName(NewState, NewPlayerSubstate, NewEnemySubstate));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[STATE] %s → %s"),
+		*GetCurrentStateName(), *GetStateName(NewState, NewPlayerSubstate, NewEnemySubstate));
+
+	CurrentState = NewState;
+	PlayerSubstate = NewPlayerSubstate;
+	EnemySubstate = NewEnemySubstate;
+
+	if (GetWorld())
+	{
+		StateEnterTime = GetWorld()->GetTimeSeconds();
+	}
+
+	OnBattleStateChanged.Broadcast(CurrentState, PlayerSubstate, EnemySubstate);
+}
+
+bool UTurnManagerComponent::IsValidTransition(EBattleState NewState, EPlayerTurnSubstate NewPlayerSubstate, EEnemyTurnSubstate NewEnemySubstate) const
+{
+	// Basic validation: PlayerTurn should have PlayerSubstate, not EnemySubstate
+	if (NewState == EBattleState::PlayerTurn && NewPlayerSubstate == EPlayerTurnSubstate::None)
+	{
+		return false;
+	}
+	if (NewState == EBattleState::EnemyTurn && NewEnemySubstate == EEnemyTurnSubstate::None)
+	{
+		return false;
+	}
+	// Other states should have None substates
+	if ((NewState == EBattleState::Idle || NewState == EBattleState::TurnTransition || NewState == EBattleState::RoundTransition) &&
+		(NewPlayerSubstate != EPlayerTurnSubstate::None || NewEnemySubstate != EEnemyTurnSubstate::None))
+	{
+		return false;
+	}
+	return true;
+}
+
+FString UTurnManagerComponent::GetCurrentStateName() const
+{
+	return GetStateName(CurrentState, PlayerSubstate, EnemySubstate);
+}
+
+FString UTurnManagerComponent::GetStateName(EBattleState State, EPlayerTurnSubstate PlayerSub, EEnemyTurnSubstate EnemySub) const
+{
+	FString StateName;
+	switch (State)
+	{
+	case EBattleState::Idle:
+		StateName = TEXT("Idle");
+		break;
+	case EBattleState::PlayerTurn:
+		StateName = TEXT("PlayerTurn:");
+		switch (PlayerSub)
+		{
+		case EPlayerTurnSubstate::AwaitingInput:
+			StateName += TEXT("AwaitingInput");
+			break;
+		case EPlayerTurnSubstate::ProcessingAbility:
+			StateName += TEXT("ProcessingAbility");
+			break;
+		case EPlayerTurnSubstate::PlayingPresentation:
+			StateName += TEXT("PlayingPresentation");
+			break;
+		default:
+			StateName += TEXT("None");
+			break;
+		}
+		break;
+	case EBattleState::EnemyTurn:
+		StateName = TEXT("EnemyTurn:");
+		switch (EnemySub)
+		{
+		case EEnemyTurnSubstate::Thinking:
+			StateName += TEXT("Thinking");
+			break;
+		case EEnemyTurnSubstate::ExecutingAction:
+			StateName += TEXT("ExecutingAction");
+			break;
+		case EEnemyTurnSubstate::PlayingPresentation:
+			StateName += TEXT("PlayingPresentation");
+			break;
+		default:
+			StateName += TEXT("None");
+			break;
+		}
+		break;
+	case EBattleState::TurnTransition:
+		StateName = TEXT("TurnTransition");
+		break;
+	case EBattleState::RoundTransition:
+		StateName = TEXT("RoundTransition");
+		break;
+	default:
+		StateName = TEXT("Unknown");
+		break;
+	}
+	return StateName;
 }
