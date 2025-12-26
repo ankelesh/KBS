@@ -5,14 +5,34 @@
 #include "GridDataManager.generated.h"
 class ATacBattleGrid;
 USTRUCT()
+struct FCorpseStack
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	TArray<TObjectPtr<AUnit>> Corpses;
+
+	void Push(AUnit* Unit, const FVector& WorldLocation);
+	AUnit* Pop();
+	AUnit* Top() const;
+	int32 Num() const { return Corpses.Num(); }
+	bool IsEmpty() const { return Corpses.IsEmpty(); }
+	const TArray<TObjectPtr<AUnit>>& GetAll() const { return Corpses; }
+
+private:
+	void SetCorpseVisibility(AUnit* Corpse, bool bVisible);
+};
+USTRUCT()
 struct FGridRow
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere)
 	TArray<TObjectPtr<AUnit>> Cells;
+	UPROPERTY(EditAnywhere)
+	TArray<FCorpseStack> CorpseStacks;
 	FGridRow()
 	{
 		Cells.Init(nullptr, 5);
+		CorpseStacks.SetNum(5);
 	}
 };
 UCLASS()
@@ -45,6 +65,11 @@ public:
 	TArray<FIntPoint> GetOccupiedCells(EBattleLayer Layer, UBattleTeam* Team) const;
 	bool IsCellOccupied(int32 Row, int32 Col, EBattleLayer Layer) const;
 	TArray<FIntPoint> GetValidPlacementCells(EBattleLayer Layer) const;
+	void PushCorpse(AUnit* Unit, int32 Row, int32 Col);
+	AUnit* GetTopCorpse(int32 Row, int32 Col) const;
+	AUnit* PopCorpse(int32 Row, int32 Col);
+	bool HasCorpses(int32 Row, int32 Col) const;
+	const TArray<TObjectPtr<AUnit>>& GetCorpseStack(int32 Row, int32 Col) const;
 private:
 	UPROPERTY()
 	TArray<FGridRow> GroundLayer;

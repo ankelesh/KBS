@@ -44,5 +44,6 @@ private:
 	UPROPERTY()
 	FTeamCombatStats DefenderStatistic;
 	bool PerformAccuracyRoll(float HitChance);
+	bool IsFriendlyReach(ETargetReach Reach) const;
 	EDamageSource SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target);
 };

@@ -252,7 +252,8 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 	}
 	else
 	{
-		if (VisualsComponent && UnitDefinition && UnitDefinition->HitReactionMontage)
+		// Only play hit reaction for actual damage (not buffs/heals)
+		if (DamageResult.Damage > 0.0f && VisualsComponent && UnitDefinition && UnitDefinition->HitReactionMontage)
 		{
 			VisualsComponent->RegisterMontageOperation();
 			VisualsComponent->PlayHitReactionMontage(UnitDefinition->HitReactionMontage);

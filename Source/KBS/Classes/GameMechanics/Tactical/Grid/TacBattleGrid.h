@@ -102,6 +102,8 @@ protected:
 private:
 	void InitializeComponents();
 	void SpawnAndPlaceUnits();
+	void ApplyTerrainMetadata();
+	void ApplyStrategicBuffs();
 	void SetupUnitEventBindings();
 	void SetupUnitsInLayer(EBattleLayer Layer);
 	void BindUnitEvents(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer);

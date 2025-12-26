@@ -61,6 +61,8 @@ void ATacBattleGrid::BeginPlay()
 	Super::BeginPlay();
 	InitializeComponents();
 	SpawnAndPlaceUnits();
+	ApplyTerrainMetadata();
+	ApplyStrategicBuffs();
 	SetupUnitEventBindings();
 	ConfigureTurnManager();
 	StartBattle();
@@ -130,11 +132,20 @@ void ATacBattleGrid::HandleUnitClicked(AUnit* Unit, FKey ButtonPressed)
 }
 void ATacBattleGrid::HandleUnitDied(AUnit* Unit)
 {
-	if (!Unit || !TurnManager)
+	if (!Unit || !TurnManager || !DataManager)
 	{
 		return;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("[HANDLER] Grid received death event from unit '%s'"), *Unit->GetName());
+	int32 Row, Col;
+	EBattleLayer Layer;
+	if (GetUnitPosition(Unit, Row, Col, Layer))
+	{
+		RemoveUnit(Row, Col, Layer);
+		DataManager->PushCorpse(Unit, Row, Col);
+		UE_LOG(LogTemp, Log, TEXT("[HANDLER] Unit '%s' died at [%d,%d] on layer %d, pushed to corpse stack on Ground"),
+			*Unit->GetName(), Row, Col, (int32)Layer);
+	}
 	TurnManager->RemoveUnitFromQueue(Unit);
 }
 void ATacBattleGrid::HandleBattleEnded(bool bHasWinner, ETeamSide WinningSide)
@@ -315,6 +326,38 @@ void ATacBattleGrid::SpawnAndPlaceUnits()
 		}
 	}
 }
+void ATacBattleGrid::ApplyTerrainMetadata()
+{
+	TArray<AUnit*> AttackerUnits = DataManager->GetAttackerTeam()->GetUnits();
+	TArray<AUnit*> DefenderUnits = DataManager->GetDefenderTeam()->GetUnits();
+
+	for (AUnit* Unit : AttackerUnits)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TERRAIN] Processing terrain metadata for attacker unit '%s'"), *Unit->GetName());
+	}
+
+	for (AUnit* Unit : DefenderUnits)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TERRAIN] Processing terrain metadata for defender unit '%s'"), *Unit->GetName());
+	}
+}
+
+void ATacBattleGrid::ApplyStrategicBuffs()
+{
+	TArray<AUnit*> AttackerUnits = DataManager->GetAttackerTeam()->GetUnits();
+	TArray<AUnit*> DefenderUnits = DataManager->GetDefenderTeam()->GetUnits();
+
+	for (AUnit* Unit : AttackerUnits)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[STRATEGIC] Applying strategic buffs to attacker unit '%s'"), *Unit->GetName());
+	}
+
+	for (AUnit* Unit : DefenderUnits)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[STRATEGIC] Applying strategic buffs to defender unit '%s'"), *Unit->GetName());
+	}
+}
+
 void ATacBattleGrid::SetupUnitEventBindings()
 {
 	SetupUnitsInLayer(EBattleLayer::Ground);

@@ -34,6 +34,12 @@ FString TargetReachToString(ETargetReach Reach)
 		case ETargetReach::AllFriendlies: return TEXT("All Friendlies");
 		case ETargetReach::EmptyCell: return TEXT("Empty Cell");
 		case ETargetReach::EmptyCellOrFriendly: return TEXT("Empty Cell Or Friendly");
+		case ETargetReach::AnyCorpse: return TEXT("Any Corpse");
+		case ETargetReach::FriendlyCorpse: return TEXT("Friendly Corpse");
+		case ETargetReach::EnemyCorpse: return TEXT("Enemy Corpse");
+		case ETargetReach::AnyNonBlockedCorpse: return TEXT("Any Non-Blocked Corpse");
+		case ETargetReach::FriendlyNonBlockedCorpse: return TEXT("Friendly Non-Blocked Corpse");
+		case ETargetReach::EnemyNonBlockedCorpse: return TEXT("Enemy Non-Blocked Corpse");
 		default: return TEXT("Unknown");
 	}
 }

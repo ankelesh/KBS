@@ -91,6 +91,24 @@ TArray<FIntPoint> UGridTargetingComponent::GetValidTargetCells(AUnit* Unit, ETar
 			GetMovementCells(Unit, TargetCells);
 			break;
 		}
+		case ETargetReach::AnyCorpse:
+			GetAnyCorpseCells(TargetCells);
+			break;
+		case ETargetReach::FriendlyCorpse:
+			GetFriendlyCorpseCells(Unit, TargetCells);
+			break;
+		case ETargetReach::EnemyCorpse:
+			GetEnemyCorpseCells(Unit, TargetCells);
+			break;
+		case ETargetReach::AnyNonBlockedCorpse:
+			GetAnyNonBlockedCorpseCells(Unit, TargetCells);
+			break;
+		case ETargetReach::FriendlyNonBlockedCorpse:
+			GetFriendlyNonBlockedCorpseCells(Unit, TargetCells);
+			break;
+		case ETargetReach::EnemyNonBlockedCorpse:
+			GetEnemyNonBlockedCorpseCells(Unit, TargetCells);
+			break;
 	}
 	return TargetCells;
 }
@@ -279,6 +297,7 @@ TArray<AUnit*> UGridTargetingComponent::ResolveTargetsFromClick(AUnit* SourceUni
 		return ResolvedTargets;
 	}
 	AUnit* ClickedUnit = DataManager->GetUnit(ClickedCell.Y, ClickedCell.X, ClickedLayer);
+	AUnit* ClickedCorpse = DataManager->GetTopCorpse(ClickedCell.Y, ClickedCell.X);
 	switch (Reach)
 	{
 		case ETargetReach::AllEnemies:
@@ -300,6 +319,19 @@ TArray<AUnit*> UGridTargetingComponent::ResolveTargetsFromClick(AUnit* SourceUni
 			else if (ClickedUnit)
 			{
 				ResolvedTargets.Add(ClickedUnit);
+			}
+			break;
+		}
+		case ETargetReach::AnyCorpse:
+		case ETargetReach::FriendlyCorpse:
+		case ETargetReach::EnemyCorpse:
+		case ETargetReach::AnyNonBlockedCorpse:
+		case ETargetReach::FriendlyNonBlockedCorpse:
+		case ETargetReach::EnemyNonBlockedCorpse:
+		{
+			if (ClickedCorpse)
+			{
+				ResolvedTargets.Add(ClickedCorpse);
 			}
 			break;
 		}
@@ -353,6 +385,166 @@ TArray<AUnit*> UGridTargetingComponent::GetUnitsInArea(FIntPoint CenterCell, EBa
 		}
 	}
 	return UnitsInArea;
+}
+
+void UGridTargetingComponent::GetAnyCorpseCells(TArray<FIntPoint>& OutCells) const
+{
+	if (!DataManager)
+	{
+		return;
+	}
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			if (DataManager->HasCorpses(Row, Col))
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+}
+void UGridTargetingComponent::GetFriendlyCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	if (!Unit || !DataManager)
+	{
+		return;
+	}
+	UBattleTeam* FriendlyTeam = DataManager->GetTeamForUnit(Unit);
+	if (!FriendlyTeam)
+	{
+		return;
+	}
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			AUnit* TopCorpse = DataManager->GetTopCorpse(Row, Col);
+			if (TopCorpse && FriendlyTeam->ContainsUnit(TopCorpse))
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+}
+void UGridTargetingComponent::GetEnemyCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	if (!Unit || !DataManager)
+	{
+		return;
+	}
+	UBattleTeam* EnemyTeam = DataManager->GetEnemyTeam(Unit);
+	if (!EnemyTeam)
+	{
+		return;
+	}
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			AUnit* TopCorpse = DataManager->GetTopCorpse(Row, Col);
+			if (TopCorpse && EnemyTeam->ContainsUnit(TopCorpse))
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+}
+void UGridTargetingComponent::GetAnyNonBlockedCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	if (!Unit || !DataManager)
+	{
+		return;
+	}
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			if (!DataManager->HasCorpses(Row, Col))
+			{
+				continue;
+			}
+			bool bBlocked = DataManager->IsCellOccupied(Row, Col, EBattleLayer::Ground);
+			if (!bBlocked)
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+}
+void UGridTargetingComponent::GetFriendlyNonBlockedCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	if (!Unit || !DataManager)
+	{
+		return;
+	}
+	UBattleTeam* FriendlyTeam = DataManager->GetTeamForUnit(Unit);
+	if (!FriendlyTeam)
+	{
+		return;
+	}
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			AUnit* TopCorpse = DataManager->GetTopCorpse(Row, Col);
+			if (!TopCorpse || !FriendlyTeam->ContainsUnit(TopCorpse))
+			{
+				continue;
+			}
+			bool bBlocked = DataManager->IsCellOccupied(Row, Col, EBattleLayer::Ground);
+			if (!bBlocked)
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
+}
+void UGridTargetingComponent::GetEnemyNonBlockedCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const
+{
+	if (!Unit || !DataManager)
+	{
+		return;
+	}
+	UBattleTeam* EnemyTeam = DataManager->GetEnemyTeam(Unit);
+	if (!EnemyTeam)
+	{
+		return;
+	}
+	int32 UnitRow, UnitCol;
+	EBattleLayer UnitLayer;
+	if (!DataManager->GetUnitPosition(Unit, UnitRow, UnitCol, UnitLayer))
+	{
+		return;
+	}
+	for (int32 Row = 0; Row < FGridCoordinates::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridCoordinates::GridSize; ++Col)
+		{
+			AUnit* TopCorpse = DataManager->GetTopCorpse(Row, Col);
+			if (!TopCorpse || !EnemyTeam->ContainsUnit(TopCorpse))
+			{
+				continue;
+			}
+			bool bBlocked = DataManager->IsCellOccupied(Row, Col, EBattleLayer::Ground);
+			if (!bBlocked)
+			{
+				OutCells.Add(FIntPoint(Col, Row));
+			}
+		}
+	}
 }
 
 void UGridTargetingComponent::GetMovementCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const

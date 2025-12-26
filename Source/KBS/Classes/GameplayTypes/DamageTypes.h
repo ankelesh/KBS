@@ -26,5 +26,11 @@ enum class ETargetReach : uint8
 	AllFriendlies UMETA(DisplayName = "All Friendlies"),
 	EmptyCell UMETA(DisplayName = "Empty Cell"),
 	EmptyCellOrFriendly UMETA(DisplayName = "Empty Cell Or Friendly"),
-	Movement UMETA(DisplayName = "Movement")
+	Movement UMETA(DisplayName = "Movement"),
+	AnyCorpse UMETA(DisplayName = "Any Corpse"),
+	FriendlyCorpse UMETA(DisplayName = "Friendly Corpse"),
+	EnemyCorpse UMETA(DisplayName = "Enemy Corpse"),
+	AnyNonBlockedCorpse UMETA(DisplayName = "Any Non-Blocked Corpse"),
+	FriendlyNonBlockedCorpse UMETA(DisplayName = "Friendly Non-Blocked Corpse"),
+	EnemyNonBlockedCorpse UMETA(DisplayName = "Enemy Non-Blocked Corpse")
 };

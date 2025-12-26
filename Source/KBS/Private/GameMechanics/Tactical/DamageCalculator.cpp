@@ -226,7 +226,8 @@ FCombatHitResult UDamageCalculator::ProcessHit(AUnit* Attacker, AUnit* Target, E
 		return HitResult;
 	}
 	float HitChance = CalculateHitChance(Attacker, SelectedWeapon, Target);
-	if (!PerformAccuracyRoll(HitChance))
+	bool bIsFriendly = IsFriendlyReach(ExpectedReach);
+	if (!bIsFriendly && !PerformAccuracyRoll(HitChance))
 	{
 		HitResult.bHit = false;
 		UE_LOG(LogTemp, Warning, TEXT("MISS: %s attacked %s with %.1f%% hit chance - Attack missed!"),
@@ -234,8 +235,16 @@ FCombatHitResult UDamageCalculator::ProcessHit(AUnit* Attacker, AUnit* Target, E
 		return HitResult;
 	}
 	HitResult.bHit = true;
-	UE_LOG(LogTemp, Log, TEXT("HIT: %s attacked %s with %.1f%% hit chance - Attack succeeded!"),
-		*Attacker->GetName(), *Target->GetName(), HitChance);
+	if (bIsFriendly)
+	{
+		UE_LOG(LogTemp, Log, TEXT("FRIENDLY HIT: %s supports %s - Auto-hit (friendly reach)"),
+			*Attacker->GetName(), *Target->GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("HIT: %s attacked %s with %.1f%% hit chance - Attack succeeded!"),
+			*Attacker->GetName(), *Target->GetName(), HitChance);
+	}
 	FDamageResult DamageResult = CalculateDamage(Attacker, SelectedWeapon, Target);
 	HitResult.Damage = DamageResult.Damage;
 	HitResult.DamageSource = DamageResult.DamageSource;
@@ -324,6 +333,15 @@ bool UDamageCalculator::PerformAccuracyRoll(float HitChance)
 {
 	float Roll = FMath::FRand() * 100.0f;
 	return Roll <= HitChance;
+}
+bool UDamageCalculator::IsFriendlyReach(ETargetReach Reach) const
+{
+	return Reach == ETargetReach::Self ||
+	       Reach == ETargetReach::AnyFriendly ||
+	       Reach == ETargetReach::AllFriendlies ||
+	       Reach == ETargetReach::EmptyCellOrFriendly ||
+	       Reach == ETargetReach::FriendlyCorpse ||
+	       Reach == ETargetReach::FriendlyNonBlockedCorpse;
 }
 EDamageSource UDamageCalculator::SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target)
 {

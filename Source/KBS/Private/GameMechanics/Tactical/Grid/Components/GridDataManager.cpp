@@ -2,6 +2,62 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
+
+void FCorpseStack::Push(AUnit* Unit, const FVector& WorldLocation)
+{
+	if (!Unit)
+	{
+		return;
+	}
+	if (Corpses.Num() > 0)
+	{
+		AUnit* PreviousTop = Corpses.Last();
+		SetCorpseVisibility(PreviousTop, false);
+	}
+	Corpses.Add(Unit);
+	Unit->SetActorLocation(WorldLocation);
+	SetCorpseVisibility(Unit, true);
+}
+
+AUnit* FCorpseStack::Pop()
+{
+	if (Corpses.IsEmpty())
+	{
+		return nullptr;
+	}
+	AUnit* TopCorpse = Corpses.Last();
+	Corpses.RemoveAt(Corpses.Num() - 1);
+	if (Corpses.Num() > 0)
+	{
+		AUnit* NewTop = Corpses.Last();
+		SetCorpseVisibility(NewTop, true);
+	}
+	return TopCorpse;
+}
+
+AUnit* FCorpseStack::Top() const
+{
+	return Corpses.Num() > 0 ? Corpses.Last() : nullptr;
+}
+
+void FCorpseStack::SetCorpseVisibility(AUnit* Corpse, bool bVisible)
+{
+	if (!Corpse)
+	{
+		return;
+	}
+	if (UUnitVisualsComponent* VisualsComp = Corpse->GetVisualsComponent())
+	{
+		for (USceneComponent* MeshComp : VisualsComp->GetAllMeshComponents())
+		{
+			if (MeshComp)
+			{
+				MeshComp->SetVisibility(bVisible, true);
+			}
+		}
+	}
+}
+
 void UGridDataManager::Initialize(ATacBattleGrid* InGrid)
 {
 	Grid = InGrid;
@@ -239,4 +295,66 @@ TArray<FIntPoint> UGridDataManager::GetValidPlacementCells(EBattleLayer Layer) c
 		return IsRestrictedCell(Cell.Y, Cell.X);
 	});
 	return PlacementCells;
+}
+void UGridDataManager::PushCorpse(AUnit* Unit, int32 Row, int32 Col)
+{
+	if (!Unit || !FGridCoordinates::IsValidCell(Row, Col))
+	{
+		return;
+	}
+	if (Row >= GroundLayer.Num() || Col >= GroundLayer[Row].CorpseStacks.Num())
+	{
+		return;
+	}
+	FVector WorldLocation = FGridCoordinates::CellToWorldLocation(Row, Col, EBattleLayer::Ground, GridWorldLocation);
+	GroundLayer[Row].CorpseStacks[Col].Push(Unit, WorldLocation);
+}
+AUnit* UGridDataManager::GetTopCorpse(int32 Row, int32 Col) const
+{
+	if (!FGridCoordinates::IsValidCell(Row, Col))
+	{
+		return nullptr;
+	}
+	if (Row >= GroundLayer.Num() || Col >= GroundLayer[Row].CorpseStacks.Num())
+	{
+		return nullptr;
+	}
+	return GroundLayer[Row].CorpseStacks[Col].Top();
+}
+AUnit* UGridDataManager::PopCorpse(int32 Row, int32 Col)
+{
+	if (!FGridCoordinates::IsValidCell(Row, Col))
+	{
+		return nullptr;
+	}
+	if (Row >= GroundLayer.Num() || Col >= GroundLayer[Row].CorpseStacks.Num())
+	{
+		return nullptr;
+	}
+	return GroundLayer[Row].CorpseStacks[Col].Pop();
+}
+bool UGridDataManager::HasCorpses(int32 Row, int32 Col) const
+{
+	if (!FGridCoordinates::IsValidCell(Row, Col))
+	{
+		return false;
+	}
+	if (Row >= GroundLayer.Num() || Col >= GroundLayer[Row].CorpseStacks.Num())
+	{
+		return false;
+	}
+	return !GroundLayer[Row].CorpseStacks[Col].IsEmpty();
+}
+const TArray<TObjectPtr<AUnit>>& UGridDataManager::GetCorpseStack(int32 Row, int32 Col) const
+{
+	static const TArray<TObjectPtr<AUnit>> EmptyStack;
+	if (!FGridCoordinates::IsValidCell(Row, Col))
+	{
+		return EmptyStack;
+	}
+	if (Row >= GroundLayer.Num() || Col >= GroundLayer[Row].CorpseStacks.Num())
+	{
+		return EmptyStack;
+	}
+	return GroundLayer[Row].CorpseStacks[Col].GetAll();
 }

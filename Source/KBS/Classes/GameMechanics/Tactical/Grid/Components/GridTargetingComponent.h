@@ -29,6 +29,12 @@ private:
 	void GetAnyFriendlyCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetEmptyCellsOrFriendly(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetMovementCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetAnyCorpseCells(TArray<FIntPoint>& OutCells) const;
+	void GetFriendlyCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetEnemyCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetAnyNonBlockedCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetFriendlyNonBlockedCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
+	void GetEnemyNonBlockedCorpseCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
 	void GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& OutCells) const;
