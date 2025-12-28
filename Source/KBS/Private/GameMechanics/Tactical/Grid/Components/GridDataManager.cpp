@@ -2,6 +2,7 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/LargeUnit.h"
 
 void FCorpseStack::Push(AUnit* Unit, const FVector& WorldLocation)
 {
@@ -83,12 +84,51 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, EBattleLayer
 	{
 		return false;
 	}
+
 	if (LayerArray[Row].Cells[Col] != nullptr)
 	{
 		return false;
 	}
-	LayerArray[Row].Cells[Col] = Unit;
-	Unit->SetActorLocation(FGridCoordinates::CellToWorldLocation(Row, Col, Layer, GridWorldLocation));
+
+	if (Unit->IsMultiCell())
+	{
+		bool bIsHorizontal = IsFlankCell(Row, Col);
+		FIntPoint SecondaryCell = ALargeUnit::GetSecondaryCell(Row, Col, bIsHorizontal, Unit->GetTeamSide());
+
+		if (!FGridCoordinates::IsValidCell(SecondaryCell.Y, SecondaryCell.X))
+		{
+			return false;
+		}
+		if (SecondaryCell.Y >= LayerArray.Num() || SecondaryCell.X >= LayerArray[SecondaryCell.Y].Cells.Num())
+		{
+			return false;
+		}
+		if (LayerArray[SecondaryCell.Y].Cells[SecondaryCell.X] != nullptr)
+		{
+			return false;
+		}
+
+		LayerArray[Row].Cells[Col] = Unit;
+		LayerArray[SecondaryCell.Y].Cells[SecondaryCell.X] = Unit;
+
+		FVector PrimaryLoc = FGridCoordinates::CellToWorldLocation(Row, Col, Layer, GridWorldLocation);
+		FVector SecondaryLoc = FGridCoordinates::CellToWorldLocation(SecondaryCell.Y, SecondaryCell.X, Layer, GridWorldLocation);
+		FVector CenteredLoc = (PrimaryLoc + SecondaryLoc) * 0.5f;
+		Unit->SetActorLocation(CenteredLoc);
+
+		FMultiCellUnitData MultiCellData;
+		MultiCellData.PrimaryCell = FGridCellCoord(Row, Col, Layer);
+		MultiCellData.OccupiedCells.Add(FGridCellCoord(Row, Col, Layer));
+		MultiCellData.OccupiedCells.Add(FGridCellCoord(SecondaryCell.Y, SecondaryCell.X, Layer));
+		MultiCellData.bIsHorizontal = bIsHorizontal;
+		MultiCellUnits.Add(Unit, MultiCellData);
+	}
+	else
+	{
+		LayerArray[Row].Cells[Col] = Unit;
+		Unit->SetActorLocation(FGridCoordinates::CellToWorldLocation(Row, Col, Layer, GridWorldLocation));
+	}
+
 	return true;
 }
 AUnit* UGridDataManager::GetUnit(int32 Row, int32 Col, EBattleLayer Layer) const
@@ -120,9 +160,30 @@ bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, EBattleLayer Layer, ATac
 	{
 		return false;
 	}
+
+	if (Unit->IsMultiCell())
+	{
+		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(Unit);
+		if (MultiCellData)
+		{
+			for (const FGridCellCoord& CellCoord : MultiCellData->OccupiedCells)
+			{
+				TArray<FGridRow>& CellLayer = GetLayer(CellCoord.Layer);
+				if (CellCoord.Row < CellLayer.Num() && CellCoord.Col < CellLayer[CellCoord.Row].Cells.Num())
+				{
+					CellLayer[CellCoord.Row].Cells[CellCoord.Col] = nullptr;
+				}
+			}
+		}
+		MultiCellUnits.Remove(Unit);
+	}
+	else
+	{
+		LayerArray[Row].Cells[Col] = nullptr;
+	}
+
 	UnitFlankStates.Remove(Unit);
 	UnitOriginalRotations.Remove(Unit);
-	LayerArray[Row].Cells[Col] = nullptr;
 	return true;
 }
 TArray<FGridRow>& UGridDataManager::GetLayer(EBattleLayer Layer)
@@ -139,6 +200,19 @@ bool UGridDataManager::GetUnitPosition(const AUnit* Unit, int32& OutRow, int32& 
 	{
 		return false;
 	}
+
+	if (Unit->IsMultiCell())
+	{
+		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(const_cast<AUnit*>(Unit));
+		if (MultiCellData)
+		{
+			OutRow = MultiCellData->PrimaryCell.Row;
+			OutCol = MultiCellData->PrimaryCell.Col;
+			OutLayer = MultiCellData->PrimaryCell.Layer;
+			return true;
+		}
+	}
+
 	for (int32 Row = 0; Row < GroundLayer.Num(); ++Row)
 	{
 		for (int32 Col = 0; Col < GroundLayer[Row].Cells.Num(); ++Col)
@@ -357,4 +431,45 @@ const TArray<TObjectPtr<AUnit>>& UGridDataManager::GetCorpseStack(int32 Row, int
 		return EmptyStack;
 	}
 	return GroundLayer[Row].CorpseStacks[Col].GetAll();
+}
+
+TArray<AUnit*> UGridDataManager::GetUnitsInCells(const TArray<FIntPoint>& CellCoords, EBattleLayer Layer) const
+{
+	TSet<AUnit*> UniqueUnits;
+	const TArray<FGridRow>& LayerArray = GetLayer(Layer);
+
+	for (const FIntPoint& Cell : CellCoords)
+	{
+		int32 Row = Cell.Y;
+		int32 Col = Cell.X;
+
+		if (FGridCoordinates::IsValidCell(Row, Col) && Row < LayerArray.Num() && Col < LayerArray[Row].Cells.Num())
+		{
+			AUnit* Unit = LayerArray[Row].Cells[Col];
+			if (Unit)
+			{
+				UniqueUnits.Add(Unit);
+			}
+		}
+	}
+
+	return UniqueUnits.Array();
+}
+
+bool UGridDataManager::IsMultiCellUnit(const AUnit* Unit) const
+{
+	if (!Unit)
+	{
+		return false;
+	}
+	return MultiCellUnits.Contains(const_cast<AUnit*>(Unit));
+}
+
+const FMultiCellUnitData* UGridDataManager::GetMultiCellData(const AUnit* Unit) const
+{
+	if (!Unit)
+	{
+		return nullptr;
+	}
+	return MultiCellUnits.Find(const_cast<AUnit*>(Unit));
 }

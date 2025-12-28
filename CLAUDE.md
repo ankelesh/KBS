@@ -5,6 +5,7 @@ Strategy turn-based game. Learning developer.
 ## Paths
 $CMD = E:\Projects\KBS_tasks\Tasks
 $SRC = ./Source/KBS/
+$TST = ./Source/KBSTests/
 $AST = ./Content/
 $H = Classes/
 $CPP = Private/

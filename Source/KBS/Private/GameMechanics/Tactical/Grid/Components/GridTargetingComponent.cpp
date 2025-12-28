@@ -8,6 +8,7 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/FlankCellDefinitions.h"
+#include "GameMechanics/Units/LargeUnit.h"
 UGridTargetingComponent::UGridTargetingComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -358,32 +359,40 @@ TArray<AUnit*> UGridTargetingComponent::GetUnitsInArea(FIntPoint CenterCell, EBa
 	{
 		return UnitsInArea;
 	}
+
+	TArray<FIntPoint> TargetCells;
 	for (const FIntPoint& RelativeOffset : AreaShape.RelativeCells)
 	{
 		const int32 TargetCol = CenterCell.X + RelativeOffset.X;
 		const int32 TargetRow = CenterCell.Y + RelativeOffset.Y;
-		if (!FGridCoordinates::IsValidCell(TargetRow, TargetCol))
+		if (FGridCoordinates::IsValidCell(TargetRow, TargetCol))
 		{
-			continue;
+			TargetCells.Add(FIntPoint(TargetCol, TargetRow));
 		}
-		AUnit* UnitAtCell = DataManager->GetUnit(TargetRow, TargetCol, Layer);
-		if (UnitAtCell && !UnitAtCell->IsDead())
+	}
+
+	TArray<AUnit*> UnitsAtLayer = DataManager->GetUnitsInCells(TargetCells, Layer);
+	for (AUnit* Unit : UnitsAtLayer)
+	{
+		if (Unit && !Unit->IsDead())
 		{
-			UnitsInArea.Add(UnitAtCell);
+			UnitsInArea.Add(Unit);
 		}
-		if (AreaShape.bAffectsAllLayers)
+	}
+
+	if (AreaShape.bAffectsAllLayers)
+	{
+		EBattleLayer OtherLayer = (Layer == EBattleLayer::Ground) ? EBattleLayer::Air : EBattleLayer::Ground;
+		TArray<AUnit*> UnitsAtOtherLayer = DataManager->GetUnitsInCells(TargetCells, OtherLayer);
+		for (AUnit* Unit : UnitsAtOtherLayer)
 		{
-			EBattleLayer OtherLayer = (Layer == EBattleLayer::Ground) ? EBattleLayer::Air : EBattleLayer::Ground;
-			if (FGridCoordinates::IsValidCell(TargetRow, TargetCol))
+			if (Unit && !Unit->IsDead())
 			{
-				AUnit* UnitAtOtherLayer = DataManager->GetUnit(TargetRow, TargetCol, OtherLayer);
-				if (UnitAtOtherLayer && !UnitAtOtherLayer->IsDead())
-				{
-					UnitsInArea.Add(UnitAtOtherLayer);
-				}
+				UnitsInArea.Add(Unit);
 			}
 		}
 	}
+
 	return UnitsInArea;
 }
 
@@ -603,10 +612,28 @@ void UGridTargetingComponent::GetAdjacentMoveCells(AUnit* Unit, TArray<FIntPoint
 			}
 		}
 		AUnit* OccupyingUnit = DataManager->GetUnit(TargetRow, TargetCol, UnitLayer);
-		if (!OccupyingUnit || (UnitTeam && UnitTeam->ContainsUnit(OccupyingUnit)))
+		if (OccupyingUnit && (!UnitTeam || !UnitTeam->ContainsUnit(OccupyingUnit)))
 		{
-			OutCells.Add(FIntPoint(TargetCol, TargetRow));
+			continue;
 		}
+
+		if (Unit->IsMultiCell())
+		{
+			bool bTargetIsFlank = DataManager->IsFlankCell(TargetRow, TargetCol);
+			FIntPoint SecondaryCell = ALargeUnit::GetSecondaryCell(TargetRow, TargetCol, bTargetIsFlank, Unit->GetTeamSide());
+
+			if (!DataManager->IsValidCell(SecondaryCell.Y, SecondaryCell.X, UnitLayer))
+			{
+				continue;
+			}
+			AUnit* SecondaryOccupant = DataManager->GetUnit(SecondaryCell.Y, SecondaryCell.X, UnitLayer);
+			if (SecondaryOccupant && SecondaryOccupant != Unit)
+			{
+				continue;
+			}
+		}
+
+		OutCells.Add(FIntPoint(TargetCol, TargetRow));
 	}
 }
 
@@ -651,10 +678,26 @@ void UGridTargetingComponent::GetFlankMoveCells(AUnit* Unit, TArray<FIntPoint>& 
 			if (CanEnterFlankCell(UnitPos, FlankCell, UnitTeam))
 			{
 				AUnit* Occupant = DataManager->GetUnit(Row, Col, UnitLayer);
-				if (!Occupant || UnitTeam->ContainsUnit(Occupant))
+				if (Occupant && (!UnitTeam || !UnitTeam->ContainsUnit(Occupant)))
 				{
-					OutCells.Add(FlankCell);
+					continue;
 				}
+
+				if (Unit->IsMultiCell())
+				{
+					FIntPoint SecondaryCell = ALargeUnit::GetSecondaryCell(Row, Col, true, Unit->GetTeamSide());
+					if (!DataManager->IsValidCell(SecondaryCell.Y, SecondaryCell.X, UnitLayer))
+					{
+						continue;
+					}
+					AUnit* SecondaryOccupant = DataManager->GetUnit(SecondaryCell.Y, SecondaryCell.X, UnitLayer);
+					if (SecondaryOccupant && SecondaryOccupant != Unit)
+					{
+						continue;
+					}
+				}
+
+				OutCells.Add(FlankCell);
 			}
 		}
 	}
@@ -678,10 +721,28 @@ void UGridTargetingComponent::GetAirMoveCells(AUnit* Unit, TArray<FIntPoint>& Ou
 				continue;
 			}
 			AUnit* OccupyingUnit = DataManager->GetUnit(Row, Col, UnitLayer);
-			if (!OccupyingUnit || (UnitTeam && UnitTeam->ContainsUnit(OccupyingUnit)))
+			if (OccupyingUnit && (!UnitTeam || !UnitTeam->ContainsUnit(OccupyingUnit)))
 			{
-				OutCells.Add(FIntPoint(Col, Row));
+				continue;
 			}
+
+			if (Unit->IsMultiCell())
+			{
+				bool bTargetIsFlank = DataManager->IsFlankCell(Row, Col);
+				FIntPoint SecondaryCell = ALargeUnit::GetSecondaryCell(Row, Col, bTargetIsFlank, Unit->GetTeamSide());
+
+				if (!DataManager->IsValidCell(SecondaryCell.Y, SecondaryCell.X, UnitLayer))
+				{
+					continue;
+				}
+				AUnit* SecondaryOccupant = DataManager->GetUnit(SecondaryCell.Y, SecondaryCell.X, UnitLayer);
+				if (SecondaryOccupant && SecondaryOccupant != Unit)
+				{
+					continue;
+				}
+			}
+
+			OutCells.Add(FIntPoint(Col, Row));
 		}
 	}
 }

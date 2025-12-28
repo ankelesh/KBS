@@ -98,10 +98,6 @@ UWeapon* UDamageCalculator::SelectWeapon(AUnit* Attacker, AUnit* Target, ETarget
 	{
 		return nullptr;
 	}
-	if (Weapons.Num() == 1)
-	{
-		return Weapons[0];
-	}
 	TArray<UWeapon*> ValidWeapons;
 	for (UWeapon* Weapon : Weapons)
 	{

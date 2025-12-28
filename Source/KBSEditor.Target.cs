@@ -11,5 +11,10 @@ public class KBSEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_6;
 		ExtraModuleNames.Add("KBS");
-	}
+        ExtraModuleNames.AddRange(new string[] { "KBS", "KBSTests" });
+        if (Configuration != UnrealTargetConfiguration.Shipping)
+        {
+            ExtraModuleNames.Add("KBSTests");
+        }
+    }
 }

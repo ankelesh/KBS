@@ -1,7 +1,9 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Unit.h"
 #include "GridCoordinates.generated.h"
+
+enum class EBattleLayer : uint8;
+
 USTRUCT()
 struct KBS_API FGridCoordinates
 {

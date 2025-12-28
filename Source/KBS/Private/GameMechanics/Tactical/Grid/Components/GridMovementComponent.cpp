@@ -7,6 +7,7 @@
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/FlankCellDefinitions.h"
+#include "GameMechanics/Units/LargeUnit.h"
 UGridMovementComponent::UGridMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -46,6 +47,13 @@ bool UGridMovementComponent::MoveUnit(AUnit* Unit, int32 TargetRow, int32 Target
 	const bool bLeavingFlank = DataManager->IsFlankCell(CurrentRow, CurrentCol);
 	const bool bEnteringFlank = DataManager->IsFlankCell(TargetRow, TargetCol);
 	AUnit* TargetOccupant = DataManager->GetUnit(TargetRow, TargetCol, Layer);
+
+	if (Unit->IsMultiCell() && TargetOccupant)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MoveUnit: Multi-cell units cannot swap positions!"));
+		return false;
+	}
+
 	if (TargetOccupant)
 	{
 		const FVector SwapStartLocation = TargetOccupant->GetActorLocation();

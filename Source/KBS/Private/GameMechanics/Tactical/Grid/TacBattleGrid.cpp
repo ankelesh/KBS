@@ -18,6 +18,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameplayTypes/AbilityBattleContext.h"
+#include "GameMechanics/Units/LargeUnit.h"
 ATacBattleGrid::ATacBattleGrid()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -249,6 +250,14 @@ UGridDataManager* ATacBattleGrid::GetDataManager()
 {
 	return DataManager;
 }
+UGridMovementComponent* ATacBattleGrid::GetMovementComponent()
+{
+	return MovementComponent;
+}
+UGridTargetingComponent* ATacBattleGrid::GetTargetingComponent()
+{
+	return TargetingComponent;
+}
 
 void ATacBattleGrid::RequestUnitDetails(AUnit* Unit)
 {
@@ -436,9 +445,35 @@ void ATacBattleGrid::DrawUnitPlacements()
 	{
 		if (Placement.UnitClass)
 		{
-			FVector CellCenter = FGridCoordinates::CellToWorldLocation(Placement.Row, Placement.Col, Placement.Layer, GetActorLocation());
-			CellCenter.Z += 50;
-			DrawDebugSphere(GetWorld(), CellCenter, 50.f, 8, (Placement.bIsAttacker) ? FColor::Red : FColor::Green, true, -1.f, 0, 5.f);
+			FVector PrimaryCellCenter = FGridCoordinates::CellToWorldLocation(Placement.Row, Placement.Col, Placement.Layer, GetActorLocation());
+			PrimaryCellCenter.Z += 50;
+			FColor TeamColor = Placement.bIsAttacker ? FColor::Red : FColor::Green;
+
+			const bool bIsLargeUnit = Placement.UnitClass->IsChildOf(ALargeUnit::StaticClass());
+
+			if (bIsLargeUnit)
+			{
+				bool bIsFlank = FGridCoordinates::IsFlankCell(Placement.Row, Placement.Col);
+				ETeamSide TeamSide = Placement.bIsAttacker ? ETeamSide::Attacker : ETeamSide::Defender;
+				FIntPoint SecondaryCell = ALargeUnit::GetSecondaryCell(Placement.Row, Placement.Col, bIsFlank, TeamSide);
+
+				if (FGridCoordinates::IsValidCell(SecondaryCell.X, SecondaryCell.Y))
+				{
+					FVector SecondaryCellCenter = FGridCoordinates::CellToWorldLocation(SecondaryCell.X, SecondaryCell.Y, Placement.Layer, GetActorLocation());
+					SecondaryCellCenter.Z += 50;
+
+					DrawDebugBox(GetWorld(), PrimaryCellCenter, FVector(40.f, 40.f, 40.f), TeamColor, true, -1.f, 0, 5.f);
+					DrawDebugBox(GetWorld(), SecondaryCellCenter, FVector(40.f, 40.f, 40.f), TeamColor.WithAlpha(180), true, -1.f, 0, 5.f);
+					DrawDebugLine(GetWorld(), PrimaryCellCenter, SecondaryCellCenter, TeamColor, true, -1.f, 0, 8.f);
+
+					FVector MidPoint = (PrimaryCellCenter + SecondaryCellCenter) * 0.5f;
+					DrawDebugString(GetWorld(), MidPoint + FVector(0, 0, 30), TEXT("2-CELL"), nullptr, FColor::Yellow, -1.f, true, 1.2f);
+				}
+			}
+			else
+			{
+				DrawDebugSphere(GetWorld(), PrimaryCellCenter, 50.f, 8, TeamColor, true, -1.f, 0, 5.f);
+			}
 		}
 	}
 }

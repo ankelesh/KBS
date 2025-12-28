@@ -66,6 +66,8 @@ public:
 	UTurnManagerComponent* GetTurnManager();
 	UFUNCTION(BlueprintCallable, Category = "Getters")
 	UGridDataManager* GetDataManager();
+	UGridMovementComponent* GetMovementComponent();
+	UGridTargetingComponent* GetTargetingComponent();
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void RequestUnitDetails(AUnit* Unit);

@@ -34,7 +34,7 @@ FAbilityResult UUnitMovementAbility::ApplyAbilityEffect(const FAbilityBattleCont
 	}
 
 	bool bMoveSuccess = MovementComponent->MoveUnit(Context.SourceUnit,
-		Context.TargetCell.Y, Context.TargetCell.X);
+		Context.TargetCell.X, Context.TargetCell.Y);
 
 	if (bMoveSuccess)
 	{

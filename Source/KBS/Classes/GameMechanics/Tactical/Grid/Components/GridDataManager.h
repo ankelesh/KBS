@@ -35,6 +35,39 @@ struct FGridRow
 		CorpseStacks.SetNum(5);
 	}
 };
+
+USTRUCT()
+struct FGridCellCoord
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	int32 Row = 0;
+	UPROPERTY()
+	int32 Col = 0;
+	UPROPERTY()
+	EBattleLayer Layer = EBattleLayer::Ground;
+
+	FGridCellCoord() = default;
+	FGridCellCoord(int32 InRow, int32 InCol, EBattleLayer InLayer)
+		: Row(InRow), Col(InCol), Layer(InLayer) {}
+
+	bool operator==(const FGridCellCoord& Other) const
+	{
+		return Row == Other.Row && Col == Other.Col && Layer == Other.Layer;
+	}
+};
+
+USTRUCT()
+struct FMultiCellUnitData
+{
+	GENERATED_BODY()
+	UPROPERTY()
+	TArray<FGridCellCoord> OccupiedCells;
+	UPROPERTY()
+	FGridCellCoord PrimaryCell;
+	UPROPERTY()
+	bool bIsHorizontal = false;
+};
 UCLASS()
 class KBS_API UGridDataManager : public UObject
 {
@@ -70,6 +103,9 @@ public:
 	AUnit* PopCorpse(int32 Row, int32 Col);
 	bool HasCorpses(int32 Row, int32 Col) const;
 	const TArray<TObjectPtr<AUnit>>& GetCorpseStack(int32 Row, int32 Col) const;
+	TArray<AUnit*> GetUnitsInCells(const TArray<FIntPoint>& CellCoords, EBattleLayer Layer) const;
+	bool IsMultiCellUnit(const AUnit* Unit) const;
+	const FMultiCellUnitData* GetMultiCellData(const AUnit* Unit) const;
 private:
 	UPROPERTY()
 	TArray<FGridRow> GroundLayer;
@@ -77,6 +113,8 @@ private:
 	TArray<FGridRow> AirLayer;
 	TMap<AUnit*, bool> UnitFlankStates;
 	TMap<AUnit*, FRotator> UnitOriginalRotations;
+	UPROPERTY()
+	TMap<TObjectPtr<AUnit>, FMultiCellUnitData> MultiCellUnits;
 	UPROPERTY()
 	TObjectPtr<ATacBattleGrid> Grid;
 	UPROPERTY()

@@ -7,10 +7,9 @@ FAbilityResult UUnitDefendAbility::ApplyAbilityEffect(const FAbilityBattleContex
 	{
 		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No source unit"));
 	}
-	AUnit* Unit = Context.SourceUnit;
-	Unit->SetDefending(true);
-	UE_LOG(LogTemp, Log, TEXT("%s is now defending - incoming damage will be halved"), *Unit->GetName());
+	Context.SourceUnit->SetDefending(true);
+	UE_LOG(LogTemp, Log, TEXT("%s is now defending - incoming damage will be halved"), *Context.SourceUnit->GetName());
 	FAbilityResult Result = CreateSuccessResult();
-	Result.UnitsAffected.Add(Unit);
+	Result.UnitsAffected.Add(Context.SourceUnit);
 	return Result;
 }

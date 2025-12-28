@@ -9,9 +9,9 @@ struct KBS_API FWeaponDisplayData
     UPROPERTY(BlueprintReadWrite)
     FString WeaponName;
     UPROPERTY(BlueprintReadWrite)
-    FString DamageTypes;  
+    FString DamageTypes;
     UPROPERTY(BlueprintReadWrite)
-    FString TargetType;  
+    FString TargetType;
     UPROPERTY(BlueprintReadWrite)
-    int32 Damage;
+    int32 Damage = 0;
 };

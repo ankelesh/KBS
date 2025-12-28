@@ -1,4 +1,6 @@
 #include "GameplayTypes/GridCoordinates.h"
+#include "GameMechanics/Units/Unit.h"
+
 bool FGridCoordinates::IsValidCell(int32 Row, int32 Col)
 {
 	if (Row < 0 || Row >= GridSize || Col < 0 || Col >= GridSize)

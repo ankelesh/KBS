@@ -211,6 +211,29 @@ void AUnit::LevelUp()
 void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 {
 	UnitDefinition = InDefinition;
+	if (UnitDefinition)
+	{
+		BaseStats = UnitDefinition->BaseStatsTemplate;
+		CurrentHealth = BaseStats.MaxHealth;
+
+		// Recreate weapons from new definition
+		Weapons.Empty();
+		for (UWeaponDataAsset* WeaponData : UnitDefinition->DefaultWeapons)
+		{
+			if (WeaponData)
+			{
+				UWeapon* NewWeapon = NewObject<UWeapon>(this, UWeapon::StaticClass());
+				if (NewWeapon)
+				{
+					NewWeapon->RegisterComponent();
+					NewWeapon->Initialize(VisualsComponent, WeaponData);
+					Weapons.Add(NewWeapon);
+				}
+			}
+		}
+
+		RecalculateModifiedStats();
+	}
 }
 FUnitDisplayData AUnit::GetDisplayData() const
 {

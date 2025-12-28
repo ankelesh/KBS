@@ -45,9 +45,9 @@ struct FTurnQueueEntry
 	UPROPERTY()
 	TObjectPtr<AUnit> Unit;
 	UPROPERTY()
-	int32 InitiativeRoll;
+	int32 InitiativeRoll = 0;
 	UPROPERTY()
-	int32 TotalInitiative;
+	int32 TotalInitiative = 0;
 	bool operator<(const FTurnQueueEntry& Other) const
 	{
 		return TotalInitiative > Other.TotalInitiative;  

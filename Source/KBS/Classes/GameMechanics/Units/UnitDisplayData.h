@@ -11,21 +11,21 @@ struct KBS_API FUnitDisplayData
 	UPROPERTY(BlueprintReadWrite)
 	FString UnitName;
 	UPROPERTY(BlueprintReadWrite)
-	float CurrentHealth;
+	float CurrentHealth = 0.0f;
 	UPROPERTY(BlueprintReadWrite)
-	float MaxHealth;
+	float MaxHealth = 0.0f;
 	UPROPERTY(BlueprintReadWrite)
-	int32 Initiative;
+	int32 Initiative = 0;
 	UPROPERTY(BlueprintReadWrite)
-	float Accuracy;
+	float Accuracy = 0.0f;
 	UPROPERTY(BlueprintReadWrite)
-	int32 Level;
+	int32 Level = 0;
 	UPROPERTY(BlueprintReadWrite)
-	int32 Experience;
+	int32 Experience = 0;
 	UPROPERTY(BlueprintReadWrite)
-	int32 ExperienceToNextLevel;
+	int32 ExperienceToNextLevel = 0;
 	UPROPERTY(BlueprintReadWrite)
-	UTexture2D* PortraitTexture;
+	UTexture2D* PortraitTexture = nullptr;
 	UPROPERTY(BlueprintReadWrite)
 	FString ActiveEffectNames;
 	UPROPERTY(BlueprintReadWrite)
@@ -35,13 +35,13 @@ struct KBS_API FUnitDisplayData
 	UPROPERTY(BlueprintReadWrite)
 	FString Wards;
 	UPROPERTY(BlueprintReadWrite)
-	FString Armour;  
+	FString Armour;
 	UPROPERTY(BlueprintReadWrite)
-	int32 DamageReduction;
+	int32 DamageReduction = 0;
 	UPROPERTY(BlueprintReadWrite)
-	bool bIsDefending;
+	bool bIsDefending = false;
 	UPROPERTY(BlueprintReadWrite)
-	bool BelongsToAttackerTeam;
+	bool BelongsToAttackerTeam = false;
 };
 USTRUCT(BlueprintType)
 struct KBS_API FUnitTurnQueueDisplay
@@ -50,13 +50,13 @@ struct KBS_API FUnitTurnQueueDisplay
 	UPROPERTY(BlueprintReadWrite)
 	FString UnitName;
 	UPROPERTY(BlueprintReadWrite)
-	int32 CurrentInitiative;
+	int32 CurrentInitiative = 0;
 	UPROPERTY(BlueprintReadWrite)
-	UTexture2D* PortraitTexture;
+	UTexture2D* PortraitTexture = nullptr;
 	UPROPERTY(BlueprintReadWrite)
-	bool bIsActiveUnit;
+	bool bIsActiveUnit = false;
 	UPROPERTY(BlueprintReadWrite)
-	bool BelongsToAttackerTeam;
+	bool BelongsToAttackerTeam = false;
 };
 class UWeapon;
 class UBattleEffect;

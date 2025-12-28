@@ -58,6 +58,8 @@ public:
 	const float GetMovementSpeed() const;
 	ETeamSide GetTeamSide() const { return TeamSide; }
 	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
+	virtual int32 GetCellSize() const { return 1; }
+	virtual bool IsMultiCell() const { return false; }
 	void TakeHit(const FDamageResult& DamageResult);
 	void ApplyEffect(UBattleEffect* Effect);
 	void SetDefending(bool bDefending);

@@ -1,0 +1,67 @@
+========================================
+Building KBS Project
+========================================
+
+Target: KBSEditor
+Configuration: Development
+Platform: Win64
+
+Using bundled DotNet SDK version: 8.0.300 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" KBSEditor Win64 Development -Project="E:\Projects\unreal_projects\KBS\KBS.uproject" -WaitMutex -FromMsBuild
+Log file: C:\Users\ankel\AppData\Local\UnrealBuildTool\Log.txt
+Using 'git status' to determine working set for adaptive non-unity build (E:\Projects\unreal_projects\KBS).
+Invalidating makefile for KBSEditor (source file added)
+Building KBSEditor...
+Using Visual Studio 2022 14.38.33145 toolchain (E:\Program Files\Visual Studio\VC\Tools\MSVC\14.38.33130) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+[Adaptive Build] Excluded from KBS unity file: DamageCalculator.cpp, TacBattleGrid.cpp, GridDataManager.cpp, GridMovementComponent.cpp, GridTargetingComponent.cpp, TurnManagerComponent.cpp, LargeUnit.cpp, Unit.cpp, UnitDisplayData.cpp, UnitDefendAbility.cpp, UnitMovementAbility.cpp, GridCoordinates.cpp
+Determining max actions to execute in parallel (12 physical cores, 24 logical cores)
+  Executing up to 12 processes, one per physical core
+Using Unreal Build Accelerator local executor to run 4 action(s)
+  Storage capacity 40Gb
+---- Starting trace: 251228_160834 ----
+UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
+------ Building 4 action(s) started ------
+[1/4] Compile [x64] LargeUnitTest.cpp
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1227,16): error C2079: 'DamageResult' uses undefined struct 'FDamageResult'
+	FDamageResult DamageResult;
+	              ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1230,11): error C2664: 'void AUnit::TakeHit(const FDamageResult &)': cannot convert argument 1 from 'int' to 'const FDamageResult &'
+	LargeUnit->TakeHit(DamageResult);
+	         ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1230,21): note: Reason: cannot convert from 'int' to 'const FDamageResult'
+	LargeUnit->TakeHit(DamageResult);
+	                   ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1230,21): note: use of undefined type 'FDamageResult'
+E:\Projects\unreal_projects\KBS\Source\KBS\Classes\GameMechanics\Units\Unit.h(14,8): note: see declaration of 'FDamageResult'
+struct FDamageResult;
+       ^
+E:\Projects\unreal_projects\KBS\Source\KBS\Classes\GameMechanics\Units\Unit.h(63,7): note: see declaration of 'AUnit::TakeHit'
+	void TakeHit(const FDamageResult& DamageResult);
+	     ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1230,11): note: while trying to match the argument list '(int)'
+	LargeUnit->TakeHit(DamageResult);
+	         ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1300,16): error C2079: 'DamageResult' uses undefined struct 'FDamageResult'
+	FDamageResult DamageResult;
+	              ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1303,11): error C2664: 'void AUnit::TakeHit(const FDamageResult &)': cannot convert argument 1 from 'int' to 'const FDamageResult &'
+	LargeUnit->TakeHit(DamageResult);
+	         ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1303,21): note: Reason: cannot convert from 'int' to 'const FDamageResult'
+	LargeUnit->TakeHit(DamageResult);
+	                   ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1303,21): note: use of undefined type 'FDamageResult'
+E:\Projects\unreal_projects\KBS\Source\KBS\Classes\GameMechanics\Units\Unit.h(14,8): note: see declaration of 'FDamageResult'
+struct FDamageResult;
+       ^
+E:\Projects\unreal_projects\KBS\Source\KBS\Classes\GameMechanics\Units\Unit.h(63,7): note: see declaration of 'AUnit::TakeHit'
+	void TakeHit(const FDamageResult& DamageResult);
+	     ^
+E:\Projects\unreal_projects\KBS\Source\KBSTests\Private\GameMechanics\Units\LargeUnitTest.cpp(1303,11): note: while trying to match the argument list '(int)'
+	LargeUnit->TakeHit(DamageResult);
+	         ^
+Trace written to file C:/Users/ankel/AppData/Local/UnrealBuildTool/Log.uba with size 5.2kb
+Total time in Unreal Build Accelerator local executor: 0.71 seconds
+
+Result: Failed (OtherCompilationError)
+Total execution time: 2.08 seconds
