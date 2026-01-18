@@ -7,6 +7,8 @@
 class AUnit;
 class UNiagaraComponent;
 class UWeapon;
+
+typedef TArray<TObjectPtr<UBattleEffect>> BattleEffectArray;
 UCLASS(Abstract, Blueprintable)
 class KBS_API UBattleEffect : public UObject
 {
