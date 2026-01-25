@@ -8,48 +8,49 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "CombatMutationService.generated.h"
 
-namespace Tactical {
-	UENUM()
-		enum EMutationFailureReason
-	{
-		None,
-		Blocked,
-		Missed,
-		Intercepted,
-		Capped
-	};
+UENUM()
+enum EMutationFailureReason
+{
+	None,
+	Blocked,
+	Missed,
+	Intercepted,
+	Capped
+};
 
-	USTRUCT()
-	struct FEffectApplyResult {
-		bool bSuccess = true;
-		EMutationFailureReason FailureReason = None;
-		TObjectPtr<UBattleEffect> Effect = nullptr;
-	}
+USTRUCT()
+struct FEffectApplyResult {
+	GENERATED_BODY()
+	bool bSuccess = true;
+	EMutationFailureReason FailureReason = None;
+	TObjectPtr<UBattleEffect> Effect = nullptr;
+};
 
-	USTRUCT()
-	struct FMutationResult {
-		bool bSuccess = true;
-		EMutationFailureReason FailureReason = None;
-		int32 HealthDelta = 0;
-		TOptional<FUnitCoreStats> StatDelta;
-		TArray<TObjectPtr<UBattleEffect>> AppliedEffects;
-	};
+USTRUCT()
+struct FMutationResult {
+	GENERATED_BODY()
+	bool bSuccess = true;
+	EMutationFailureReason FailureReason = None;
+	int32 HealthDelta = 0;
+	TOptional<FUnitCoreStats> StatDelta;
+	TArray<TObjectPtr<UBattleEffect>> AppliedEffects;
+};
 
-	typedef TArray<FMutationResult> FMutationResults;
-	typedef TArray<FEffectApplyResult> FEffectApplyResults;
-	UCLASS()
-		class KBS_API UCombatMutationService : public UObject
-	{
-		GENERATED_BODY()
+typedef TArray<FMutationResult> FMutationResults;
+typedef TArray<FEffectApplyResult> FEffectApplyResults;
+UCLASS()
+class KBS_API UCombatMutationService : public UObject
+{
+	GENERATED_BODY()
 
-	public:
-		FMutationResult ApplyHealthMutation(AUnit* Source, AUnit* Target, int32 Delta);
-		FMutationResult ProcessUnitHit(AUnit* Source, AUnit* Target);
-		FMutationResult ApplyStatMutation(AUnit* Source, AUnit* Target, const FUnitCoreStats& delta);
-		FMutationResult RemoveStatMutation(AUnit* Source, AUnit* Target, const FUnitCoreStats& delta);
-		FEffectApplyResult ApplyEffect(AUnit* Source, AUnit* Target, TObjectPtr<UBattleEffect> Effect);
-		FEffectApplyResult RemoveEffect(AUnit* Source, AUnit* Target, TObjectPtr<UBattleEffect> Effect);
-		FMutationResults ProcessUnitMultihit(AUnit* Source, FUnitArray Targets);
-		FEffectApplyResult ApplyEffects(AUnit* Source, AUnit* Target, BattleEffectArray Effects);
-	};
-}; // namespace Tactical
+public:
+	FMutationResult ApplyHealthMutation(AUnit* Source, AUnit* Target, int32 Delta);
+	FMutationResult ApplyStatMutation(AUnit* Source, AUnit* Target, const FUnitCoreStats& delta);
+	FMutationResult RemoveStatMutation(AUnit* Source, AUnit* Target, const FUnitCoreStats& delta);
+	FMutationResult ResetUnitStats(AUnit* Source, AUnit* Target);
+	FMutationResult ApplyPureDamage(AUnit* Source, AUnit* Target, int32 Damage);
+	FMutationResult SetDefensiveStance(AUnit* Target, bool bDefensiveStance);
+	FEffectApplyResult ApplyEffect(AUnit* Source, AUnit* Target, TObjectPtr<UBattleEffect> Effect);
+	FEffectApplyResult RemoveEffect(AUnit* Source, AUnit* Target, TObjectPtr<UBattleEffect> Effect);
+	FEffectApplyResult ApplyEffects(AUnit* Source, AUnit* Target, BattleEffectArray Effects);
+};

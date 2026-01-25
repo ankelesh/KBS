@@ -4,7 +4,8 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 
-FAbilityResult UWeaponSwapAbility::ApplyAbilityEffect(const FAbilityBattleContext& Context)
+
+FAbilityResult UWeaponSwapAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
 {
 	if (!Owner)
 	{
@@ -66,3 +67,4 @@ ETargetReach UWeaponSwapAbility::GetTargeting() const
 	// This ability doesn't need targeting - it just swaps weapons
 	return ETargetReach::None;
 }
+

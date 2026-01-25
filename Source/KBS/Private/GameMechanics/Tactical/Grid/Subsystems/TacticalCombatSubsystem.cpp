@@ -1,5 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GameMechanics/Tactical/Grid/Subsystems/TacticalCombatSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 

@@ -10,7 +10,6 @@
 #include "GameplayTypes/FlankCellDefinitions.h"
 #include "GameMechanics/Units/LargeUnit.h"
 
-using namespace Tactical;
 
 UTacGridTargetingService::UTacGridTargetingService()
 {
@@ -36,7 +35,7 @@ TArray<FTacCoordinates> UTacGridTargetingService::GetValidTargetCells(AUnit* Uni
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return TargetCells;
@@ -194,7 +193,7 @@ void UTacGridTargetingService::GetClosestEnemyCells(AUnit* Unit, TArray<FTacCoor
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return;
@@ -233,7 +232,7 @@ void UTacGridTargetingService::GetFlankTargetCells(AUnit* Unit, TArray<FTacCoord
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return;
@@ -339,7 +338,7 @@ void UTacGridTargetingService::GetEmptyCellsOrFriendly(AUnit* Unit, TArray<FTacC
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return;
@@ -357,13 +356,13 @@ void UTacGridTargetingService::GetMovementCells(AUnit* Unit, TArray<FTacCoordina
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return;
 	}
 
-	if (UnitLayer == EBattleLayer::Air)
+	if (UnitLayer == ETacGridLayer::Air)
 	{
 		GetAirMoveCells(Unit, OutCells);
 	}
@@ -507,7 +506,7 @@ void UTacGridTargetingService::GetAdjacentMoveCells(AUnit* Unit, TArray<FTacCoor
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return;
@@ -562,7 +561,7 @@ void UTacGridTargetingService::GetFlankMoveCells(AUnit* Unit, TArray<FTacCoordin
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return;
@@ -629,7 +628,7 @@ void UTacGridTargetingService::GetAirMoveCells(AUnit* Unit, TArray<FTacCoordinat
 	}
 
 	FTacCoordinates UnitPos;
-	EBattleLayer UnitLayer;
+	ETacGridLayer UnitLayer;
 	if (!DataManager->GetUnitPosition(Unit, UnitPos, UnitLayer))
 	{
 		return;
@@ -663,18 +662,14 @@ void UTacGridTargetingService::GetAirMoveCells(AUnit* Unit, TArray<FTacCoordinat
 	}
 }
 
-void UTacGridTargetingService::GetEmptyCellsForLayer(EBattleLayer Layer, TArray<FTacCoordinates>& OutCells) const
+void UTacGridTargetingService::GetEmptyCellsForLayer(ETacGridLayer Layer, TArray<FTacCoordinates>& OutCells) const
 {
 	if (!DataManager)
 	{
 		return;
 	}
 
-	TArray<FIntPoint> EmptyCells = DataManager->GetValidPlacementCells(Layer);
-	for (const FIntPoint& Cell : EmptyCells)
-	{
-		OutCells.Add(FTacCoordinates(Cell.Y, Cell.X, Layer));
-	}
+	OutCells.Append(DataManager->GetValidPlacementCells(Layer));
 }
 
 void UTacGridTargetingService::IterateGroundCells(TFunctionRef<bool(const FTacCoordinates&)> FilterPredicate, TArray<FTacCoordinates>& OutCells) const
@@ -688,7 +683,7 @@ void UTacGridTargetingService::IterateGroundCells(TFunctionRef<bool(const FTacCo
 	{
 		for (int32 Col = 0; Col < FGridConstants::GridSize; ++Col)
 		{
-			FTacCoordinates Coords(Row, Col, EBattleLayer::Ground);
+			FTacCoordinates Coords(Row, Col, ETacGridLayer::Ground);
 			if (FilterPredicate(Coords))
 			{
 				OutCells.Add(Coords);
@@ -705,7 +700,7 @@ bool UTacGridTargetingService::TryGetPrimaryCellForUnit(AUnit* Unit, FTacCoordin
 	}
 
 	FTacCoordinates Pos;
-	EBattleLayer Layer;
+	ETacGridLayer Layer;
 	if (!DataManager->GetUnitPosition(Unit, Pos, Layer))
 	{
 		return false;
@@ -726,7 +721,7 @@ bool UTacGridTargetingService::TryGetPrimaryCellForUnit(AUnit* Unit, FTacCoordin
 	return true;
 }
 
-bool UTacGridTargetingService::IsValidMultiCellDestination(AUnit* Unit, const FTacCoordinates& TargetCoords, EBattleLayer Layer) const
+bool UTacGridTargetingService::IsValidMultiCellDestination(AUnit* Unit, const FTacCoordinates& TargetCoords, ETacGridLayer Layer) const
 {
 	if (!Unit || !DataManager || !Unit->IsMultiCell())
 	{
@@ -873,7 +868,7 @@ TArray<AUnit*> UTacGridTargetingService::GetUnitsInArea(FTacCoordinates CenterCe
 
 	if (AreaShape.bAffectsAllLayers)
 	{
-		EBattleLayer OtherLayer = (CenterCell.Layer == EBattleLayer::Ground) ? EBattleLayer::Air : EBattleLayer::Ground;
+		ETacGridLayer OtherLayer = (CenterCell.Layer == ETacGridLayer::Ground) ? ETacGridLayer::Air : ETacGridLayer::Ground;
 		TArray<AUnit*> UnitsAtOtherLayer = DataManager->GetUnitsInCells(TargetCells, OtherLayer);
 		for (AUnit* Unit : UnitsAtOtherLayer)
 		{

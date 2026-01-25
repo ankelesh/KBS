@@ -2,6 +2,8 @@
 #include "CoreMinimal.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "UnitAutoAttackAbility.generated.h"
+
+
 UCLASS(Blueprintable)
 class KBS_API UUnitAutoAttackAbility : public UUnitAbilityInstance
 {
@@ -9,5 +11,6 @@ class KBS_API UUnitAutoAttackAbility : public UUnitAbilityInstance
 public:
 	virtual ETargetReach GetTargeting() const override;
 	virtual TMap<AUnit*, FPreviewHitResult> DamagePreview(AUnit* Source, const TArray<AUnit*>& Targets) override;
-	virtual FAbilityResult ApplyAbilityEffect(const FAbilityBattleContext& Context) override;
+	virtual FAbilityResult ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell) override;
 };
+

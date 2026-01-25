@@ -7,7 +7,6 @@
 #include "GameplayTypes/FlankCellDefinitions.h"
 #include "GameplayTypes/TacticalMovementConstants.h"
 
-using namespace Tactical;
 
 UTacGridMovementService::UTacGridMovementService()
 {
@@ -41,7 +40,7 @@ bool UTacGridMovementService::ValidateMovementParameters(AUnit* Unit, FTacCoordi
 
 bool UTacGridMovementService::GetUnitCurrentPosition(AUnit* Unit, FTacCoordinates& OutPos) const
 {
-	EBattleLayer Layer;
+	ETacGridLayer Layer;
 	if (!DataManager->GetUnitPosition(Unit, OutPos, Layer))
 	{
 		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Could not find unit position"));

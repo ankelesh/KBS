@@ -1,8 +1,13 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
+
 void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
 {
 	Config = InDefinition;
@@ -12,16 +17,17 @@ void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDe
 		RemainingCharges = Config->MaxCharges;
 	}
 }
-FAbilityResult UUnitAbilityInstance::TriggerAbility(const FAbilityBattleContext& Context)
+FAbilityResult UUnitAbilityInstance::TriggerAbility(AUnit* SourceUnit, FTacCoordinates TargetCell)
 {
-	FAbilityValidation Validation = CanExecute(Context);
+	FAbilityValidation Validation = CanExecute(SourceUnit, TargetCell);
 	if (!Validation.bIsValid)
 	{
 		return CreateFailureResult(Validation.FailureReason, Validation.FailureMessage);
 	}
 	return CreateSuccessResult();
 }
-FAbilityResult UUnitAbilityInstance::ApplyAbilityEffect(const FAbilityBattleContext& Context)
+
+FAbilityResult UUnitAbilityInstance::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
 {
 	return CreateSuccessResult();
 }
@@ -102,7 +108,7 @@ FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
 	DisplayData.bIsEmpty = false;
 	if (Config->MaxCharges < 0)
 	{
-		DisplayData.bCanExecuteThisTurn = true;  
+		DisplayData.bCanExecuteThisTurn = true;
 	}
 	else
 	{
@@ -112,7 +118,7 @@ FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
 	DisplayData.Description = FString::Printf(TEXT("%s - %s"), *Config->AbilityName, *DisplayData.TargetingInfo);
 	return DisplayData;
 }
-FAbilityValidation UUnitAbilityInstance::CanExecute(const FAbilityBattleContext& Context) const
+FAbilityValidation UUnitAbilityInstance::CanExecute(AUnit* SourceUnit, FTacCoordinates TargetCell) const
 {
 	if (Config && Config->MaxCharges > 0)
 	{
@@ -122,11 +128,8 @@ FAbilityValidation UUnitAbilityInstance::CanExecute(const FAbilityBattleContext&
 				FText::FromString("No charges remaining"));
 		}
 	}
-	if (Context.TargetUnits.Num() == 0 && !IsPassive())
-	{
-		return FAbilityValidation::Failure(EAbilityFailureReason::InvalidTarget,
-			FText::FromString("No valid targets"));
-	}
+
+	// Target validation moved to derived classes - they know their targeting rules
 	return FAbilityValidation::Success();
 }
 FAbilityResult UUnitAbilityInstance::CreateSuccessResult() const
@@ -138,3 +141,35 @@ FAbilityResult UUnitAbilityInstance::CreateFailureResult(EAbilityFailureReason R
 {
 	return FAbilityResult::Failure(Reason, Message);
 }
+
+UGridSubsystem* UUnitAbilityInstance::GetGridSubsystem(AUnit* Unit) const
+{
+	if (!Unit) return nullptr;
+	UWorld* World = Unit->GetWorld();
+	if (!World) return nullptr;
+	return World->GetSubsystem<UGridSubsystem>();
+}
+
+UTacGridMovementService* UUnitAbilityInstance::GetMovementService(AUnit* Unit) const
+{
+	UGridSubsystem* GridSys = GetGridSubsystem(Unit);
+	return GridSys ? GridSys->GetGridMovementService() : nullptr;
+}
+
+UTacGridTargetingService* UUnitAbilityInstance::GetTargetingService(AUnit* Unit) const
+{
+	UGridSubsystem* GridSys = GetGridSubsystem(Unit);
+	return GridSys ? GridSys->GetGridTargetingService() : nullptr;
+}
+
+UTacCombatSubsystem* UUnitAbilityInstance::GetCombatSubsystem(AUnit* Unit) const
+{
+	if (!Unit) return nullptr;
+	UWorld* World = Unit->GetWorld();
+	if (!World) return nullptr;
+
+	// TODO: Get from world subsystem once TacCombatSubsystem becomes UWorldSubsystem
+	// Currently TacCombatSubsystem is UObject, need to access via GridSubsystem or similar
+	return nullptr;
+}
+

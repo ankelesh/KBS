@@ -99,11 +99,11 @@ void UGridEditorVisualComponent::DrawGridCells()
 				continue;
 			}
 			const bool bIsFlank = FTacCoordinates::IsFlankCell(Row, Col);
-			FVector CellCenter = FTacCoordinates::CellToWorldLocation(Row, Col, EBattleLayer::Ground, GridOrigin, CellSize, AirLayerHeight);
+			FVector CellCenter = FTacCoordinates::CellToWorldLocation(Row, Col, ETacGridLayer::Ground, GridOrigin, CellSize, AirLayerHeight);
 			FColor GroundColor = bIsFlank ? FColor(138, 43, 226) : FColor::Green;
 			DrawDebugBox(GetWorld(), CellCenter, FVector(CellSize * 0.5f, CellSize * 0.5f, 5.0f),
 				GroundColor, true, -1.0f, 0, 2.0f);
-			CellCenter = FTacCoordinates::CellToWorldLocation(Row, Col, EBattleLayer::Air, GridOrigin, CellSize, AirLayerHeight);
+			CellCenter = FTacCoordinates::CellToWorldLocation(Row, Col, ETacGridLayer::Air, GridOrigin, CellSize, AirLayerHeight);
 			DrawDebugBox(GetWorld(), CellCenter, FVector(CellSize * 0.5f, CellSize * 0.5f, 5.0f),
 				FColor::Cyan, true, -1.0f, 0, 1.0f);
 		}

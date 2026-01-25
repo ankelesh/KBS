@@ -1,18 +1,11 @@
-#include "GameMechanics/Tactical/DamageCalculator.h"
+#include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/UnitStats.h"
-void UDamageCalculator::Initialize(FSubsystemCollectionBase& Collection)
-{
-	Super::Initialize(Collection);
-	ResetStatistics();
-}
-void UDamageCalculator::Deinitialize()
-{
-	Super::Deinitialize();
-}
-float UDamageCalculator::CalculateHitChance(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
+
+
+float FDamageCalculation::CalculateHitChance(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
 {
 	if (!Attacker || !Weapon || !Target)
 	{
@@ -23,7 +16,8 @@ float UDamageCalculator::CalculateHitChance(AUnit* Attacker, UWeapon* Weapon, AU
 	float HitChance = AttackerStats.Accuracy * WeaponStats.AccuracyMultiplier * 100.0f;
 	return FMath::Clamp(HitChance, 0.0f, 100.0f);
 }
-FDamageResult UDamageCalculator::CalculateDamage(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
+
+FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
 {
 	FDamageResult Result;
 	if (!Attacker || !Weapon || !Target)
@@ -67,7 +61,8 @@ FDamageResult UDamageCalculator::CalculateDamage(AUnit* Attacker, UWeapon* Weapo
 	Result.DamageBlocked = BaseDamage - Result.Damage;
 	return Result;
 }
-float UDamageCalculator::CalculateEffectApplication(AUnit* Attacker, UBattleEffect* Effect, AUnit* Target)
+
+float FDamageCalculation::CalculateEffectApplication(AUnit* Attacker, UBattleEffect* Effect, AUnit* Target)
 {
 	if (!Attacker || !Effect || !Target)
 	{
@@ -87,7 +82,8 @@ float UDamageCalculator::CalculateEffectApplication(AUnit* Attacker, UBattleEffe
 	float ApplicationChance = AttackerStats.Accuracy * 100.0f;
 	return FMath::Clamp(ApplicationChance, 0.0f, 100.0f);
 }
-UWeapon* UDamageCalculator::SelectWeapon(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
+
+UWeapon* FDamageCalculation::SelectWeapon(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
 {
 	if (!Attacker || !Target)
 	{
@@ -129,7 +125,8 @@ UWeapon* UDamageCalculator::SelectWeapon(AUnit* Attacker, AUnit* Target, ETarget
 	}
 	return BestWeapon;
 }
-UWeapon* UDamageCalculator::SelectMaxReachWeapon(AUnit* Unit)
+
+UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit)
 {
 	if (!Unit)
 	{
@@ -145,9 +142,9 @@ UWeapon* UDamageCalculator::SelectMaxReachWeapon(AUnit* Unit)
 		return Weapons[0];
 	}
 	auto GetReachScore = [](ETargetReach Reach) -> int32
-	{
-		switch (Reach)
 		{
+			switch (Reach)
+			{
 			case ETargetReach::AllEnemies:         return 100;
 			case ETargetReach::Area:               return 80;
 			case ETargetReach::AnyEnemy:           return 60;
@@ -159,8 +156,8 @@ UWeapon* UDamageCalculator::SelectMaxReachWeapon(AUnit* Unit)
 			case ETargetReach::Self:               return 5;
 			case ETargetReach::None:               return 0;
 			default:                               return 0;
-		}
-	};
+			}
+		};
 	UWeapon* BestWeapon = nullptr;
 	int32 BestScore = -1;
 	for (UWeapon* Weapon : Weapons)
@@ -179,7 +176,8 @@ UWeapon* UDamageCalculator::SelectMaxReachWeapon(AUnit* Unit)
 	}
 	return BestWeapon;
 }
-FPreviewHitResult UDamageCalculator::PreviewDamage(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
+
+FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
 {
 	FPreviewHitResult Preview;
 	if (!Attacker || !Target)
@@ -208,7 +206,8 @@ FPreviewHitResult UDamageCalculator::PreviewDamage(AUnit* Attacker, AUnit* Targe
 	}
 	return Preview;
 }
-FCombatHitResult UDamageCalculator::ProcessHit(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
+
+FCombatHitResult FDamageCalculation::ProcessHit(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
 {
 	FCombatHitResult HitResult;
 	HitResult.TargetUnit = Target;
@@ -287,7 +286,8 @@ FCombatHitResult UDamageCalculator::ProcessHit(AUnit* Attacker, AUnit* Target, E
 	}
 	return HitResult;
 }
-TArray<FCombatHitResult> UDamageCalculator::ProcessAttack(const FHitInstance& HitInstance)
+
+TArray<FCombatHitResult> FDamageCalculation::ProcessAttack(const FHitInstance& HitInstance)
 {
 	TArray<FCombatHitResult> Results;
 	if (!HitInstance.SourceUnit)
@@ -301,45 +301,28 @@ TArray<FCombatHitResult> UDamageCalculator::ProcessAttack(const FHitInstance& Hi
 			continue;
 		}
 		FCombatHitResult HitResult = ProcessHit(HitInstance.SourceUnit, Target, HitInstance.SelectedRange);
-		ProcessStatistics(HitResult, true);
 		Results.Add(HitResult);
 	}
 	return Results;
 }
-void UDamageCalculator::ProcessStatistics(const FCombatHitResult& Result, bool bIsAttackerTeam)
-{
-	FTeamCombatStats& Stats = bIsAttackerTeam ? AttackerStatistic : DefenderStatistic;
-	if (Result.bHit)
-	{
-		Stats.Hits++;
-		Stats.TotalDamage += Result.Damage;
-	}
-	else
-	{
-		Stats.Misses++;
-	}
-	Stats.EffectsApplied += Result.EffectsApplied.Num();
-}
-void UDamageCalculator::ResetStatistics()
-{
-	AttackerStatistic.Reset();
-	DefenderStatistic.Reset();
-}
-bool UDamageCalculator::PerformAccuracyRoll(float HitChance)
+
+bool FDamageCalculation::PerformAccuracyRoll(float HitChance)
 {
 	float Roll = FMath::FRand() * 100.0f;
 	return Roll <= HitChance;
 }
-bool UDamageCalculator::IsFriendlyReach(ETargetReach Reach) const
+
+bool FDamageCalculation::IsFriendlyReach(ETargetReach Reach)
 {
 	return Reach == ETargetReach::Self ||
-	       Reach == ETargetReach::AnyFriendly ||
-	       Reach == ETargetReach::AllFriendlies ||
-	       Reach == ETargetReach::EmptyCellOrFriendly ||
-	       Reach == ETargetReach::FriendlyCorpse ||
-	       Reach == ETargetReach::FriendlyNonBlockedCorpse;
+		Reach == ETargetReach::AnyFriendly ||
+		Reach == ETargetReach::AllFriendlies ||
+		Reach == ETargetReach::EmptyCellOrFriendly ||
+		Reach == ETargetReach::FriendlyCorpse ||
+		Reach == ETargetReach::FriendlyNonBlockedCorpse;
 }
-EDamageSource UDamageCalculator::SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target)
+
+EDamageSource FDamageCalculation::SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target)
 {
 	if (!Target || DamageSources.Num() == 0)
 	{
@@ -365,3 +348,4 @@ EDamageSource UDamageCalculator::SelectBestDamageSource(const TSet<EDamageSource
 	}
 	return BestSource;
 }
+

@@ -25,19 +25,24 @@ bool FTacCoordinates::IsRestrictedCell(int32 Row, int32 Col)
 {
 	return Row == FGridConstants::CenterRow && (Col == FGridConstants::ExcludedColLeft || Col == FGridConstants::ExcludedColRight);
 }
-FVector FTacCoordinates::CellToWorldLocation(int32 Row, int32 Col, EBattleLayer Layer, const FVector& GridOrigin, float CellSize, float AirLayerHeight)
+FVector FTacCoordinates::CellToWorldLocation(int32 Row, int32 Col, ETacGridLayer Layer, const FVector& GridOrigin, float CellSize, float AirLayerHeight)
 {
 	const float X = Col * CellSize + CellSize * 0.5f;
 	const float Y = Row * CellSize + CellSize * 0.5f;
-	const float Z = (Layer == EBattleLayer::Air) ? AirLayerHeight : 0.0f;
+	const float Z = (Layer == ETacGridLayer::Air) ? AirLayerHeight : 0.0f;
 	return GridOrigin + FVector(X, Y, Z);
 }
-FIntPoint FTacCoordinates::WorldLocationToCell(const FVector& WorldLocation, const FVector& GridOrigin, float CellSize)
+FTacCoordinates FTacCoordinates::WorldLocationToCell(const FVector& WorldLocation, const FVector& GridOrigin, float CellSize, float AirLayerHeight)
 {
 	const FVector LocalPos = WorldLocation - GridOrigin;
 	const int32 Col = FMath::FloorToInt(LocalPos.X / CellSize);
 	const int32 Row = FMath::FloorToInt(LocalPos.Y / CellSize);
-	return FIntPoint(FMath::Clamp(Col, 0, FGridConstants::GridSize - 1), FMath::Clamp(Row, 0, FGridConstants::GridSize - 1));
+
+	const float DistToGround = FMath::Abs(LocalPos.Z);
+	const float DistToAir = FMath::Abs(LocalPos.Z - AirLayerHeight);
+	const ETacGridLayer Layer = (DistToGround < DistToAir) ? ETacGridLayer::Ground : ETacGridLayer::Air;
+
+	return FTacCoordinates(FMath::Clamp(Row, 0, FGridConstants::GridSize - 1), FMath::Clamp(Col, 0, FGridConstants::GridSize - 1), Layer);
 }
 FRotator FTacCoordinates::GetFlankRotation(int32 Row, int32 Col)
 {

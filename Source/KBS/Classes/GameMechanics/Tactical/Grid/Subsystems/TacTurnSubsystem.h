@@ -4,14 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
-#include "TacticalCombatSubsystem.generated.h"
+#include "TacTurnSubsystem.generated.h"
 
-/**
- * 
- */
+
 UCLASS()
-class KBS_API UTacticalCombatSubsystem : public UWorldSubsystem
+class KBS_API UTacTurnSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
-	
+public:
+
 };

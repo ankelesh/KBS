@@ -1,19 +1,21 @@
-#include "GameMechanics/Tactical/UnitAbilitySubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacAbilityEventSubsystem.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Unit.h"
-void UUnitAbilitySubsystem::Initialize(FSubsystemCollectionBase& Collection)
+
+
+void UTacAbilityEventSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	RegisteredAbilities.Empty();
 	RegisteredUnits.Empty();
 }
-void UUnitAbilitySubsystem::Deinitialize()
+void UTacAbilityEventSubsystem::Deinitialize()
 {
 	RegisteredAbilities.Empty();
 	RegisteredUnits.Empty();
 	Super::Deinitialize();
 }
-void UUnitAbilitySubsystem::RegisterUnit(AUnit* Unit)
+void UTacAbilityEventSubsystem::RegisterUnit(AUnit* Unit)
 {
 	if (!Unit)
 	{
@@ -21,7 +23,7 @@ void UUnitAbilitySubsystem::RegisterUnit(AUnit* Unit)
 	}
 	RegisteredUnits.AddUnique(Unit);
 }
-void UUnitAbilitySubsystem::UnregisterUnit(AUnit* Unit)
+void UTacAbilityEventSubsystem::UnregisterUnit(AUnit* Unit)
 {
 	if (!Unit)
 	{
@@ -29,7 +31,7 @@ void UUnitAbilitySubsystem::UnregisterUnit(AUnit* Unit)
 	}
 	RegisteredUnits.Remove(Unit);
 }
-void UUnitAbilitySubsystem::RegisterAbility(UUnitAbilityInstance* Ability)
+void UTacAbilityEventSubsystem::RegisterAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability)
 	{
@@ -42,7 +44,7 @@ void UUnitAbilitySubsystem::RegisterAbility(UUnitAbilityInstance* Ability)
 		Abilities.AddUnique(Ability);
 	}
 }
-void UUnitAbilitySubsystem::UnregisterAbility(UUnitAbilityInstance* Ability)
+void UTacAbilityEventSubsystem::UnregisterAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability)
 	{
@@ -53,57 +55,57 @@ void UUnitAbilitySubsystem::UnregisterAbility(UUnitAbilityInstance* Ability)
 		Pair.Value.Remove(Ability);
 	}
 }
-void UUnitAbilitySubsystem::BroadcastAnyUnitAttacked(AUnit* Victim, AUnit* Attacker)
+void UTacAbilityEventSubsystem::BroadcastAnyUnitAttacked(AUnit* Victim, AUnit* Attacker)
 {
 	TArray<UUnitAbilityInstance*>* Abilities = RegisteredAbilities.Find(EAbilityEventType::OnUnitAttacked);
 	if (!Abilities)
 	{
 		return;
 	}
+
+	// Notify all subscribed passive abilities
+	// Note: Target cell is not meaningful for event-triggered abilities
+	FTacCoordinates EmptyCell;
 	for (UUnitAbilityInstance* Ability : *Abilities)
 	{
 		if (Ability)
 		{
-			FAbilityBattleContext Context;
-			Context.SourceUnit = Victim;
-			Context.TargetUnits.Add(Attacker);
-			Ability->TriggerAbility(Context);
+			Ability->HandleUnitAttacked(Victim, Attacker);
 		}
 	}
 }
-void UUnitAbilitySubsystem::BroadcastAnyUnitDamaged(AUnit* Victim, AUnit* Attacker)
+
+void UTacAbilityEventSubsystem::BroadcastAnyUnitDamaged(AUnit* Victim, AUnit* Attacker)
 {
 	TArray<UUnitAbilityInstance*>* Abilities = RegisteredAbilities.Find(EAbilityEventType::OnUnitDamaged);
 	if (!Abilities)
 	{
 		return;
 	}
+
 	for (UUnitAbilityInstance* Ability : *Abilities)
 	{
 		if (Ability)
 		{
-			FAbilityBattleContext Context;
-			Context.SourceUnit = Victim;
-			Context.TargetUnits.Add(Attacker);
-			Ability->TriggerAbility(Context);
+			Ability->HandleUnitDamaged(Victim, Attacker);
 		}
 	}
 }
-void UUnitAbilitySubsystem::BroadcastAnyUnitAttacks(AUnit* Attacker, AUnit* Target)
+
+void UTacAbilityEventSubsystem::BroadcastAnyUnitAttacks(AUnit* Attacker, AUnit* Target)
 {
 	TArray<UUnitAbilityInstance*>* Abilities = RegisteredAbilities.Find(EAbilityEventType::OnUnitAttacks);
 	if (!Abilities)
 	{
 		return;
 	}
+
 	for (UUnitAbilityInstance* Ability : *Abilities)
 	{
 		if (Ability)
 		{
-			FAbilityBattleContext Context;
-			Context.SourceUnit = Attacker;
-			Context.TargetUnits.Add(Target);
-			Ability->TriggerAbility(Context);
+			Ability->HandleUnitAttacks(Attacker, Target);
 		}
 	}
 }
+

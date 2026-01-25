@@ -5,6 +5,7 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/LargeUnit.h"
+#include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
 UTacGridEditorInitializer::UTacGridEditorInitializer()
@@ -77,11 +78,11 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 
 void UTacGridEditorInitializer::SetupUnitEventBindings()
 {
-	SetupUnitsInLayer(EBattleLayer::Ground);
-	SetupUnitsInLayer(EBattleLayer::Air);
+	SetupUnitsInLayer(ETacGridLayer::Ground);
+	SetupUnitsInLayer(ETacGridLayer::Air);
 }
 
-void UTacGridEditorInitializer::SetupUnitsInLayer(EBattleLayer Layer)
+void UTacGridEditorInitializer::SetupUnitsInLayer(ETacGridLayer Layer)
 {
 	ATacBattleGrid* Grid = GetGrid();
 	if (!Grid || !Grid->GetDataManager())
@@ -103,7 +104,7 @@ void UTacGridEditorInitializer::SetupUnitsInLayer(EBattleLayer Layer)
 	}
 }
 
-void UTacGridEditorInitializer::BindUnitEvents(AUnit* Unit, int32 Row, int32 Col, EBattleLayer Layer)
+void UTacGridEditorInitializer::BindUnitEvents(AUnit* Unit, int32 Row, int32 Col, ETacGridLayer Layer)
 {
 	ATacBattleGrid* Grid = GetGrid();
 	if (!Unit || !Grid)
@@ -111,9 +112,9 @@ void UTacGridEditorInitializer::BindUnitEvents(AUnit* Unit, int32 Row, int32 Col
 		return;
 	}
 	Unit->SetActorEnableCollision(true);
-	if (Unit->VisualsComponent)
+	if (UUnitVisualsComponent* VisualsComp = Unit->GetVisualsComponent())
 	{
-		for (USceneComponent* MeshComp : Unit->VisualsComponent->GetAllMeshComponents())
+		for (USceneComponent* MeshComp : VisualsComp->GetAllMeshComponents())
 		{
 			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(MeshComp))
 			{
@@ -125,7 +126,7 @@ void UTacGridEditorInitializer::BindUnitEvents(AUnit* Unit, int32 Row, int32 Col
 	// Unit->OnUnitClicked.AddDynamic(Grid, &ATacBattleGrid::HandleUnitClicked);
 	// TODO: Move to subsystem
 	// Unit->OnUnitDied.AddDynamic(Grid, &ATacBattleGrid::HandleUnitDied);
-	const FString LayerName = (Layer == EBattleLayer::Ground) ? TEXT("Ground") : TEXT("Air");
+	const FString LayerName = (Layer == ETacGridLayer::Ground) ? TEXT("Ground") : TEXT("Air");
 	UE_LOG(LogTemp, Log, TEXT("[SUBSCRIBE] Grid subscribed to OnUnitClicked and OnUnitDied for unit '%s' at [%d,%d] %s"),
 		*Unit->GetName(), Row, Col, *LayerName);
 }

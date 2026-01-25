@@ -1,46 +1,33 @@
 #include "GameMechanics/Units/Abilities/UnitMovementAbility.h"
-#include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
-#include "GameMechanics/Tactical/Grid/Components/GridMovementComponent.h"
-#include "GameMechanics/Tactical/Grid/Components/GridTargetingComponent.h"
-#include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameplayTypes/AbilityBattleContext.h"
-#include "GameplayTypes/DamageTypes.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+
 
 ETargetReach UUnitMovementAbility::GetTargeting() const
 {
 	return ETargetReach::Movement;
 }
 
-FAbilityResult UUnitMovementAbility::ApplyAbilityEffect(const FAbilityBattleContext& Context)
+FAbilityResult UUnitMovementAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
 {
-	if (!Context.SourceUnit || !Context.Grid)
+	UTacGridMovementService* MovementService = GetMovementService(SourceUnit);
+	if (!MovementService)
 	{
 		return CreateFailureResult(EAbilityFailureReason::Custom,
-			FText::FromString("Invalid source unit or grid"));
+			FText::FromString("Movement service not available"));
 	}
 
-	if (Context.TargetCell.X < 0 || Context.TargetCell.Y < 0)
-	{
-		return CreateFailureResult(EAbilityFailureReason::InvalidTarget,
-			FText::FromString("Invalid target cell"));
-	}
-
-	UGridMovementComponent* MovementComponent = Context.Grid->FindComponentByClass<UGridMovementComponent>();
-	if (!MovementComponent)
-	{
-		return CreateFailureResult(EAbilityFailureReason::Custom,
-			FText::FromString("Grid has no movement component"));
-	}
-
-	bool bMoveSuccess = MovementComponent->MoveUnit(Context.SourceUnit,
-		Context.TargetCell.X, Context.TargetCell.Y);
+	FTacMovementVisualData OutVisuals;
+	TOptional<FTacMovementVisualData> OutSwappedVisuals;
+	bool bMoveSuccess = MovementService->MoveUnit(SourceUnit, TargetCell, OutVisuals, OutSwappedVisuals);
 
 	if (bMoveSuccess)
 	{
 		FAbilityResult Result = CreateSuccessResult();
 		Result.TurnAction = EAbilityTurnAction::EndTurn;
-		Result.UnitsAffected.Add(Context.SourceUnit);
+		Result.UnitsAffected.Add(SourceUnit);
 		return Result;
 	}
 
@@ -48,35 +35,17 @@ FAbilityResult UUnitMovementAbility::ApplyAbilityEffect(const FAbilityBattleCont
 		FText::FromString("Movement failed"));
 }
 
-FAbilityValidation UUnitMovementAbility::CanExecute(const FAbilityBattleContext& Context) const
+FAbilityValidation UUnitMovementAbility::CanExecute(AUnit* SourceUnit, FTacCoordinates TargetCell) const
 {
-	if (!Context.SourceUnit)
+	UTacGridTargetingService* TargetingService = GetTargetingService(SourceUnit);
+	if (!TargetingService)
 	{
 		return FAbilityValidation::Failure(EAbilityFailureReason::Custom,
-			FText::FromString("No source unit"));
+			FText::FromString("Targeting service not available"));
 	}
 
-	if (!Context.Grid)
-	{
-		return FAbilityValidation::Failure(EAbilityFailureReason::Custom,
-			FText::FromString("No grid reference"));
-	}
-
-	if (Context.TargetCell.X < 0 || Context.TargetCell.Y < 0)
-	{
-		return FAbilityValidation::Failure(EAbilityFailureReason::InvalidTarget,
-			FText::FromString("No target cell specified"));
-	}
-
-	UGridTargetingComponent* TargetingComponent = Context.Grid->FindComponentByClass<UGridTargetingComponent>();
-	if (!TargetingComponent)
-	{
-		return FAbilityValidation::Failure(EAbilityFailureReason::Custom,
-			FText::FromString("No targeting component"));
-	}
-
-	TArray<FIntPoint> ValidCells = TargetingComponent->GetValidTargetCells(Context.SourceUnit, ETargetReach::Movement);
-	if (!ValidCells.Contains(Context.TargetCell))
+	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(SourceUnit, ETargetReach::Movement);
+	if (!ValidCells.Contains(TargetCell))
 	{
 		return FAbilityValidation::Failure(EAbilityFailureReason::OutOfRange,
 			FText::FromString("Target cell not in valid movement range"));
@@ -84,3 +53,4 @@ FAbilityValidation UUnitMovementAbility::CanExecute(const FAbilityBattleContext&
 
 	return FAbilityValidation::Success();
 }
+

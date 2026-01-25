@@ -1,5 +1,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-#include "GameMechanics/Tactical/Grid/Services/TacGridMovementService.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+
 
 void UGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 {

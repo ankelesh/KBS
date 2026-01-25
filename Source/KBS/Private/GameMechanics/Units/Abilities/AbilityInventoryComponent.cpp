@@ -1,13 +1,12 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
-#include "GameMechanics/Tactical/UnitAbilitySubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacAbilityEventSubsystem.h"
 #include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
 #include "GameMechanics/Units/Abilities/UnitMovementAbility.h"
 #include "GameMechanics/Units/Abilities/UnitWaitAbility.h"
 #include "GameMechanics/Units/Abilities/UnitDefendAbility.h"
 #include "GameMechanics/Units/Abilities/UnitFleeAbility.h"
-#include "GameplayTypes/AbilityBattleContext.h"
 #include "GameMechanics/Units/Unit.h"
 UAbilityInventoryComponent::UAbilityInventoryComponent()
 {
@@ -125,7 +124,7 @@ void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability
 	UWorld* World = GetWorld();
 	if (World)
 	{
-		UUnitAbilitySubsystem* AbilitySubsystem = World->GetSubsystem<UUnitAbilitySubsystem>();
+		UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
 		if (AbilitySubsystem)
 		{
 			Ability->Subscribe();
@@ -142,7 +141,7 @@ void UAbilityInventoryComponent::RemovePassiveAbility(UUnitAbilityInstance* Abil
 	UWorld* World = GetWorld();
 	if (World)
 	{
-		UUnitAbilitySubsystem* AbilitySubsystem = World->GetSubsystem<UUnitAbilitySubsystem>();
+		UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
 		if (AbilitySubsystem)
 		{
 			Ability->Unsubscribe();
@@ -158,7 +157,7 @@ void UAbilityInventoryComponent::RegisterPassives()
 	{
 		return;
 	}
-	UUnitAbilitySubsystem* AbilitySubsystem = World->GetSubsystem<UUnitAbilitySubsystem>();
+	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
 	if (!AbilitySubsystem)
 	{
 		return;
@@ -179,7 +178,7 @@ void UAbilityInventoryComponent::UnregisterPassives()
 	{
 		return;
 	}
-	UUnitAbilitySubsystem* AbilitySubsystem = World->GetSubsystem<UUnitAbilitySubsystem>();
+	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
 	if (!AbilitySubsystem)
 	{
 		return;
@@ -241,39 +240,39 @@ void UAbilityInventoryComponent::SetDefaultAbility(EDefaultAbilitySlot Slot, UUn
 {
 	switch (Slot)
 	{
-		case EDefaultAbilitySlot::Attack:
-			DefaultAttackAbility = Ability;
-			break;
-		case EDefaultAbilitySlot::Move:
-			DefaultMoveAbility = Ability;
-			break;
-		case EDefaultAbilitySlot::Wait:
-			DefaultWaitAbility = Ability;
-			break;
-		case EDefaultAbilitySlot::Defend:
-			DefaultDefendAbility = Ability;
-			break;
-		case EDefaultAbilitySlot::Flee:
-			DefaultFleeAbility = Ability;
-			break;
+	case EDefaultAbilitySlot::Attack:
+		DefaultAttackAbility = Ability;
+		break;
+	case EDefaultAbilitySlot::Move:
+		DefaultMoveAbility = Ability;
+		break;
+	case EDefaultAbilitySlot::Wait:
+		DefaultWaitAbility = Ability;
+		break;
+	case EDefaultAbilitySlot::Defend:
+		DefaultDefendAbility = Ability;
+		break;
+	case EDefaultAbilitySlot::Flee:
+		DefaultFleeAbility = Ability;
+		break;
 	}
 }
 UUnitAbilityInstance* UAbilityInventoryComponent::GetDefaultAbility(EDefaultAbilitySlot Slot) const
 {
 	switch (Slot)
 	{
-		case EDefaultAbilitySlot::Attack:
-			return DefaultAttackAbility;
-		case EDefaultAbilitySlot::Move:
-			return DefaultMoveAbility;
-		case EDefaultAbilitySlot::Wait:
-			return DefaultWaitAbility;
-		case EDefaultAbilitySlot::Defend:
-			return DefaultDefendAbility;
-		case EDefaultAbilitySlot::Flee:
-			return DefaultFleeAbility;
-		default:
-			return nullptr;
+	case EDefaultAbilitySlot::Attack:
+		return DefaultAttackAbility;
+	case EDefaultAbilitySlot::Move:
+		return DefaultMoveAbility;
+	case EDefaultAbilitySlot::Wait:
+		return DefaultWaitAbility;
+	case EDefaultAbilitySlot::Defend:
+		return DefaultDefendAbility;
+	case EDefaultAbilitySlot::Flee:
+		return DefaultFleeAbility;
+	default:
+		return nullptr;
 	}
 }
 TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAllDefaultAbilities() const
@@ -356,9 +355,9 @@ void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Sp
 	}
 
 	// Validate the spell can be used (check charges, etc.)
-	FAbilityBattleContext ValidationContext;
-	ValidationContext.SourceUnit = Cast<AUnit>(GetOwner());
-	FAbilityValidation Validation = Spell->CanExecute(ValidationContext);
+	AUnit* SourceUnit = Cast<AUnit>(GetOwner());
+	FTacCoordinates EmptyCell; // Spellbook activation doesn't need target
+	FAbilityValidation Validation = Spell->CanExecute(SourceUnit, EmptyCell);
 
 	if (!Validation.bIsValid)
 	{
@@ -368,9 +367,7 @@ void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Sp
 	}
 
 	// Execute the spell (will swap weapons and equip auto-attack)
-	FAbilityBattleContext Context;
-	Context.SourceUnit = Cast<AUnit>(GetOwner());
-	FAbilityResult Result = Spell->ApplyAbilityEffect(Context);
+	FAbilityResult Result = Spell->ApplyAbilityEffect(SourceUnit, EmptyCell);
 
 	if (Result.bSuccess)
 	{
