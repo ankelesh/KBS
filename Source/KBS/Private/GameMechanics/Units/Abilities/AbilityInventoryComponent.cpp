@@ -19,29 +19,32 @@ UUnitAbilityInstance* UAbilityInventoryComponent::GetCurrentActiveAbility() cons
 TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAvailableActiveAbilities() const
 {
 	TArray<UUnitAbilityInstance*> Result;
-	if (DefaultAttackAbility)
+	if (DefaultAttackAbility && IsAbilityAvailable(DefaultAttackAbility))
 	{
 		Result.Add(DefaultAttackAbility);
 	}
-	if (DefaultMoveAbility)
+	if (DefaultMoveAbility && IsAbilityAvailable(DefaultMoveAbility))
 	{
 		Result.Add(DefaultMoveAbility);
 	}
-	if (DefaultWaitAbility)
+	if (DefaultWaitAbility && IsAbilityAvailable(DefaultWaitAbility))
 	{
 		Result.Add(DefaultWaitAbility);
 	}
-	if (DefaultDefendAbility)
+	if (DefaultDefendAbility && IsAbilityAvailable(DefaultDefendAbility))
 	{
 		Result.Add(DefaultDefendAbility);
 	}
-	if (DefaultFleeAbility)
+	if (DefaultFleeAbility && IsAbilityAvailable(DefaultFleeAbility))
 	{
 		Result.Add(DefaultFleeAbility);
 	}
 	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
 	{
-		Result.Add(Ability);
+		if (IsAbilityAvailable(Ability))
+		{
+			Result.Add(Ability);
+		}
 	}
 	return Result;
 }
@@ -195,29 +198,29 @@ void UAbilityInventoryComponent::UnregisterPassives()
 TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetActiveAbilitiesDisplayData() const
 {
 	TArray<FAbilityDisplayData> DisplayDataArray;
-	if (DefaultAttackAbility)
+	if (DefaultAttackAbility && IsAbilityAvailable(DefaultAttackAbility))
 	{
 		DisplayDataArray.Add(DefaultAttackAbility->GetAbilityDisplayData());
 	}
-	if (DefaultMoveAbility)
+	if (DefaultMoveAbility && IsAbilityAvailable(DefaultMoveAbility))
 	{
 		DisplayDataArray.Add(DefaultMoveAbility->GetAbilityDisplayData());
 	}
-	if (DefaultWaitAbility)
+	if (DefaultWaitAbility && IsAbilityAvailable(DefaultWaitAbility))
 	{
 		DisplayDataArray.Add(DefaultWaitAbility->GetAbilityDisplayData());
 	}
-	if (DefaultDefendAbility)
+	if (DefaultDefendAbility && IsAbilityAvailable(DefaultDefendAbility))
 	{
 		DisplayDataArray.Add(DefaultDefendAbility->GetAbilityDisplayData());
 	}
-	if (DefaultFleeAbility)
+	if (DefaultFleeAbility && IsAbilityAvailable(DefaultFleeAbility))
 	{
 		DisplayDataArray.Add(DefaultFleeAbility->GetAbilityDisplayData());
 	}
 	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
 	{
-		if (Ability)
+		if (Ability && IsAbilityAvailable(Ability))
 		{
 			DisplayDataArray.Add(Ability->GetAbilityDisplayData());
 		}
@@ -313,10 +316,45 @@ void UAbilityInventoryComponent::SelectAttackAbility()
 	}
 }
 
+void UAbilityInventoryComponent::EnsureValidAbility()
+{
+	if (!CurrentActiveAbility)
+	{
+		EquipDefaultAbility();
+		return;
+	}
+
+	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
+	if (!OwnerUnit)
+	{
+		EquipDefaultAbility();
+		return;
+	}
+
+	FTacCoordinates EmptyCell;
+	FAbilityValidation Validation = CurrentActiveAbility->CanExecute(OwnerUnit, EmptyCell);
+
+	if (!Validation.bIsValid)
+	{
+		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Current ability '%s' not available, falling back to default attack"),
+			*CurrentActiveAbility->GetConfig()->AbilityName);
+		EquipDefaultAbility();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Re-equipped last ability '%s'"),
+			*CurrentActiveAbility->GetConfig()->AbilityName);
+	}
+}
+
 // Spellbook methods
 TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetSpellbookAbilities() const
 {
 	TArray<UUnitAbilityInstance*> Result;
+	if (!IsSpellbookAvailable())
+	{
+		return Result;
+	}
 	for (const TObjectPtr<UUnitAbilityInstance>& Ability : SpellbookAbilities)
 	{
 		Result.Add(Ability);
@@ -327,6 +365,10 @@ TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetSpellbookAbilities(
 TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetSpellbookDisplayData() const
 {
 	TArray<FAbilityDisplayData> DisplayDataArray;
+	if (!IsSpellbookAvailable())
+	{
+		return DisplayDataArray;
+	}
 	for (const TObjectPtr<UUnitAbilityInstance>& Ability : SpellbookAbilities)
 	{
 		if (Ability)
@@ -379,4 +421,77 @@ void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Sp
 		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: Spell '%s' failed: %s"),
 			*Spell->GetConfig()->AbilityName, *Result.FailureMessage.ToString());
 	}
+}
+
+// Locking methods
+void UAbilityInventoryComponent::LockAllExcept(UUnitAbilityInstance* Exception)
+{
+	if (!Exception)
+	{
+		return;
+	}
+	LockState.bSilenced = false;
+	LockState.ExclusiveAbilities.Empty();
+	LockState.ExclusiveAbilities.Add(Exception);
+}
+
+void UAbilityInventoryComponent::LockToBasicAttackOnly()
+{
+	LockState.bSilenced = true;
+	LockState.ExclusiveAbilities.Empty();
+}
+
+void UAbilityInventoryComponent::LockSpellbook()
+{
+	LockState.bSpellbookLocked = true;
+}
+
+void UAbilityInventoryComponent::UnlockSpellbook()
+{
+	LockState.bSpellbookLocked = false;
+}
+
+void UAbilityInventoryComponent::UnlockAll()
+{
+	LockState.Reset();
+}
+
+bool UAbilityInventoryComponent::IsSpellbookAvailable() const
+{
+	return !LockState.bSpellbookLocked;
+}
+
+bool UAbilityInventoryComponent::IsDefaultAbility(UUnitAbilityInstance* Ability) const
+{
+	if (!Ability)
+	{
+		return false;
+	}
+	return Ability == DefaultAttackAbility ||
+		   Ability == DefaultMoveAbility ||
+		   Ability == DefaultWaitAbility ||
+		   Ability == DefaultDefendAbility ||
+		   Ability == DefaultFleeAbility;
+}
+
+bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbilityInstance* Ability) const
+{
+	if (!Ability)
+	{
+		return false;
+	}
+
+	bool bIsDefault = IsDefaultAbility(Ability);
+
+	if (LockState.bSilenced)
+	{
+		return bIsDefault;
+	}
+
+	if (LockState.ExclusiveAbilities.Num() > 0)
+	{
+		return LockState.ExclusiveAbilities.Contains(Ability);
+	}
+
+	return true;
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "BattleEffectDataAsset.h"
-#include "GameMechanics/Units/UnitStats.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "StatModBattleEffectDataAsset.generated.h"
 
@@ -15,9 +14,23 @@ public:
 		DamageSource = EDamageSource::Life;
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat Modification")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
 	int32 Duration = 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat Modification")
-	FUnitCoreStats StatModifications;
+	// Stat Modifiers (0 = no modification)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat Modifiers", meta = (ClampMin = "-1000", ClampMax = "1000"))
+	int32 MaxHealthModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat Modifiers", meta = (ClampMin = "-100", ClampMax = "100"))
+	int32 InitiativeModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat Modifiers", meta = (ClampMin = "-100", ClampMax = "100"))
+	int32 AccuracyModifier = 0;
+
+	// Defense Modifiers
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defense Modifiers")
+	TSet<EDamageSource> ImmunitiesToGrant;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defense Modifiers", meta = (ClampMin = "-90", ClampMax = "90"))
+	TMap<EDamageSource, int32> ArmourModifiers;
 };

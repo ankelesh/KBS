@@ -3,15 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTypes/CombatTypes.h"
 #include "UObject/NoExportTypes.h"
-#include "Services/CombatMutationService.h"
 #include "TacCombatSubsystem.generated.h"
 
-class UCombatMutationService;
 class UGridDataManager;
 class UTacAbilityExecutorService;
 class UTacCombatStatisticsService;
 class AUnit;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreUnitAttackPhase, FAttackContext&, Context);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCalculationPhase, FAttackContext&, Context, FHitInstance&, HitContext);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDamageApplicationPhase, FAttackContext&, Context, FHitInstance&,
+                                               HitContext, FDamageResult&, Damage);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEffectApplicationPhase, FAttackContext&, Context, FHitInstance&,
+                                             HitContext);
+
 UCLASS()
 class KBS_API UTacCombatSubsystem : public UObject
 {
@@ -20,18 +30,32 @@ class KBS_API UTacCombatSubsystem : public UObject
 	UTacCombatSubsystem();
 
 public:
-
 	void Initialize();
-	UCombatMutationService* GetCombatMutationService() const { return CombatMutationService; }
 	UTacAbilityExecutorService* GetAbilityExecutorService() const { return AbilityExecutorService; }
 	UTacCombatStatisticsService* GetCombatStatisticsService() const { return CombatStatisticsService; }
-	// Orchestration source of truth
-	FMutationResult ProcessUnitHit(AUnit* Attacker, AUnit* Target);
-	FMutationResults ProcessUnitHitMultiple(AUnit* Attacker, TArray<AUnit*> Targets);
+
+	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, class UWeapon* Weapon);
+	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, class UWeapon* Weapon);
+	bool ExecutePreAttackPhase(FAttackContext& Context);
+	void ExecuteCalculationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult);
+	void ExecuteDamageApplyPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply);
+	void ExecuteEffectApplicationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& Result);
+
+	// Events
+	UPROPERTY(BlueprintAssignable)
+	FOnPreUnitAttackPhase OnPreUnitAttackPhase;
+	UPROPERTY(BlueprintAssignable)
+	FOnCalculationPhase OnCalculationPhase;
+	UPROPERTY(BlueprintAssignable)
+	FOnDamageApplicationPhase OnDamageApplicationPhase;
+	UPROPERTY(BlueprintAssignable)
+	FOnEffectApplicationPhase OnEffectApplicationPhase;
 
 private:
-	UCombatMutationService* CombatMutationService;
-	UTacAbilityExecutorService* AbilityExecutorService;
-	UTacCombatStatisticsService* CombatStatisticsService;
+	TArray<FCombatHitResult> ResolveAttackInternal(FAttackContext& Context);
 
+	UPROPERTY()
+	UTacAbilityExecutorService* AbilityExecutorService;
+	UPROPERTY()
+	UTacCombatStatisticsService* CombatStatisticsService;
 };

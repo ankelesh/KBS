@@ -5,17 +5,19 @@
 #include "GameplayTypes/AbilityTypes.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
+#include "GameplayTypes/CombatTypes.h"
 #include "UnitAbilityInstance.generated.h"
 
 class UUnitAbilityDefinition;
 struct FPreviewHitResult;
 
 class AUnit;
-class UGridSubsystem;
+class UTacGridSubsystem;
 class UTacCombatSubsystem;
 class UTacGridMovementService;
 class UTacGridCombatSystem;
 class UTacGridTargetingService;
+struct FAttackContext;
 
 UCLASS(Abstract, Blueprintable)
 class KBS_API UUnitAbilityInstance : public UObject
@@ -38,11 +40,10 @@ public:
 	virtual FAbilityResult CreateFailureResult(EAbilityFailureReason Reason, FText Message) const;
 
 	UFUNCTION()
-	virtual void HandleUnitAttacked(AUnit* Victim, AUnit* Attacker);
-	UFUNCTION()
-	virtual void HandleUnitDamaged(AUnit* Victim, AUnit* Attacker);
-	UFUNCTION()
-	virtual void HandleUnitAttacks(AUnit* Attacker, AUnit* Target);
+	virtual bool HandleAttackTrigger(FAttackContext& context) { return true; };
+	virtual bool AttackTriggerCleanup(FAttackContext& context) { return true; };
+	virtual bool HandleHitTrigger(FHitInstance& HitContext) { return true; };
+	virtual bool HitTriggerCleanup(FHitInstance& HitContext) { return true; };
 
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }
@@ -55,7 +56,7 @@ public:
 
 protected:
 	// Service getters - full chain encapsulated, returns nullptr on any failure
-	UGridSubsystem* GetGridSubsystem(AUnit* Unit) const;
+	UTacGridSubsystem* GetGridSubsystem(AUnit* Unit) const;
 	UTacGridMovementService* GetMovementService(AUnit* Unit) const;
 	UTacGridTargetingService* GetTargetingService(AUnit* Unit) const;
 	UTacCombatSubsystem* GetCombatSubsystem(AUnit* Unit) const;

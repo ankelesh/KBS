@@ -142,23 +142,23 @@ FAbilityResult UUnitAbilityInstance::CreateFailureResult(EAbilityFailureReason R
 	return FAbilityResult::Failure(Reason, Message);
 }
 
-UGridSubsystem* UUnitAbilityInstance::GetGridSubsystem(AUnit* Unit) const
+UTacGridSubsystem* UUnitAbilityInstance::GetGridSubsystem(AUnit* Unit) const
 {
 	if (!Unit) return nullptr;
 	UWorld* World = Unit->GetWorld();
 	if (!World) return nullptr;
-	return World->GetSubsystem<UGridSubsystem>();
+	return World->GetSubsystem<UTacGridSubsystem>();
 }
 
 UTacGridMovementService* UUnitAbilityInstance::GetMovementService(AUnit* Unit) const
 {
-	UGridSubsystem* GridSys = GetGridSubsystem(Unit);
+	UTacGridSubsystem* GridSys = GetGridSubsystem(Unit);
 	return GridSys ? GridSys->GetGridMovementService() : nullptr;
 }
 
 UTacGridTargetingService* UUnitAbilityInstance::GetTargetingService(AUnit* Unit) const
 {
-	UGridSubsystem* GridSys = GetGridSubsystem(Unit);
+	UTacGridSubsystem* GridSys = GetGridSubsystem(Unit);
 	return GridSys ? GridSys->GetGridTargetingService() : nullptr;
 }
 

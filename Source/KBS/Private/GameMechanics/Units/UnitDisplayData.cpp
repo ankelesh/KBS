@@ -57,8 +57,8 @@ FWeaponDisplayData ConvertWeapon(const UWeapon* Weapon)
 	}
 	const FWeaponStats& Stats = Weapon->GetStats();
 	DisplayData.TargetType = TargetReachToString(Stats.TargetReach);
-	DisplayData.Damage = Stats.BaseDamage;
-	TArray<FString> DamageTypeArray = ConvertDamageSourceSet(Stats.DamageSources);
+	DisplayData.Damage = Stats.BaseDamage.GetValue();
+	TArray<FString> DamageTypeArray = ConvertDamageSourceSet(Stats.DamageSources.GetValue());
 	DisplayData.DamageTypes = FString::Join(DamageTypeArray, TEXT(" + "));
 	return DisplayData;
 }
@@ -83,16 +83,15 @@ TArray<FString> ConvertActiveEffects(const TArray<TObjectPtr<UBattleEffect>>& Ef
 	}
 	return Result;
 }
-FString ConvertArmourMap(const TMap<EDamageSource, float>& ArmourMap)
+FString ConvertArmourMap(const TMap<EDamageSource, int32>& ArmourMap)
 {
 	TArray<FString> ArmourParts;
 	for (const auto& Pair : ArmourMap)
 	{
-		if (Pair.Value > 0.0f)
+		if (Pair.Value > 0)
 		{
 			FString SourceName = DamageSourceToString(Pair.Key);
-			int32 Percentage = FMath::RoundToInt(Pair.Value * 100.0f);
-			ArmourParts.Add(FString::Printf(TEXT("%s: %d%%"), *SourceName, Percentage));
+			ArmourParts.Add(FString::Printf(TEXT("%s: %d%%"), *SourceName, Pair.Value));
 		}
 	}
 	return FString::Join(ArmourParts, TEXT(", "));
@@ -100,8 +99,7 @@ FString ConvertArmourMap(const TMap<EDamageSource, float>& ArmourMap)
 FUnitDisplayData BuildUnitDisplayData(
 	const FString& UnitName,
 	float CurrentHealth,
-	const FUnitCoreStats& ModifiedStats,
-	const FUnitProgressionData& Progression,
+	const FUnitCoreStats& Stats,
 	UTexture2D* PortraitTexture,
 	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects,
 	const TArray<TObjectPtr<UWeapon>>& Weapons,
@@ -111,12 +109,12 @@ FUnitDisplayData BuildUnitDisplayData(
 	FUnitDisplayData DisplayData;
 	DisplayData.UnitName = UnitName;
 	DisplayData.CurrentHealth = CurrentHealth;
-	DisplayData.MaxHealth = ModifiedStats.MaxHealth;
-	DisplayData.Initiative = ModifiedStats.Initiative;
-	DisplayData.Accuracy = ModifiedStats.Accuracy;
-	DisplayData.Level = Progression.LevelOnCurrentTier;
-	DisplayData.Experience = Progression.TotalExperience;
-	DisplayData.ExperienceToNextLevel = Progression.ExperienceToNextLevel;
+	DisplayData.MaxHealth = Stats.Health.GetMaximum();
+	DisplayData.Initiative = Stats.Initiative.GetValue();
+	DisplayData.Accuracy = Stats.Accuracy.GetValue() / 100.0f;
+	DisplayData.Level = 0;
+	DisplayData.Experience = 0;
+	DisplayData.ExperienceToNextLevel = 0;
 	DisplayData.PortraitTexture = PortraitTexture;
 	DisplayData.BelongsToAttackerTeam = (TeamSide == ETeamSide::Attacker);
 	TArray<FString> EffectArray = ConvertActiveEffects(ActiveEffects);
@@ -128,12 +126,12 @@ FUnitDisplayData BuildUnitDisplayData(
 			DisplayData.Weapons.Add(ConvertWeapon(Weapon));
 		}
 	}
-	TArray<FString> ImmunitiesArray = ConvertDamageSourceSet(ModifiedStats.Defense.Immunities);
+	TArray<FString> ImmunitiesArray = ConvertDamageSourceSet(Stats.Defense.Immunities.ModifiedImmunities);
 	DisplayData.Immunities = FString::Join(ImmunitiesArray, TEXT(", "));
-	TArray<FString> WardsArray = ConvertDamageSourceSet(ModifiedStats.Defense.Wards);
+	TArray<FString> WardsArray = ConvertDamageSourceSet(Stats.Defense.Wards.Wards);
 	DisplayData.Wards = FString::Join(WardsArray, TEXT(", "));
-	DisplayData.Armour = ConvertArmourMap(ModifiedStats.Defense.Armour);
-	DisplayData.DamageReduction = ModifiedStats.Defense.DamageReduction;
-	DisplayData.bIsDefending = ModifiedStats.Defense.bIsDefending;
+	DisplayData.Armour = ConvertArmourMap(Stats.Defense.Armour.ModifiedArmour);
+	DisplayData.DamageReduction = Stats.Defense.DamageReduction.GetValue();
+	DisplayData.bIsDefending = Stats.Defense.bIsDefending;
 	return DisplayData;
 }

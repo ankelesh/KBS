@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameMechanics/Units/Stats/BaseUnitStatTypes.h"
 #include "Weapon.generated.h"
 class UBattleEffect;
 class UWeaponDataAsset;
@@ -13,20 +14,27 @@ struct FAreaShape
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Area")
 	TArray<FIntPoint> RelativeCells;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Area")
-	bool bAffectsAllLayers = false;
+	EShapeLayering ShapeLayering;
 };
 USTRUCT(BlueprintType)
 struct FWeaponStats
 {
 	GENERATED_BODY()
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
-	int32 BaseDamage = 0;
+	FUnitStatPositive BaseDamage {10};
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
-	TSet<EDamageSource> DamageSources;
+	FDamageSourceSetStat DamageSources;
+
+	// Constant weapon property
+	// Not modified by buffs - all accuracy buffs affect Unit stats instead
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
-	float AccuracyMultiplier = 1.0f;
+	int32 AccuracyMultiplier = 100;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Targeting")
 	ETargetReach TargetReach = ETargetReach::AnyEnemy;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Targeting")
 	FAreaShape AreaShape;
 };
@@ -38,19 +46,22 @@ public:
 	UWeapon();
 	void Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* Data);
 	void InitializeFromDataAsset();
-	void RecalculateModifiedStats();
-	void Restore();
-	const FWeaponStats& GetStats() const { return ModifiedStats; }
-	const TArray<TObjectPtr<UBattleEffect>>& GetEffects() const { return ActiveEffects; }
-	const ETargetReach GetReach() const { return ModifiedStats.TargetReach; }
-	const TObjectPtr<UWeaponDataAsset> GetConfig() const { return Config; }
+
+	// Add enchantments/buffs to weapon stats (e.g., Stats.BaseDamage.AddFlatModifier(...))
+	FWeaponStats& GetMutableStats() { return Stats; }
+	const FWeaponStats& GetStats() const { return Stats; }
+	const TArray<UBattleEffect*>& GetEffects() const { return ActiveEffects; }
+	FText GetEffectsTooltips(AUnit* Owner);
+	const ETargetReach GetReach() const { return Stats.TargetReach; }
+	const UWeaponDataAsset* GetConfig() const { return Config; }
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UWeaponDataAsset> Config;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	FWeaponStats BaseStats;
+
+	// Single stats instance - stat wrappers handle Base/Modified internally
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	FWeaponStats ModifiedStats;
+	FWeaponStats Stats;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TArray<TObjectPtr<UBattleEffect>> ActiveEffects;
 };

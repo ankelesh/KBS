@@ -13,7 +13,7 @@ float FDamageCalculation::CalculateHitChance(AUnit* Attacker, UWeapon* Weapon, A
 	}
 	const FUnitCoreStats& AttackerStats = Attacker->GetStats();
 	const FWeaponStats& WeaponStats = Weapon->GetStats();
-	float HitChance = AttackerStats.Accuracy * WeaponStats.AccuracyMultiplier * 100.0f;
+	float HitChance = AttackerStats.Accuracy.GetValue() * WeaponStats.AccuracyMultiplier / 100.0f;
 	return FMath::Clamp(HitChance, 0.0f, 100.0f);
 }
 
@@ -27,30 +27,28 @@ FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weap
 	const FWeaponStats& WeaponStats = Weapon->GetStats();
 	const FUnitCoreStats& TargetStats = Target->GetStats();
 	const FUnitDefenseStats& Defense = TargetStats.Defense;
-	EDamageSource BestSource = SelectBestDamageSource(WeaponStats.DamageSources, Target);
+	EDamageSource BestSource = SelectBestDamageSource(WeaponStats.DamageSources.GetValue(), Target);
 	Result.DamageSource = BestSource;
 	if (BestSource == EDamageSource::None)
 	{
 		return Result;
 	}
-	int32 BaseDamage = WeaponStats.BaseDamage;
-	if (Defense.Immunities.Contains(BestSource))
+	int32 BaseDamage = WeaponStats.BaseDamage.GetValue();
+	if (Defense.Immunities.IsImmuneTo(BestSource))
 	{
 		Result.Damage = 0;
 		Result.DamageBlocked = BaseDamage;
 		return Result;
 	}
-	if (Defense.Wards.Contains(BestSource))
+	if (Defense.Wards.HasWardFor(BestSource))
 	{
 		Result.Damage = 0;
 		Result.DamageBlocked = BaseDamage;
+		Result.WardSpent = BestSource;
 		return Result;
 	}
-	float ArmorValue = 0.0f;
-	if (Defense.Armour.Contains(BestSource))
-	{
-		ArmorValue = FMath::Clamp(Defense.Armour[BestSource], 0.0f, 0.9f);
-	}
+	int32 ArmorPercent = Defense.Armour.GetValue(BestSource);
+	float ArmorValue = ArmorPercent / 100.0f;
 	float DamageAfterArmor = BaseDamage * (1.0f - ArmorValue);
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
 	if (Defense.bIsDefending)
@@ -71,59 +69,16 @@ float FDamageCalculation::CalculateEffectApplication(AUnit* Attacker, UBattleEff
 	const FUnitCoreStats& AttackerStats = Attacker->GetStats();
 	const FUnitDefenseStats& Defense = Target->GetStats().Defense;
 	EDamageSource EffectSource = Effect->GetDamageSource();
-	if (Defense.Immunities.Contains(EffectSource))
+	if (Defense.Immunities.IsImmuneTo(EffectSource))
 	{
 		return 0.0f;
 	}
-	if (Defense.Wards.Contains(EffectSource))
+	if (Defense.Wards.HasWardFor(EffectSource))
 	{
 		return 0.0f;
 	}
-	float ApplicationChance = AttackerStats.Accuracy * 100.0f;
+	float ApplicationChance = AttackerStats.Accuracy.GetValue();
 	return FMath::Clamp(ApplicationChance, 0.0f, 100.0f);
-}
-
-UWeapon* FDamageCalculation::SelectWeapon(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
-{
-	if (!Attacker || !Target)
-	{
-		return nullptr;
-	}
-	const TArray<TObjectPtr<UWeapon>>& Weapons = Attacker->GetWeapons();
-	if (Weapons.Num() == 0)
-	{
-		return nullptr;
-	}
-	TArray<UWeapon*> ValidWeapons;
-	for (UWeapon* Weapon : Weapons)
-	{
-		if (!Weapon)
-		{
-			continue;
-		}
-		const FWeaponStats& Stats = Weapon->GetStats();
-		if (Stats.TargetReach != ExpectedReach && Stats.TargetReach != ETargetReach::AnyEnemy)
-		{
-			continue;
-		}
-		ValidWeapons.Add(Weapon);
-	}
-	if (ValidWeapons.Num() == 0)
-	{
-		return nullptr;
-	}
-	UWeapon* BestWeapon = nullptr;
-	int32 BestDamage = -1;
-	for (UWeapon* Weapon : ValidWeapons)
-	{
-		FDamageResult DamageResult = CalculateDamage(Attacker, Weapon, Target);
-		if (DamageResult.Damage > BestDamage)
-		{
-			BestDamage = DamageResult.Damage;
-			BestWeapon = Weapon;
-		}
-	}
-	return BestWeapon;
 }
 
 UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit)
@@ -177,21 +132,16 @@ UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit)
 	return BestWeapon;
 }
 
-FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
+FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
 {
 	FPreviewHitResult Preview;
-	if (!Attacker || !Target)
+	if (!Attacker || !Target || !Weapon)
 	{
 		return Preview;
 	}
-	UWeapon* SelectedWeapon = SelectWeapon(Attacker, Target, ExpectedReach);
-	if (!SelectedWeapon)
-	{
-		return Preview;
-	}
-	Preview.HitProbability = CalculateHitChance(Attacker, SelectedWeapon, Target);
-	Preview.DamageResult = CalculateDamage(Attacker, SelectedWeapon, Target);
-	const TArray<TObjectPtr<UBattleEffect>>& Effects = SelectedWeapon->GetEffects();
+	Preview.HitProbability = CalculateHitChance(Attacker, Weapon, Target);
+	Preview.DamageResult = CalculateDamage(Attacker, Weapon, Target);
+	const TArray<TObjectPtr<UBattleEffect>>& Effects = Weapon->GetEffects();
 	if (Effects.Num() > 0)
 	{
 		float TotalEffectChance = 0.0f;
@@ -205,105 +155,6 @@ FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, AUnit* Targ
 		Preview.EffectApplicationProbability = TotalEffectChance / Effects.Num();
 	}
 	return Preview;
-}
-
-FCombatHitResult FDamageCalculation::ProcessHit(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach)
-{
-	FCombatHitResult HitResult;
-	HitResult.TargetUnit = Target;
-	if (!Attacker || !Target)
-	{
-		return HitResult;
-	}
-	UWeapon* SelectedWeapon = SelectWeapon(Attacker, Target, ExpectedReach);
-	if (!SelectedWeapon)
-	{
-		return HitResult;
-	}
-	float HitChance = CalculateHitChance(Attacker, SelectedWeapon, Target);
-	bool bIsFriendly = IsFriendlyReach(ExpectedReach);
-	if (!bIsFriendly && !PerformAccuracyRoll(HitChance))
-	{
-		HitResult.bHit = false;
-		UE_LOG(LogTemp, Warning, TEXT("MISS: %s attacked %s with %.1f%% hit chance - Attack missed!"),
-			*Attacker->GetName(), *Target->GetName(), HitChance);
-		return HitResult;
-	}
-	HitResult.bHit = true;
-	if (bIsFriendly)
-	{
-		UE_LOG(LogTemp, Log, TEXT("FRIENDLY HIT: %s supports %s - Auto-hit (friendly reach)"),
-			*Attacker->GetName(), *Target->GetName());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("HIT: %s attacked %s with %.1f%% hit chance - Attack succeeded!"),
-			*Attacker->GetName(), *Target->GetName(), HitChance);
-	}
-	FDamageResult DamageResult = CalculateDamage(Attacker, SelectedWeapon, Target);
-	HitResult.Damage = DamageResult.Damage;
-	HitResult.DamageSource = DamageResult.DamageSource;
-	HitResult.DamageBlocked = DamageResult.DamageBlocked;
-	const FUnitDefenseStats& Defense = Target->GetStats().Defense;
-	if (Defense.Wards.Contains(DamageResult.DamageSource))
-	{
-		HitResult.WardSpent = DamageResult.DamageSource;
-	}
-	Target->TakeHit(DamageResult);
-	const TArray<TObjectPtr<UBattleEffect>>& Effects = SelectedWeapon->GetEffects();
-	UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: %s's weapon has %d effects"), *Attacker->GetName(), Effects.Num());
-	for (UBattleEffect* Effect : Effects)
-	{
-		if (!Effect)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("EFFECT CHECK: Null effect in weapon"));
-			continue;
-		}
-		UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Processing effect class %s"), *Effect->GetClass()->GetName());
-		float EffectChance = CalculateEffectApplication(Attacker, Effect, Target);
-		UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Effect chance = %.1f%%"), EffectChance);
-		if (PerformAccuracyRoll(EffectChance))
-		{
-			UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Roll succeeded, duplicating effect"));
-			UBattleEffect* EffectInstance = DuplicateObject(Effect, Target);
-			if (EffectInstance)
-			{
-				UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Effect duplicated, initializing and applying"));
-				EffectInstance->Initialize(Effect->GetConfig(), SelectedWeapon, Attacker);
-				Target->ApplyEffect(EffectInstance);
-				HitResult.EffectsApplied.Add(EffectInstance);
-				UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Effect applied to %s"), *Target->GetName());
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("EFFECT CHECK: Failed to duplicate effect"));
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Log, TEXT("EFFECT CHECK: Roll failed (needed <= %.1f%%)"), EffectChance);
-		}
-	}
-	return HitResult;
-}
-
-TArray<FCombatHitResult> FDamageCalculation::ProcessAttack(const FHitInstance& HitInstance)
-{
-	TArray<FCombatHitResult> Results;
-	if (!HitInstance.SourceUnit)
-	{
-		return Results;
-	}
-	for (AUnit* Target : HitInstance.TargetUnits)
-	{
-		if (!Target)
-		{
-			continue;
-		}
-		FCombatHitResult HitResult = ProcessHit(HitInstance.SourceUnit, Target, HitInstance.SelectedRange);
-		Results.Add(HitResult);
-	}
-	return Results;
 }
 
 bool FDamageCalculation::PerformAccuracyRoll(float HitChance)
@@ -330,15 +181,11 @@ EDamageSource FDamageCalculation::SelectBestDamageSource(const TSet<EDamageSourc
 	}
 	const FUnitDefenseStats& Defense = Target->GetStats().Defense;
 	EDamageSource BestSource = EDamageSource::None;
-	float LowestArmor = 1.0f;
+	int32 LowestArmor = 100;
 	bool bFirstSource = true;
 	for (EDamageSource Source : DamageSources)
 	{
-		float Armor = 0.0f;
-		if (Defense.Armour.Contains(Source))
-		{
-			Armor = Defense.Armour[Source];
-		}
+		int32 Armor = Defense.Armour.GetValue(Source);
 		if (bFirstSource || Armor < LowestArmor)
 		{
 			LowestArmor = Armor;

@@ -95,6 +95,9 @@ public:
 	bool HasCorpses(FTacCoordinates Coords) const;
 	const TArray<TObjectPtr<AUnit>>& GetCorpseStack(FTacCoordinates Coords) const;
 	TArray<AUnit*> GetUnitsInCells(const TArray<FTacCoordinates>& CellCoords, ETacGridLayer Layer) const;
+	TArray<AUnit*> GetAllAliveUnits() const;
+	TArray<AUnit*> GetAllDeadUnits() const;
+	TArray<AUnit*> GetAllUnits() const;
 	bool IsMultiCellUnit(const AUnit* Unit) const;
 	const FMultiCellUnitData* GetMultiCellData(const AUnit* Unit) const;
 private:
@@ -102,10 +105,12 @@ private:
 	TArray<FGridRow> GroundLayer;
 	UPROPERTY()
 	TArray<FGridRow> AirLayer;
-	TMap<AUnit*, bool> UnitFlankStates;
-	TMap<AUnit*, FRotator> UnitOriginalRotations;
 	UPROPERTY()
-	TMap<TObjectPtr<AUnit>, FMultiCellUnitData> MultiCellUnits;
+	TMap<FGuid, bool> UnitFlankStates;
+	UPROPERTY()
+	TMap<FGuid, FRotator> UnitOriginalRotations;
+	UPROPERTY()
+	TMap<FGuid, FMultiCellUnitData> MultiCellUnits;
 	UPROPERTY()
 	TObjectPtr<ATacBattleGrid> Grid;
 	UPROPERTY()

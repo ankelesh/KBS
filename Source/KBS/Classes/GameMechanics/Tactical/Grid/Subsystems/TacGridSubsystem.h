@@ -8,22 +8,42 @@
 class UGridDataManager;
 class UTacGridMovementService;
 class UTacGridTargetingService;
+class AUnit;
+class UBattleTeam;
+enum class EHighlightType : uint8;
 UCLASS()
-class KBS_API UGridSubsystem : public UWorldSubsystem
+class KBS_API UTacGridSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:
-	UGridSubsystem() {}
+	UTacGridSubsystem() {}
 	void RegisterManager(UGridDataManager* InDataManager);
 
 	UTacGridMovementService* GetGridMovementService() { return GridMovementService; }
 	UTacGridTargetingService* GetGridTargetingService() { return GridTargetingService; }
 
-private:
+	void ShowHighlights(const TArray<FTacCoordinates>& Cells, EHighlightType HighlightType);
+	void ClearHighlights(EHighlightType HighlightType);
+	void ClearAllHighlights();
 
-	UGridDataManager* DataManager;
-	UTacGridMovementService* GridMovementService;
-	UTacGridTargetingService* GridTargetingService;
+	TArray<TObjectPtr<AUnit> > GetActiveUnits();
+	TArray<TObjectPtr<AUnit> > GetAllUnits();
+	TArray<TObjectPtr<AUnit> > GetDeadUnits();
+	TObjectPtr<UBattleTeam> GetAttackerTeam();
+	TObjectPtr<UBattleTeam> GetDefenderTeam();
+
+	bool GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& OutCoordinates) const;
+	
+	
+private:
+	UPROPERTY()
+	TObjectPtr<UGridDataManager> DataManager;
+	UPROPERTY()
+	TObjectPtr<UTacGridMovementService> GridMovementService;
+	UPROPERTY()
+	TObjectPtr<UTacGridTargetingService> GridTargetingService;
+	UPROPERTY()
+	TObjectPtr<class UGridHighlightComponent> HighlightComponent;
 
 
 

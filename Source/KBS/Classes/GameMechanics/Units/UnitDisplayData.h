@@ -68,12 +68,11 @@ FString TargetReachToString(ETargetReach Reach);
 FWeaponDisplayData ConvertWeapon(const UWeapon* Weapon);
 TArray<FString> ConvertDamageSourceSet(const TSet<EDamageSource>& SourceSet);
 TArray<FString> ConvertActiveEffects(const TArray<TObjectPtr<UBattleEffect>>& Effects);
-FString ConvertArmourMap(const TMap<EDamageSource, float>& ArmourMap);
+FString ConvertArmourMap(const TMap<EDamageSource, int32>& ArmourMap);
 FUnitDisplayData BuildUnitDisplayData(
 	const FString& UnitName,
 	float CurrentHealth,
-	const FUnitCoreStats& ModifiedStats,
-	const FUnitProgressionData& Progression,
+	const FUnitCoreStats& Stats,
 	UTexture2D* PortraitTexture,
 	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects,
 	const TArray<TObjectPtr<UWeapon>>& Weapons,

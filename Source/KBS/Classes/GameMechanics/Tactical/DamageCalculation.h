@@ -20,15 +20,11 @@ public:
 	static float CalculateEffectApplication(AUnit* Attacker, UBattleEffect* Effect, AUnit* Target);
 
 	// Weapon selection
-	static UWeapon* SelectWeapon(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach);
 	static UWeapon* SelectMaxReachWeapon(AUnit* Unit);
 
 	// Combat resolution
-	static FPreviewHitResult PreviewDamage(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach);
-	static FCombatHitResult ProcessHit(AUnit* Attacker, AUnit* Target, ETargetReach ExpectedReach);
-	static TArray<FCombatHitResult> ProcessAttack(const FHitInstance& HitInstance);
+	static FPreviewHitResult PreviewDamage(AUnit* Attacker, UWeapon* Weapon, AUnit* Target);
 
-private:
 	static bool PerformAccuracyRoll(float HitChance);
 	static bool IsFriendlyReach(ETargetReach Reach);
 	static EDamageSource SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target);

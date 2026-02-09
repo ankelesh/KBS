@@ -25,7 +25,9 @@
       "Bash(certutil -encodehex \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Classes\\GameMechanics\\Tactical\\Grid\\Subsystems\\GridSubsystem.h\" temp_grid.txt 4)",
       "Bash(certutil:*)",
       "Bash(findstr:*)",
-      "Bash(cmd /c \"dir /s /b E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\*Subsystem*\")"
+      "Bash(cmd /c \"dir /s /b E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\*Subsystem*\")",
+      "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Classes\\GameMechanics\\Units\\Stats\\UnitStat.h\")",
+      "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Private\\GameMechanics\\Units\\Stats\\UnitStat.cpp\")"
     ],
     "deny": [],
     "ask": []

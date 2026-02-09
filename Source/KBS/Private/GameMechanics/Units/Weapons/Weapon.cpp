@@ -2,6 +2,7 @@
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
+#include "GameMechanics/Units/Unit.h"
 UWeapon::UWeapon()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -14,8 +15,7 @@ void UWeapon::Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* D
 		return;
 	}
 	Config = Data;
-	BaseStats = Data->BaseStats;
-	ModifiedStats = BaseStats;
+	Stats = Data->BaseStats;
 	ActiveEffects.Empty();
 	for (const FWeaponEffectConfig& EffectConfig : Data->Effects)
 	{
@@ -24,7 +24,7 @@ void UWeapon::Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* D
 			UBattleEffect* NewEffect = NewObject<UBattleEffect>(this, EffectConfig.EffectClass);
 			if (NewEffect)
 			{
-				NewEffect->Initialize(EffectConfig.EffectConfig, this, nullptr);
+				NewEffect->Initialize(EffectConfig.EffectConfig);
 				ActiveEffects.Add(NewEffect);
 			}
 		}
@@ -36,8 +36,7 @@ void UWeapon::InitializeFromDataAsset()
 	{
 		return;
 	}
-	BaseStats = Config->BaseStats;
-	ModifiedStats = BaseStats;
+	Stats = Config->BaseStats;
 	ActiveEffects.Empty();
 	for (const FWeaponEffectConfig& EffectConfig : Config->Effects)
 	{
@@ -46,17 +45,13 @@ void UWeapon::InitializeFromDataAsset()
 			UBattleEffect* NewEffect = NewObject<UBattleEffect>(this, EffectConfig.EffectClass);
 			if (NewEffect)
 			{
-				NewEffect->Initialize(EffectConfig.EffectConfig, this, nullptr);
+				NewEffect->Initialize(EffectConfig.EffectConfig);
 				ActiveEffects.Add(NewEffect);
 			}
 		}
 	}
 }
-void UWeapon::RecalculateModifiedStats()
+
+FText UWeapon::GetEffectsTooltips(AUnit* Owner)
 {
-	ModifiedStats = BaseStats;
-}
-void UWeapon::Restore()
-{
-	ModifiedStats = BaseStats;
 }

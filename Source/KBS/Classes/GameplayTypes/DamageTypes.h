@@ -34,3 +34,10 @@ enum class ETargetReach : uint8
 	FriendlyNonBlockedCorpse UMETA(DisplayName = "Friendly Non-Blocked Corpse"),
 	EnemyNonBlockedCorpse UMETA(DisplayName = "Enemy Non-Blocked Corpse")
 };
+UENUM(BlueprintType)
+enum class EShapeLayering : uint8
+{
+	GroundArea UMETA(DisplayName = "Ground Area"),
+	AirArea UMETA(DisplayName = "Air Area"),
+	BothLayerArea UMETA(DisplayName = "Both Layers Area"),
+};

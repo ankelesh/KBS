@@ -14,6 +14,8 @@
 #include "GameplayTypes/AbilityTypes.h"
 AUnit::AUnit()
 {
+	UnitID = FGuid::NewGuid();
+
 	PrimaryActorTick.bCanEverTick = false;
 	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	RootComponent = SceneRoot;
@@ -47,12 +49,6 @@ void AUnit::BeginPlay()
 		VisualsComponent->InitializeFromDefinition(UnitDefinition);
 	}
 	BaseStats = UnitDefinition->BaseStatsTemplate;
-	Progression = UnitDefinition->BaseProgressionTemplate;
-	CurrentHealth = BaseStats.MaxHealth;
-	for (int32 i = 1; i < InitialLevel; ++i)
-	{
-		LevelUp();
-	}
 	for (UWeaponDataAsset* WeaponData : UnitDefinition->DefaultWeapons)
 	{
 		if (WeaponData)
@@ -66,7 +62,6 @@ void AUnit::BeginPlay()
 			}
 		}
 	}
-	RecalculateModifiedStats();
 	if (AbilityInventory && UnitDefinition)
 	{
 		// Initialize default slot abilities
@@ -170,51 +165,12 @@ void AUnit::OnConstruction(const FTransform& Transform)
 	}
 #endif
 }
-void AUnit::RecalculateModifiedStats()
-{
-	ModifiedStats = BaseStats;
-	for (auto& ArmorPair : ModifiedStats.Defense.Armour)
-	{
-		ArmorPair.Value = FMath::Clamp(ArmorPair.Value, 0.0f, 0.9f);
-	}
-}
-void AUnit::RecalculateAllWeaponStats()
-{
-	for (TObjectPtr<UWeapon> Weapon : Weapons)
-	{
-		if (Weapon)
-		{
-			Weapon->RecalculateModifiedStats();
-		}
-	}
-}
-void AUnit::Restore()
-{
-	ModifiedStats = BaseStats;
-	for (TObjectPtr<UWeapon> Weapon : Weapons)
-	{
-		if (Weapon)
-		{
-			Weapon->Restore();
-		}
-	}
-}
-void AUnit::LevelUp()
-{
-	const float HealthPercentage = BaseStats.MaxHealth > 0.0f ? CurrentHealth / BaseStats.MaxHealth : 1.0f;
-	BaseStats.MaxHealth *= 1.1f;
-	BaseStats.Accuracy = FMath::Min(BaseStats.Accuracy + 0.01f, 1.0f);
-	CurrentHealth = BaseStats.MaxHealth * HealthPercentage;
-	Progression.LevelOnCurrentTier++;
-	RecalculateModifiedStats();
-}
 void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 {
 	UnitDefinition = InDefinition;
 	if (UnitDefinition)
 	{
 		BaseStats = UnitDefinition->BaseStatsTemplate;
-		CurrentHealth = BaseStats.MaxHealth;
 
 		// Recreate weapons from new definition
 		Weapons.Empty();
@@ -231,8 +187,6 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 				}
 			}
 		}
-
-		RecalculateModifiedStats();
 	}
 }
 FUnitDisplayData AUnit::GetDisplayData() const
@@ -240,7 +194,7 @@ FUnitDisplayData AUnit::GetDisplayData() const
 	const FString Name = UnitDefinition ? UnitDefinition->UnitName : TEXT("Unknown");
 	UTexture2D* Portrait = UnitDefinition ? UnitDefinition->Portrait : nullptr;
 	const TArray<TObjectPtr<UBattleEffect>> Effects = EffectManager ? EffectManager->GetActiveEffects() : TArray<TObjectPtr<UBattleEffect>>();
-	return BuildUnitDisplayData(Name, CurrentHealth, ModifiedStats, Progression, Portrait, Effects, Weapons, TeamSide);
+	return BuildUnitDisplayData(Name, BaseStats.Health.GetCurrent(), BaseStats, Portrait, Effects, Weapons, TeamSide);
 }
 void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 {
@@ -252,13 +206,12 @@ const float AUnit::GetMovementSpeed() const
 	{ return UnitDefinition->MovementSpeed; }
 void AUnit::TakeHit(const FDamageResult& DamageResult)
 {
-	CurrentHealth -= DamageResult.Damage;
-	CurrentHealth = FMath::Max(0.0f, CurrentHealth);
-	if (DamageResult.DamageBlocked > 0 && ModifiedStats.Defense.Wards.Contains(DamageResult.DamageSource))
+	BaseStats.Health.TakeDamage(DamageResult.Damage);
+	if (DamageResult.DamageBlocked > 0)
 	{
-		ModifiedStats.Defense.Wards.Remove(DamageResult.DamageSource);
+		BaseStats.Defense.Wards.UseWard(DamageResult.DamageSource);
 	}
-	if (CurrentHealth <= 0.0f)
+	if (BaseStats.Health.IsDead())
 	{
 		if (EffectManager)
 		{
@@ -283,7 +236,7 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 		}
 	}
 }
-void AUnit::ApplyEffect(UBattleEffect* Effect)
+bool AUnit::ApplyEffect(UBattleEffect* Effect)
 {
 	UE_LOG(LogTemp, Log, TEXT("AUnit::ApplyEffect - Called on %s with effect %s, EffectManager = %s"),
 		*GetName(),
@@ -291,21 +244,23 @@ void AUnit::ApplyEffect(UBattleEffect* Effect)
 		EffectManager ? TEXT("Valid") : TEXT("NULL"));
 	if (EffectManager && Effect)
 	{
-		EffectManager->AddEffect(Effect);
+		return EffectManager->AddEffect(Effect);
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("AUnit::ApplyEffect - Cannot apply effect (EffectManager or Effect is NULL)"));
+		return false;
 	}
 }
 void AUnit::SetDefending(bool bDefending)
 {
-	ModifiedStats.Defense.bIsDefending = bDefending;
+	BaseStats.Defense.bIsDefending = bDefending;
 }
-void AUnit::OnUnitTurnStart()
+void AUnit::HandleTurnStart()
 {
+	if (BaseStats.Health.IsDead()) return;
 	UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
-	ModifiedStats.Defense.bIsDefending = false;
+	BaseStats.Defense.bIsDefending = false;
 	if (AbilityInventory)
 	{
 		AbilityInventory->SelectAttackAbility();
@@ -314,18 +269,44 @@ void AUnit::OnUnitTurnStart()
 	{
 		EffectManager->BroadcastTurnStart();
 	}
-	for (TObjectPtr<UWeapon> Weapon : Weapons)
-	{
-		if (Weapon)
-		{
-		}
-	}
+	OnUnitTurnStart.Broadcast(this);
 }
-void AUnit::OnUnitTurnEnd()
+void AUnit::HandleTurnEnd()
 {
+	if (BaseStats.Health.IsDead()) return;
 	UE_LOG(LogTemp, Log, TEXT("%s: Turn ended"), *GetName());
 	if (EffectManager)
 	{
 		EffectManager->BroadcastTurnEnd();
 	}
+	OnUnitTurnEnd.Broadcast(this);
+}
+void AUnit::HandleAttacked(AUnit* Attacker)
+{
+	if (BaseStats.Health.IsDead()) return;
+	if (Attacker == this) return; // cycle guard
+	if (EffectManager)
+	{
+		EffectManager->BroadcastAttacked(Attacker);
+	}
+	OnUnitAttacked.Broadcast(this, Attacker);
+}
+void AUnit::HandleAttacks(AUnit* Target)
+{
+	if (BaseStats.Health.IsDead()) return;
+	if (Target == this) return; // cycle guard
+	if (EffectManager)
+	{
+		EffectManager->BroadcastAttacks(Target);
+	}
+	OnUnitAttacks.Broadcast(this, Target);
+}
+void AUnit::HandleMoved()
+{
+	if (BaseStats.Health.IsDead()) return;
+	if (EffectManager)
+	{
+		EffectManager->BroadcastMoved();
+	}
+	OnUnitMoved.Broadcast(this);
 }

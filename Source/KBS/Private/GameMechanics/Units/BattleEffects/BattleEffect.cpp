@@ -2,18 +2,16 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
-void UBattleEffect::Initialize(UBattleEffectDataAsset* InConfig, UWeapon* InWeapon, AUnit* InAttacker)
+void UBattleEffect::Initialize(UBattleEffectDataAsset* InConfig)
 {
 	if (!InConfig)
 	{
 		return;
 	}
 	Config = InConfig;
-	SourceWeapon = InWeapon;
-	Attacker = InAttacker;
+	EffectId = FGuid::NewGuid();
 
 	if (Config->AppliedVFX.IsNull() == false)
 	{
@@ -24,15 +22,15 @@ EDamageSource UBattleEffect::GetDamageSource() const
 {
 	return Config ? Config->DamageSource : EDamageSource::Physical;
 }
-EEffectTarget UBattleEffect::GetEffectTarget() const
+ETargetReach UBattleEffect::GetEffectTargetReach() const
 {
-	return Config ? Config->EffectTarget : EEffectTarget::Enemy;
+	return Config ? Config->EffectTarget : ETargetReach::AnyEnemy;
 }
-bool UBattleEffect::HandleReapply(UBattleEffect* NewEffect, AUnit* Owner)
+bool UBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 {
 	return false;
 }
-void UBattleEffect::SpawnEffectVFX(AUnit* Owner)
+void UBattleEffect::SpawnEffectVFX()
 {
 	if (!Owner || !Config || !Config->AppliedVFX.Get())
 	{

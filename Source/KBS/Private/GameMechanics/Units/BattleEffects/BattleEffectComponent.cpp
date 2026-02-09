@@ -5,12 +5,12 @@ UBattleEffectComponent::UBattleEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-void UBattleEffectComponent::AddEffect(UBattleEffect* Effect)
+bool UBattleEffectComponent::AddEffect(UBattleEffect* Effect)
 {
 	if (!Effect)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BattleEffectComponent::AddEffect - Null effect passed"));
-		return;
+		return false;
 	}
 	UE_LOG(LogTemp, Log, TEXT("BattleEffectComponent::AddEffect - Adding effect %s to %s"),
 		*Effect->GetClass()->GetName(),
@@ -23,47 +23,47 @@ void UBattleEffectComponent::AddEffect(UBattleEffect* Effect)
 		{
 			if (ExistingEffect && ExistingEffect->GetStackingId() == StackingId)
 			{
-				if (ExistingEffect->HandleReapply(Effect, GetOwnerUnit()))
+				if (ExistingEffect->HandleReapply(Effect))
 				{
 					UE_LOG(LogTemp, Log, TEXT("BattleEffectComponent::AddEffect - Effect reapplied via stacking"));
-					return;
+					return false;
 				}
 			}
 		}
 	}
 	ActiveEffects.Add(Effect);
+	Effect->SetOwner(GetOwnerUnit());
 	UE_LOG(LogTemp, Log, TEXT("BattleEffectComponent::AddEffect - Effect added to ActiveEffects, calling OnApplied"));
-	Effect->OnApplied(GetOwnerUnit());
+	Effect->OnApplied();
 	UE_LOG(LogTemp, Log, TEXT("BattleEffectComponent::AddEffect - OnApplied called, total effects: %d"), ActiveEffects.Num());
+	return true;
 }
 void UBattleEffectComponent::RemoveEffect(UBattleEffect* Effect)
 {
 	if (Effect)
 	{
-		Effect->OnRemoved(GetOwnerUnit());
+		Effect->OnRemoved();
 		ActiveEffects.Remove(Effect);
 	}
 }
 void UBattleEffectComponent::ClearAllEffects()
 {
-	AUnit* Owner = GetOwnerUnit();
 	for (UBattleEffect* Effect : ActiveEffects)
 	{
 		if (Effect)
 		{
-			Effect->OnRemoved(Owner);
+			Effect->OnRemoved();
 		}
 	}
 	ActiveEffects.Empty();
 }
 void UBattleEffectComponent::BroadcastTurnStart()
 {
-	AUnit* Owner = GetOwnerUnit();
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
-			Effect->OnTurnStart(Owner);
+			Effect->OnTurnStart();
 			if (Effect->IsExpired())
 			{
 				RemoveEffect(Effect);
@@ -73,12 +73,11 @@ void UBattleEffectComponent::BroadcastTurnStart()
 }
 void UBattleEffectComponent::BroadcastTurnEnd()
 {
-	AUnit* Owner = GetOwnerUnit();
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
-			Effect->OnTurnEnd(Owner);
+			Effect->OnTurnEnd();
 			if (Effect->IsExpired())
 			{
 				RemoveEffect(Effect);
@@ -88,12 +87,11 @@ void UBattleEffectComponent::BroadcastTurnEnd()
 }
 void UBattleEffectComponent::BroadcastAttacked(AUnit* Attacker)
 {
-	AUnit* Owner = GetOwnerUnit();
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
-			Effect->OnUnitAttacked(Owner, Attacker);
+			Effect->OnUnitAttacked(Attacker);
 			if (Effect->IsExpired())
 			{
 				RemoveEffect(Effect);
@@ -103,12 +101,11 @@ void UBattleEffectComponent::BroadcastAttacked(AUnit* Attacker)
 }
 void UBattleEffectComponent::BroadcastAttacks(AUnit* Target)
 {
-	AUnit* Owner = GetOwnerUnit();
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
-			Effect->OnUnitAttacks(Owner, Target);
+			Effect->OnUnitAttacks(Target);
 			if (Effect->IsExpired())
 			{
 				RemoveEffect(Effect);
@@ -118,12 +115,11 @@ void UBattleEffectComponent::BroadcastAttacks(AUnit* Target)
 }
 void UBattleEffectComponent::BroadcastMoved()
 {
-	AUnit* Owner = GetOwnerUnit();
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
-			Effect->OnUnitMoved(Owner);
+			Effect->OnUnitMoved();
 			if (Effect->IsExpired())
 			{
 				RemoveEffect(Effect);
@@ -133,12 +129,11 @@ void UBattleEffectComponent::BroadcastMoved()
 }
 void UBattleEffectComponent::BroadcastDied()
 {
-	AUnit* Owner = GetOwnerUnit();
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
-			Effect->OnUnitDied(Owner);
+			Effect->OnUnitDied();
 			if (Effect->IsExpired())
 			{
 				RemoveEffect(Effect);

@@ -6,31 +6,71 @@
 
 class UDecalComponent;
 class UMaterialInterface;
+class UNiagaraComponent;
+class UNiagaraSystem;
+class UGridConfig;
 class ATacBattleGrid;
-class AUnit;
-enum class ETargetReach : uint8;
+
+UENUM(BlueprintType)
+enum class EHighlightType : uint8
+{
+	Movement,
+	Attack,
+	CurrentSelected,
+	Friendly,
+	COUNT UMETA(Hidden)
+};
+
+USTRUCT()
+struct FHighlightInstance
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UDecalComponent> Decal;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> Niagara;
+
+	FTacCoordinates Coords;
+	EHighlightType Type = EHighlightType::Movement;
+	bool bInUse = false;
+};
+
 UCLASS()
 class KBS_API UGridHighlightComponent : public UActorComponent
 {
 	GENERATED_BODY()
 public:
 	UGridHighlightComponent();
-	void Initialize(USceneComponent* InRoot,
-		UMaterialInterface* InMoveDecalMaterial, UMaterialInterface* InEnemyDecalMaterial);
-	void CreateDecalPool();
+
+	void Initialize(USceneComponent* InRoot, UGridConfig* InConfig);
+	void CreateHighlightPool();
+
+	// Legacy API (delegates to ShowHighlights)
 	void ShowValidMoves(const TArray<FTacCoordinates>& ValidCells);
 	void ShowValidTargets(const TArray<FTacCoordinates>& TargetCells);
-	void ShowHighlightsForTargeting(const TArray<FTacCoordinates>& Cells, ETargetReach TargetType);
-	void ClearHighlights();
+
+	// New unified API with deduplication
+	void ShowHighlights(const TArray<FTacCoordinates>& Cells, EHighlightType HighlightType);
+	void ClearHighlights(EHighlightType HighlightType);
+	void ClearAllHighlights();
+
 private:
+	UMaterialInterface* GetMaterialForType(EHighlightType Type) const;
+	UNiagaraSystem* GetNiagaraSystemForType(EHighlightType Type) const;
+	TArray<FTacCoordinates> DeduplicateCoordinates(const TArray<FTacCoordinates>& NewCells, EHighlightType NewType);
+
 	UPROPERTY()
 	TObjectPtr<USceneComponent> Root;
+
 	UPROPERTY()
-	TObjectPtr<UMaterialInterface> MoveDecalMaterial;
+	TObjectPtr<UGridConfig> Config;
+
+	// Unified pool of highlight instances (50 total)
 	UPROPERTY()
-	TObjectPtr<UMaterialInterface> EnemyDecalMaterial;
-	UPROPERTY()
-	TArray<TObjectPtr<UDecalComponent>> MoveAllowedDecals;
-	UPROPERTY()
-	TArray<TObjectPtr<UDecalComponent>> EnemyDecals;
+	TArray<FHighlightInstance> HighlightPool;
+
+	// Tracking active highlights per type
+	TMap<EHighlightType, TArray<int32>> ActiveHighlightIndices;
 };

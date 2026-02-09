@@ -24,10 +24,18 @@ class KBS_API UGridConfig : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-	TObjectPtr<UMaterialInterface> MoveAllowedDecalMaterial;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-	TObjectPtr<UMaterialInterface> EnemyDecalMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Decals")
+	TObjectPtr<UMaterialInterface> MovementDecalMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Decals")
+	TObjectPtr<UMaterialInterface> AttackDecalMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Decals")
+	TObjectPtr<UMaterialInterface> CurrentSelectedDecalMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Decals")
+	TObjectPtr<UMaterialInterface> FriendlyDecalMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|VFX", meta = (DisplayName = "Niagara Systems (indexed by EHighlightType)"))
+	TArray<TObjectPtr<class UNiagaraSystem>> HighlightNiagaraSystems;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Sizes")
 	float CellSize = 200.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Sizes")
@@ -44,6 +52,7 @@ public:
 
 	// Component exposure
 	UGridDataManager* GetDataManager() { return DataManager; }
+	UGridHighlightComponent* GetHighlightComponent() { return HighlightComponent; }
 	float GetCellSize() const { return Config ? Config->CellSize : 200.0f; }
 	float GetAirLayerHeight() const { return Config ? Config->AirLayerHeight : 500.0f; }
 

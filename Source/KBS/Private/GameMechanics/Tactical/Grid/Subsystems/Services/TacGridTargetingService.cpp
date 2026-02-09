@@ -9,6 +9,8 @@
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/FlankCellDefinitions.h"
 #include "GameMechanics/Units/LargeUnit.h"
+#include "GameMechanics/Tactical/DamageCalculation.h"
+#include "GameplayTypes/CombatTypes.h"
 
 
 UTacGridTargetingService::UTacGridTargetingService()
@@ -119,12 +121,12 @@ TArray<AUnit*> UTacGridTargetingService::GetValidTargetUnits(AUnit* Unit, ETarge
 	return TargetUnits;
 }
 
-TArray<AUnit*> UTacGridTargetingService::ResolveTargetsFromClick(AUnit* SourceUnit, FTacCoordinates ClickedCell, ETargetReach Reach, const FAreaShape* AreaShape) const
+FResolvedTargets UTacGridTargetingService::ResolveTargetsFromClick(AUnit* SourceUnit, FTacCoordinates ClickedCell, ETargetReach Reach, const FAreaShape* AreaShape) const
 {
-	TArray<AUnit*> ResolvedTargets;
+	FResolvedTargets Result;
 	if (!SourceUnit || !DataManager)
 	{
-		return ResolvedTargets;
+		return Result;
 	}
 
 	AUnit* ClickedUnit = DataManager->GetUnit(ClickedCell);
@@ -133,45 +135,65 @@ TArray<AUnit*> UTacGridTargetingService::ResolveTargetsFromClick(AUnit* SourceUn
 	switch (Reach)
 	{
 		case ETargetReach::AllEnemies:
-			ResolvedTargets = GetValidTargetUnits(SourceUnit, Reach, false, false);
-			break;
 		case ETargetReach::AllFriendlies:
-			ResolvedTargets = GetValidTargetUnits(SourceUnit, Reach, false, false);
+		{
+			TArray<AUnit*> AllTargets = GetValidTargetUnits(SourceUnit, Reach, false, false);
+			Result.ClickedTarget = ClickedUnit;
+			for (AUnit* Target : AllTargets)
+			{
+				if (Target != ClickedUnit)
+				{
+					Result.SecondaryTargets.Add(Target);
+				}
+			}
+			Result.bWasCellEmpty = (ClickedUnit == nullptr);
 			break;
+		}
 		case ETargetReach::Area:
+		{
 			if (AreaShape)
 			{
-				ResolvedTargets = GetUnitsInArea(ClickedCell, *AreaShape);
+				TArray<AUnit*> AreaTargets = GetUnitsInArea(ClickedCell, *AreaShape);
+				Result.ClickedTarget = ClickedUnit;
+				for (AUnit* Target : AreaTargets)
+				{
+					if (Target != ClickedUnit)
+					{
+						Result.SecondaryTargets.Add(Target);
+					}
+				}
 			}
-			else if (ClickedUnit)
+			else
 			{
-				ResolvedTargets.Add(ClickedUnit);
+				Result.ClickedTarget = ClickedUnit;
 			}
+			Result.bWasCellEmpty = (ClickedUnit == nullptr);
 			break;
+		}
 		case ETargetReach::AnyCorpse:
 		case ETargetReach::FriendlyCorpse:
 		case ETargetReach::EnemyCorpse:
 		case ETargetReach::AnyNonBlockedCorpse:
 		case ETargetReach::FriendlyNonBlockedCorpse:
 		case ETargetReach::EnemyNonBlockedCorpse:
-			if (ClickedCorpse)
-			{
-				ResolvedTargets.Add(ClickedCorpse);
-			}
+		{
+			Result.ClickedTarget = ClickedCorpse;
+			Result.bWasCellEmpty = (ClickedCorpse == nullptr);
 			break;
+		}
 		case ETargetReach::ClosestEnemies:
 		case ETargetReach::AnyEnemy:
 		case ETargetReach::AnyFriendly:
 		case ETargetReach::EmptyCell:
 		case ETargetReach::EmptyCellOrFriendly:
 		default:
-			if (ClickedUnit)
-			{
-				ResolvedTargets.Add(ClickedUnit);
-			}
+		{
+			Result.ClickedTarget = ClickedUnit;
+			Result.bWasCellEmpty = (ClickedUnit == nullptr);
 			break;
+		}
 	}
-	return ResolvedTargets;
+	return Result;
 }
 
 bool UTacGridTargetingService::IsValidTargetCell(AUnit* Unit, const FTacCoordinates& Cell, ETargetReach Reach) const
@@ -880,4 +902,108 @@ TArray<AUnit*> UTacGridTargetingService::GetUnitsInArea(FTacCoordinates CenterCe
 	}
 
 	return UnitsInArea;
+}
+
+int32 UTacGridTargetingService::CalculateDistance(AUnit* Unit1, AUnit* Unit2) const
+{
+	if (!Unit1 || !Unit2 || !DataManager)
+	{
+		return -1;
+	}
+
+	FTacCoordinates Pos1, Pos2;
+	ETacGridLayer Layer1, Layer2;
+
+	if (!DataManager->GetUnitPosition(Unit1, Pos1, Layer1) ||
+	    !DataManager->GetUnitPosition(Unit2, Pos2, Layer2))
+	{
+		return -1;
+	}
+
+	// Chebyshev distance (max of row/col difference) - matches grid adjacency logic
+	int32 RowDiff = FMath::Abs(Pos1.Row - Pos2.Row);
+	int32 ColDiff = FMath::Abs(Pos1.Col - Pos2.Col);
+	return FMath::Max(RowDiff, ColDiff);
+}
+
+UWeapon* UTacGridTargetingService::SelectWeapon(AUnit* Attacker, AUnit* Target) const
+{
+	if (!Attacker || !Target || !DataManager)
+	{
+		return nullptr;
+	}
+
+	const TArray<TObjectPtr<UWeapon>>& Weapons = Attacker->GetWeapons();
+	if (Weapons.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	int32 Distance = CalculateDistance(Attacker, Target);
+	if (Distance < 0)
+	{
+		return nullptr;
+	}
+
+	UBattleTeam* AttackerTeam = DataManager->GetTeamForUnit(Attacker);
+	UBattleTeam* TargetTeam = DataManager->GetTeamForUnit(Target);
+	bool bIsFriendlyTarget = (AttackerTeam == TargetTeam);
+
+	TArray<UWeapon*> ValidWeapons;
+	for (UWeapon* Weapon : Weapons)
+	{
+		if (!Weapon)
+		{
+			continue;
+		}
+
+		const FWeaponStats& Stats = Weapon->GetStats();
+		ETargetReach WeaponReach = Stats.TargetReach;
+
+		// Check if weapon can target this type (friendly vs hostile)
+		bool bCanTargetType = false;
+		if (bIsFriendlyTarget)
+		{
+			bCanTargetType = FDamageCalculation::IsFriendlyReach(WeaponReach);
+		}
+		else
+		{
+			// Hostile targeting
+			if (WeaponReach == ETargetReach::ClosestEnemies && Distance == 1)
+			{
+				bCanTargetType = true;
+			}
+			else if (WeaponReach == ETargetReach::AnyEnemy ||
+			         WeaponReach == ETargetReach::AllEnemies ||
+			         WeaponReach == ETargetReach::Area)
+			{
+				bCanTargetType = true;
+			}
+		}
+
+		if (bCanTargetType)
+		{
+			ValidWeapons.Add(Weapon);
+		}
+	}
+
+	if (ValidWeapons.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	// Pick weapon with highest damage output
+	UWeapon* BestWeapon = nullptr;
+	int32 BestDamage = -1;
+	for (UWeapon* Weapon : ValidWeapons)
+	{
+		FDamageResult DamageResult = FDamageCalculation::CalculateDamage(Attacker, Weapon, Target);
+		if (DamageResult.Damage > BestDamage)
+		{
+			BestDamage = DamageResult.Damage;
+			BestWeapon = Weapon;
+		}
+	}
+
+	return BestWeapon;
 }

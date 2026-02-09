@@ -29,8 +29,10 @@ public:
 	void Initialize(UGridDataManager* InDataManager);
 	TArray<FTacCoordinates> GetValidTargetCells(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting = false) const;
 	TArray<AUnit*> GetValidTargetUnits(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting = false, bool bIncludeDeadUnits = false) const;
-	TArray<AUnit*> ResolveTargetsFromClick(AUnit* SourceUnit, FTacCoordinates ClickedCell, ETargetReach Reach, const struct FAreaShape* AreaShape = nullptr) const;
+	struct FResolvedTargets ResolveTargetsFromClick(AUnit* SourceUnit, FTacCoordinates ClickedCell, ETargetReach Reach, const struct FAreaShape* AreaShape = nullptr) const;
 	bool IsValidTargetCell(AUnit* Unit, const FTacCoordinates& Cell, ETargetReach Reach) const;
+	int32 CalculateDistance(AUnit* Unit1, AUnit* Unit2) const;
+	class UWeapon* SelectWeapon(AUnit* Attacker, AUnit* Target) const;
 private:
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;

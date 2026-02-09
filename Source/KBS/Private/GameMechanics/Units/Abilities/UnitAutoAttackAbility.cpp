@@ -35,13 +35,23 @@ TMap<AUnit*, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(AUnit* Sou
 	{
 		return Results;
 	}
-	ETargetReach Reach = GetTargeting();
+
+	UTacGridTargetingService* TargetingService = GetTargetingService(Source);
+	if (!TargetingService)
+	{
+		return Results;
+	}
+
 	for (AUnit* Target : Targets)
 	{
 		if (Target)
 		{
-			FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Source, Target, Reach);
-			Results.Add(Target, Preview);
+			UWeapon* Weapon = TargetingService->SelectWeapon(Source, Target);
+			if (Weapon)
+			{
+				FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Source, Weapon, Target);
+				Results.Add(Target, Preview);
+			}
 		}
 	}
 	return Results;
@@ -72,68 +82,54 @@ FAbilityResult UUnitAutoAttackAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTa
 	}
 
 	ETargetReach Reach = GetTargeting();
-	TArray<AUnit*> TargetUnits = TargetingService->ResolveTargetsFromClick(SourceUnit, TargetCell, Reach);
+	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(SourceUnit, TargetCell, Reach);
 
-	if (TargetUnits.Num() == 0)
+	// Check if we have a valid clicked target
+	if (!ResolvedTargets.ClickedTarget)
 	{
-		return CreateFailureResult(EAbilityFailureReason::InvalidTarget, FText::FromString("No valid targets"));
+		return CreateFailureResult(EAbilityFailureReason::InvalidTarget, FText::FromString("No valid target at clicked cell"));
 	}
 
-	// Play attack animation
-	UWeapon* Weapon = FDamageCalculation::SelectMaxReachWeapon(SourceUnit);
-	if (Weapon && TargetUnits.Num() > 0)
+	// Select weapon based on clicked target
+	UWeapon* Weapon = TargetingService->SelectWeapon(SourceUnit, ResolvedTargets.ClickedTarget);
+	if (!Weapon)
 	{
-		UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
-		UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
-		AUnit* FirstTarget = TargetUnits[0];
-		if (FirstTarget)
+		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No valid weapon for target"));
+	}
+
+	// Get all targets (clicked + secondary)
+	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
+
+	// Play attack animation
+	UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
+	UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
+	const FVector SourceLoc = SourceUnit->GetActorLocation();
+	const FVector TargetLoc = ResolvedTargets.ClickedTarget->GetActorLocation();
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
+	LookAtRotation.Yaw -= 90.0f;
+	if (SourceUnit->VisualsComponent)
+	{
+		SourceUnit->VisualsComponent->RegisterRotationOperation();
+		SourceUnit->VisualsComponent->RotateTowardTarget(LookAtRotation, 540.0f);
+		if (AttackMontage)
 		{
-			const FVector SourceLoc = SourceUnit->GetActorLocation();
-			const FVector TargetLoc = FirstTarget->GetActorLocation();
-			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
-			LookAtRotation.Yaw -= 90.0f;
-			if (SourceUnit->VisualsComponent)
-			{
-				SourceUnit->VisualsComponent->RegisterRotationOperation();
-				SourceUnit->VisualsComponent->RotateTowardTarget(LookAtRotation, 540.0f);
-				if (AttackMontage)
-				{
-					SourceUnit->VisualsComponent->RegisterMontageOperation();
-					SourceUnit->VisualsComponent->PlayAttackMontage(AttackMontage);
-				}
-			}
+			SourceUnit->VisualsComponent->RegisterMontageOperation();
+			SourceUnit->VisualsComponent->PlayAttackMontage(AttackMontage);
 		}
 	}
 
 	// Process attack through combat subsystem
+	TArray<FCombatHitResult> HitResults = CombatSys->ResolveAttack(SourceUnit, AllTargets, Weapon);
+
 	FAbilityResult Result = CreateSuccessResult();
-
-	// TODO: CombatSubsystem should orchestrate the full attack
-	// Replace direct calls with:
-	// FMutationResults MutationResults = CombatSys->ProcessUnitHit(SourceUnit, TargetUnits);
-	// Result.UnitsAffected = MutationResults converted to affected units
-
-	// Temporary: Direct processing until CombatSubsystem API is complete
-	for (AUnit* Target : TargetUnits)
+	for (const FCombatHitResult& HitResult : HitResults)
 	{
-		if (Target)
+		if (HitResult.bHit && HitResult.TargetUnit)
 		{
-			SourceUnit->OnUnitAttacks.Broadcast(SourceUnit, Target);
-			Target->OnUnitAttacked.Broadcast(Target, SourceUnit);
-			FCombatHitResult HitResult = FDamageCalculation::ProcessHit(SourceUnit, Target, Reach);
-			if (HitResult.bHit)
-			{
-				Result.UnitsAffected.Add(Target);
-				UE_LOG(LogTemp, Log, TEXT("  -> Target '%s' took %.1d damage (%.1d blocked)"),
-					*Target->GetName(), HitResult.Damage, HitResult.DamageBlocked);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("  -> Target '%s' avoided the attack"),
-					*Target->GetName());
-			}
+			Result.UnitsAffected.Add(HitResult.TargetUnit);
 		}
 	}
+
 	return Result;
 }
 

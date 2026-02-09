@@ -10,7 +10,7 @@ class KBS_API UBattleEffectComponent : public UActorComponent
 	GENERATED_BODY()
 public:
 	UBattleEffectComponent();
-	void AddEffect(UBattleEffect* Effect);
+	bool AddEffect(UBattleEffect* Effect);
 	void RemoveEffect(UBattleEffect* Effect);
 	void ClearAllEffects();
 	void BroadcastTurnStart();

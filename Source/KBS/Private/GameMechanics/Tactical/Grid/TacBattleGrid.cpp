@@ -82,8 +82,8 @@ void ATacBattleGrid::NotifyActorOnClicked(FKey ButtonPressed)
 void ATacBattleGrid::InitializeComponents()
 {
 	DataManager->Initialize(this);
-	HighlightComponent->Initialize(Root, Config->MoveAllowedDecalMaterial, Config->EnemyDecalMaterial);
-	HighlightComponent->CreateDecalPool();
+	HighlightComponent->Initialize(Root, Config);
+	HighlightComponent->CreateHighlightPool();
 	AdjustCollisionBox();
 	// TODO: MovementComponent, TargetingComponent, TurnManager moved to subsystems
 	// InputRouter->Initialize(this, DataManager, MovementComponent, TargetingComponent, TurnManager);

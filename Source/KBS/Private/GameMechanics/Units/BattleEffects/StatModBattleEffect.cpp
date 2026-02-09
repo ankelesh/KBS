@@ -2,51 +2,51 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/StatModBattleEffectDataAsset.h"
 
-void UStatModBattleEffect::Initialize(UBattleEffectDataAsset* InConfig, UWeapon* InWeapon, AUnit* InAttacker)
+void UStatModBattleEffect::Initialize(UBattleEffectDataAsset* InConfig)
 {
-	Super::Initialize(InConfig, InWeapon, InAttacker);
+	Super::Initialize(InConfig);
 	UStatModBattleEffectDataAsset* StatModConfig = Cast<UStatModBattleEffectDataAsset>(InConfig);
 	if (StatModConfig)
 	{
-		RemainingTurns = StatModConfig->Duration;
+		Duration = StatModConfig->Duration;
 	}
 }
 
-void UStatModBattleEffect::OnTurnEnd(AUnit* Owner)
+void UStatModBattleEffect::OnTurnEnd()
 {
 	DecrementDuration();
 	UE_LOG(LogTemp, Log, TEXT("%s: StatMod effect '%s' tick (%d turns remaining)"),
 		*Owner->GetName(),
 		*Config->Name.ToString(),
-		RemainingTurns);
+		Duration);
 }
 
-void UStatModBattleEffect::OnApplied(AUnit* Owner)
+void UStatModBattleEffect::OnApplied()
 {
 	if (!Owner)
 	{
 		return;
 	}
-	ApplyStatModifications(Owner);
+	ApplyStatModifications();
 	UE_LOG(LogTemp, Log, TEXT("%s: StatMod effect '%s' applied for %d turns"),
 		*Owner->GetName(),
 		*Config->Name.ToString(),
-		RemainingTurns);
+		Duration);
 }
 
-void UStatModBattleEffect::OnRemoved(AUnit* Owner)
+void UStatModBattleEffect::OnRemoved()
 {
 	if (!Owner)
 	{
 		return;
 	}
-	RemoveStatModifications(Owner);
+	RemoveStatModifications();
 	UE_LOG(LogTemp, Log, TEXT("%s: StatMod effect '%s' removed"),
 		*Owner->GetName(),
 		*Config->Name.ToString());
 }
 
-bool UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect, AUnit* Owner)
+bool UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 {
 	UStatModBattleEffectDataAsset* StatModConfig = GetStatModConfig();
 	UStatModBattleEffectDataAsset* NewStatModConfig = NewEffect ? Cast<UStatModBattleEffectDataAsset>(NewEffect->GetConfig()) : nullptr;
@@ -54,73 +54,105 @@ bool UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect, AUnit* Owner)
 	{
 		return false;
 	}
-	RemoveStatModifications(Owner);
+	RemoveStatModifications();
 	Config = NewStatModConfig;
-	RemainingTurns = NewStatModConfig->Duration;
-	ApplyStatModifications(Owner);
+	Duration = NewStatModConfig->Duration;
+	ApplyStatModifications();
 	UE_LOG(LogTemp, Log, TEXT("%s: StatMod effect '%s' reapplied, duration reset to %d"),
 		*Owner->GetName(),
 		*Config->Name.ToString(),
-		RemainingTurns);
+		Duration);
 	return true;
 }
 
-void UStatModBattleEffect::ApplyStatModifications(AUnit* Owner)
+void UStatModBattleEffect::ApplyStatModifications()
 {
-	UStatModBattleEffectDataAsset* StatModConfig = GetStatModConfig();
-	if (!Owner || !StatModConfig)
+	UStatModBattleEffectDataAsset* Config = GetStatModConfig();
+	if (!Owner || !Config)
 	{
 		return;
 	}
-	FUnitCoreStats& ModifiedStats = const_cast<FUnitCoreStats&>(Owner->GetModifiedStats());
-	ModifiedStats.MaxHealth += StatModConfig->StatModifications.MaxHealth;
-	ModifiedStats.Initiative += StatModConfig->StatModifications.Initiative;
-	ModifiedStats.Accuracy += StatModConfig->StatModifications.Accuracy;
-	for (const EDamageSource& Immunity : StatModConfig->StatModifications.Defense.Immunities)
+
+	FUnitCoreStats& Stats = Owner->GetStats();
+	const FGuid& EffId = GetEffectId();
+
+	// Apply stat modifiers (0 = no modification)
+	AppliedMaxHealthMod = Config->MaxHealthModifier;
+	if (AppliedMaxHealthMod != 0)
 	{
-		ModifiedStats.Defense.Immunities.Add(Immunity);
+		Stats.Health.AddMaxModifier(EffId, AppliedMaxHealthMod, true);
 	}
-	for (const auto& ArmorPair : StatModConfig->StatModifications.Defense.Armour)
+
+	AppliedInitiativeMod = Config->InitiativeModifier;
+	if (AppliedInitiativeMod != 0)
 	{
-		float* ExistingArmor = ModifiedStats.Defense.Armour.Find(ArmorPair.Key);
-		if (ExistingArmor)
+		Stats.Initiative.AddFlatModifier(EffId, AppliedInitiativeMod);
+	}
+
+	AppliedAccuracyMod = Config->AccuracyModifier;
+	if (AppliedAccuracyMod != 0)
+	{
+		Stats.Accuracy.AddFlatModifier(EffId, AppliedAccuracyMod);
+	}
+
+	// Apply immunities
+	AppliedImmunities = Config->ImmunitiesToGrant.Array();
+	for (EDamageSource Immunity : AppliedImmunities)
+	{
+		Stats.Defense.Immunities.AddModifier(EffId, Immunity, true);
+	}
+
+	// Apply armour modifiers
+	for (const auto& ArmorPair : Config->ArmourModifiers)
+	{
+		if (ArmorPair.Value != 0)
 		{
-			*ExistingArmor = FMath::Clamp(*ExistingArmor + ArmorPair.Value, 0.0f, 0.9f);
-		}
-		else
-		{
-			ModifiedStats.Defense.Armour.Add(ArmorPair.Key, FMath::Clamp(ArmorPair.Value, 0.0f, 0.9f));
+			AppliedArmourMods.Add(ArmorPair.Key, ArmorPair.Value);
+			Stats.Defense.Armour.AddFlatModifier(EffId, ArmorPair.Value, ArmorPair.Key);
 		}
 	}
-	ModifiedStats.Defense.DamageReduction += StatModConfig->StatModifications.Defense.DamageReduction;
 }
 
-void UStatModBattleEffect::RemoveStatModifications(AUnit* Owner)
+void UStatModBattleEffect::RemoveStatModifications()
 {
-	UStatModBattleEffectDataAsset* StatModConfig = GetStatModConfig();
-	if (!Owner || !StatModConfig)
+	if (!Owner)
 	{
 		return;
 	}
-	const FUnitCoreStats& BaseStats = Owner->GetBaseStats();
-	FUnitCoreStats& ModifiedStats = const_cast<FUnitCoreStats&>(Owner->GetModifiedStats());
-	ModifiedStats.MaxHealth -= StatModConfig->StatModifications.MaxHealth;
-	ModifiedStats.Initiative -= StatModConfig->StatModifications.Initiative;
-	ModifiedStats.Accuracy -= StatModConfig->StatModifications.Accuracy;
-	for (const EDamageSource& Immunity : StatModConfig->StatModifications.Defense.Immunities)
+
+	FUnitCoreStats& Stats = Owner->GetStats();
+	const FGuid& EffId = GetEffectId();
+
+	// Remove using cached amounts
+	if (AppliedMaxHealthMod != 0)
 	{
-		if (!BaseStats.Defense.Immunities.Contains(Immunity))
-		{
-			ModifiedStats.Defense.Immunities.Remove(Immunity);
-		}
+		Stats.Health.RemoveMaxModifier(EffId, AppliedMaxHealthMod);
+		AppliedMaxHealthMod = 0;
 	}
-	for (const auto& ArmorPair : StatModConfig->StatModifications.Defense.Armour)
+
+	if (AppliedInitiativeMod != 0)
 	{
-		float* ExistingArmor = ModifiedStats.Defense.Armour.Find(ArmorPair.Key);
-		if (ExistingArmor)
-		{
-			*ExistingArmor = FMath::Clamp(*ExistingArmor - ArmorPair.Value, 0.0f, 0.9f);
-		}
+		Stats.Initiative.RemoveFlatModifier(EffId, AppliedInitiativeMod);
+		AppliedInitiativeMod = 0;
 	}
-	ModifiedStats.Defense.DamageReduction -= StatModConfig->StatModifications.Defense.DamageReduction;
+
+	if (AppliedAccuracyMod != 0)
+	{
+		Stats.Accuracy.RemoveFlatModifier(EffId, AppliedAccuracyMod);
+		AppliedAccuracyMod = 0;
+	}
+
+	// Remove immunities
+	for (EDamageSource Immunity : AppliedImmunities)
+	{
+		Stats.Defense.Immunities.RemoveModifier(EffId, Immunity, true);
+	}
+	AppliedImmunities.Empty();
+
+	// Remove armour modifications
+	for (const auto& ArmorPair : AppliedArmourMods)
+	{
+		Stats.Defense.Armour.RemoveFlatModifier(EffId, ArmorPair.Value, ArmorPair.Key);
+	}
+	AppliedArmourMods.Empty();
 }
