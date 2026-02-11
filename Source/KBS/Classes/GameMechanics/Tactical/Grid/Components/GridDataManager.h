@@ -98,6 +98,7 @@ public:
 	TArray<AUnit*> GetAllAliveUnits() const;
 	TArray<AUnit*> GetAllDeadUnits() const;
 	TArray<AUnit*> GetAllUnits() const;
+	bool IsBothTeamsAnyUnitAlive() const;
 	bool IsMultiCellUnit(const AUnit* Unit) const;
 	const FMultiCellUnitData* GetMultiCellData(const AUnit* Unit) const;
 private:

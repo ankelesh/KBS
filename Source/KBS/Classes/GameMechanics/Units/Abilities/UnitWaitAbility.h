@@ -8,6 +8,14 @@ class KBS_API UUnitWaitAbility : public UUnitAbilityInstance
 {
 	GENERATED_BODY()
 public:
-	UUnitWaitAbility();
-	virtual FAbilityResult ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell) override;
+	virtual bool Execute(FTacCoordinates TargetCell) override;
+	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
+	virtual bool CanExecute() const override;
+
+	virtual void Subscribe() override;
+	virtual void Unsubscribe() override;
+
+private:
+	UFUNCTION()
+	void HandleRoundEnd(int32 Round);
 };

@@ -31,6 +31,8 @@ public:
 	TArray<TObjectPtr<AUnit> > GetDeadUnits();
 	TObjectPtr<UBattleTeam> GetAttackerTeam();
 	TObjectPtr<UBattleTeam> GetDefenderTeam();
+	bool IsBothTeamsAnyUnitAlive();
+	TObjectPtr<UBattleTeam> GetWinnerTeam();
 
 	bool GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& OutCoordinates) const;
 	

@@ -1,16 +1,108 @@
 #include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
-#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
-#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
-#include "Kismet/KismetMathLibrary.h"
 
+
+TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(FTacCoordinates TargetCell) const
+{
+	TMap<FTacCoordinates, FPreviewHitResult> Results;
+	if (!Owner) return Results;
+
+	UTacGridTargetingService* TargetingService = GetTargetingService();
+	if (!TargetingService) return Results;
+
+	ETargetReach Reach = GetTargeting();
+	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, Reach);
+	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
+
+	for (AUnit* Target : AllTargets)
+	{
+		if (!Target) continue;
+
+		UWeapon* Weapon = TargetingService->SelectWeapon(Owner, Target);
+		if (!Weapon) continue;
+
+		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, Weapon, Target);
+		FTacCoordinates TargetCoords = Target->GetGridMetadata().Coords;
+		Results.Add(TargetCoords, Preview);
+	}
+
+	return Results;
+}
+
+bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
+{
+	if (!Owner) return false;
+
+	UTacCombatSubsystem* CombatSubsystem = GetCombatSubsystem();
+	if (!CombatSubsystem) return false;
+
+	UTacGridTargetingService* TargetingService = GetTargetingService();
+	if (!TargetingService) return false;
+
+	// Resolve targets
+	ETargetReach Reach = GetTargeting();
+	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, Reach);
+	if (!ResolvedTargets.ClickedTarget) return false;
+
+	// Select weapon for primary target
+	UWeapon* Weapon = TargetingService->SelectWeapon(Owner, ResolvedTargets.ClickedTarget);
+	if (!Weapon) return false;
+
+	// Play attack visuals
+	if (Owner->VisualsComponent)
+	{
+		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, Weapon);
+	}
+
+	// Execute attack through combat subsystem
+	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
+	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon);
+
+	// Check if attack was successful
+	bool bSuccess = false;
+	for (const FCombatHitResult& HitResult : HitResults)
+	{
+		if (HitResult.bHit)
+		{
+			bSuccess = true;
+			break;
+		}
+	}
+
+	if (bSuccess)
+	{
+		Owner->GetStats().Status.SetFocus();
+		ConsumeCharge();
+	}
+
+	return bSuccess;
+}
+
+bool UUnitAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
+{
+	if (!Owner || RemainingCharges <= 0) return false;
+
+	UTacGridTargetingService* TargetingService = GetTargetingService();
+	if (!TargetingService) return false;
+
+	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, GetTargeting());
+}
+
+bool UUnitAutoAttackAbility::CanExecute() const
+{
+	if (!Owner || RemainingCharges <= 0) return false;
+
+	UTacGridTargetingService* TargetingService = GetTargetingService();
+	if (!TargetingService) return false;
+
+	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
+}
 
 ETargetReach UUnitAutoAttackAbility::GetTargeting() const
 {
@@ -28,108 +120,25 @@ ETargetReach UUnitAutoAttackAbility::GetTargeting() const
 	}
 	return ETargetReach::None;
 }
-TMap<AUnit*, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(AUnit* Source, const TArray<AUnit*>& Targets)
+
+void UUnitAutoAttackAbility::Subscribe()
 {
-	TMap<AUnit*, FPreviewHitResult> Results;
-	if (!Source)
+	if (Owner)
 	{
-		return Results;
+		Owner->OnUnitTurnEnd.AddDynamic(this, &UUnitAutoAttackAbility::HandleTurnEnd);
 	}
-
-	UTacGridTargetingService* TargetingService = GetTargetingService(Source);
-	if (!TargetingService)
-	{
-		return Results;
-	}
-
-	for (AUnit* Target : Targets)
-	{
-		if (Target)
-		{
-			UWeapon* Weapon = TargetingService->SelectWeapon(Source, Target);
-			if (Weapon)
-			{
-				FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Source, Weapon, Target);
-				Results.Add(Target, Preview);
-			}
-		}
-	}
-	return Results;
 }
-FAbilityResult UUnitAutoAttackAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
+
+void UUnitAutoAttackAbility::Unsubscribe()
 {
-	if (!SourceUnit)
+	if (Owner)
 	{
-		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No source unit"));
+		Owner->OnUnitTurnEnd.RemoveDynamic(this, &UUnitAutoAttackAbility::HandleTurnEnd);
 	}
+}
 
-	UWorld* World = SourceUnit->GetWorld();
-	if (!World)
-	{
-		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No world"));
-	}
-
-	UTacCombatSubsystem* CombatSys = GetCombatSubsystem(SourceUnit);
-	if (!CombatSys)
-	{
-		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("Combat subsystem not available"));
-	}
-
-	UTacGridTargetingService* TargetingService = GetTargetingService(SourceUnit);
-	if (!TargetingService)
-	{
-		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("Targeting service not available"));
-	}
-
-	ETargetReach Reach = GetTargeting();
-	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(SourceUnit, TargetCell, Reach);
-
-	// Check if we have a valid clicked target
-	if (!ResolvedTargets.ClickedTarget)
-	{
-		return CreateFailureResult(EAbilityFailureReason::InvalidTarget, FText::FromString("No valid target at clicked cell"));
-	}
-
-	// Select weapon based on clicked target
-	UWeapon* Weapon = TargetingService->SelectWeapon(SourceUnit, ResolvedTargets.ClickedTarget);
-	if (!Weapon)
-	{
-		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No valid weapon for target"));
-	}
-
-	// Get all targets (clicked + secondary)
-	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
-
-	// Play attack animation
-	UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
-	UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
-	const FVector SourceLoc = SourceUnit->GetActorLocation();
-	const FVector TargetLoc = ResolvedTargets.ClickedTarget->GetActorLocation();
-	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
-	LookAtRotation.Yaw -= 90.0f;
-	if (SourceUnit->VisualsComponent)
-	{
-		SourceUnit->VisualsComponent->RegisterRotationOperation();
-		SourceUnit->VisualsComponent->RotateTowardTarget(LookAtRotation, 540.0f);
-		if (AttackMontage)
-		{
-			SourceUnit->VisualsComponent->RegisterMontageOperation();
-			SourceUnit->VisualsComponent->PlayAttackMontage(AttackMontage);
-		}
-	}
-
-	// Process attack through combat subsystem
-	TArray<FCombatHitResult> HitResults = CombatSys->ResolveAttack(SourceUnit, AllTargets, Weapon);
-
-	FAbilityResult Result = CreateSuccessResult();
-	for (const FCombatHitResult& HitResult : HitResults)
-	{
-		if (HitResult.bHit && HitResult.TargetUnit)
-		{
-			Result.UnitsAffected.Add(HitResult.TargetUnit);
-		}
-	}
-
-	return Result;
+void UUnitAutoAttackAbility::HandleTurnEnd(AUnit*)
+{
+	RestoreCharges();
 }
 

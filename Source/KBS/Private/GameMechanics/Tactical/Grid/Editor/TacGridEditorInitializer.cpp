@@ -4,6 +4,8 @@
 
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Units/LargeUnit.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
@@ -55,6 +57,15 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 				UBattleTeam* Team = Placement.bIsAttacker ? Grid->GetDataManager()->GetAttackerTeam() : Grid->GetDataManager()->GetDefenderTeam();
 				Team->AddUnit(NewUnit);
 				NewUnit->SetTeamSide(Team->GetTeamSide());
+
+				// Initialize unit's grid metadata
+				if (UTacGridSubsystem* GridSubsystem = GetWorld()->GetSubsystem<UTacGridSubsystem>())
+				{
+					if (UTacGridMovementService* MovementService = GridSubsystem->GetGridMovementService())
+					{
+						MovementService->InitializeUnitGridMetadata(NewUnit, FTacCoordinates(Placement.Row, Placement.Col, Placement.Layer));
+					}
+				}
 				if (!bIsFlank)
 				{
 					const float Yaw = (Team == Grid->GetDataManager()->GetAttackerTeam()) ? 0.0f : 180.0f;

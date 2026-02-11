@@ -17,20 +17,7 @@ void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDe
 		RemainingCharges = Config->MaxCharges;
 	}
 }
-FAbilityResult UUnitAbilityInstance::TriggerAbility(AUnit* SourceUnit, FTacCoordinates TargetCell)
-{
-	FAbilityValidation Validation = CanExecute(SourceUnit, TargetCell);
-	if (!Validation.bIsValid)
-	{
-		return CreateFailureResult(Validation.FailureReason, Validation.FailureMessage);
-	}
-	return CreateSuccessResult();
-}
 
-FAbilityResult UUnitAbilityInstance::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
-{
-	return CreateSuccessResult();
-}
 ETargetReach UUnitAbilityInstance::GetTargeting() const
 {
 	if (Config)
@@ -46,39 +33,6 @@ bool UUnitAbilityInstance::IsPassive() const
 		return Config->bIsPassive;
 	}
 	return false;
-}
-TMap<AUnit*, FPreviewHitResult> UUnitAbilityInstance::DamagePreview(AUnit* Source, const TArray<AUnit*>& Targets)
-{
-	return TMap<AUnit*, FPreviewHitResult>();
-}
-void UUnitAbilityInstance::Subscribe()
-{
-	if (!Owner)
-	{
-		return;
-	}
-	Owner->OnUnitAttacked.AddDynamic(this, &UUnitAbilityInstance::HandleUnitAttacked);
-	Owner->OnUnitDamaged.AddDynamic(this, &UUnitAbilityInstance::HandleUnitDamaged);
-	Owner->OnUnitAttacks.AddDynamic(this, &UUnitAbilityInstance::HandleUnitAttacks);
-}
-void UUnitAbilityInstance::Unsubscribe()
-{
-	if (!Owner)
-	{
-		return;
-	}
-	Owner->OnUnitAttacked.RemoveDynamic(this, &UUnitAbilityInstance::HandleUnitAttacked);
-	Owner->OnUnitDamaged.RemoveDynamic(this, &UUnitAbilityInstance::HandleUnitDamaged);
-	Owner->OnUnitAttacks.RemoveDynamic(this, &UUnitAbilityInstance::HandleUnitAttacks);
-}
-void UUnitAbilityInstance::HandleUnitAttacked(AUnit* Victim, AUnit* Attacker)
-{
-}
-void UUnitAbilityInstance::HandleUnitDamaged(AUnit* Victim, AUnit* Attacker)
-{
-}
-void UUnitAbilityInstance::HandleUnitAttacks(AUnit* Attacker, AUnit* Target)
-{
 }
 void UUnitAbilityInstance::ConsumeCharge()
 {
@@ -118,58 +72,45 @@ FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
 	DisplayData.Description = FString::Printf(TEXT("%s - %s"), *Config->AbilityName, *DisplayData.TargetingInfo);
 	return DisplayData;
 }
-FAbilityValidation UUnitAbilityInstance::CanExecute(AUnit* SourceUnit, FTacCoordinates TargetCell) const
+UTacGridSubsystem* UUnitAbilityInstance::GetGridSubsystem() const
 {
-	if (Config && Config->MaxCharges > 0)
-	{
-		if (RemainingCharges <= 0)
-		{
-			return FAbilityValidation::Failure(EAbilityFailureReason::NoCharges,
-				FText::FromString("No charges remaining"));
-		}
-	}
-
-	// Target validation moved to derived classes - they know their targeting rules
-	return FAbilityValidation::Success();
-}
-FAbilityResult UUnitAbilityInstance::CreateSuccessResult() const
-{
-	FAbilityResult Result = FAbilityResult::Success(TurnAction);
-	return Result;
-}
-FAbilityResult UUnitAbilityInstance::CreateFailureResult(EAbilityFailureReason Reason, FText Message) const
-{
-	return FAbilityResult::Failure(Reason, Message);
-}
-
-UTacGridSubsystem* UUnitAbilityInstance::GetGridSubsystem(AUnit* Unit) const
-{
-	if (!Unit) return nullptr;
-	UWorld* World = Unit->GetWorld();
+	if (!Owner) return nullptr;
+	UWorld* World = Owner->GetWorld();
 	if (!World) return nullptr;
 	return World->GetSubsystem<UTacGridSubsystem>();
 }
 
-UTacGridMovementService* UUnitAbilityInstance::GetMovementService(AUnit* Unit) const
+UTacGridMovementService* UUnitAbilityInstance::GetMovementService() const
 {
-	UTacGridSubsystem* GridSys = GetGridSubsystem(Unit);
+	UTacGridSubsystem* GridSys = GetGridSubsystem();
 	return GridSys ? GridSys->GetGridMovementService() : nullptr;
 }
 
-UTacGridTargetingService* UUnitAbilityInstance::GetTargetingService(AUnit* Unit) const
+UTacGridTargetingService* UUnitAbilityInstance::GetTargetingService() const
 {
-	UTacGridSubsystem* GridSys = GetGridSubsystem(Unit);
+	UTacGridSubsystem* GridSys = GetGridSubsystem();
 	return GridSys ? GridSys->GetGridTargetingService() : nullptr;
 }
 
-UTacCombatSubsystem* UUnitAbilityInstance::GetCombatSubsystem(AUnit* Unit) const
+UTacCombatSubsystem* UUnitAbilityInstance::GetCombatSubsystem() const
 {
-	if (!Unit) return nullptr;
-	UWorld* World = Unit->GetWorld();
+	if (!Owner) return nullptr;
+	UWorld* World = Owner->GetWorld();
 	if (!World) return nullptr;
+	return World->GetSubsystem<UTacCombatSubsystem>();
+}
 
-	// TODO: Get from world subsystem once TacCombatSubsystem becomes UWorldSubsystem
-	// Currently TacCombatSubsystem is UObject, need to access via GridSubsystem or similar
-	return nullptr;
+UTacAbilityExecutorService* UUnitAbilityInstance::GetExecutorService() const
+{
+	UTacCombatSubsystem* CombatSubsystem = GetCombatSubsystem();
+	return CombatSubsystem ? CombatSubsystem->GetAbilityExecutorService() : nullptr;
+}
+
+UTacTurnSubsystem* UUnitAbilityInstance::GetTurnSubsystem() const
+{
+	if (!Owner) return nullptr;
+	UWorld* World = Owner->GetWorld();
+	if (!World) return nullptr;
+	return World->GetSubsystem<UTacTurnSubsystem>();
 }
 

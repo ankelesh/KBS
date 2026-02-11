@@ -1,56 +1,69 @@
 #include "GameMechanics/Units/Abilities/UnitMovementAbility.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 
 
-ETargetReach UUnitMovementAbility::GetTargeting() const
+bool UUnitMovementAbility::Execute(FTacCoordinates TargetCell)
 {
-	return ETargetReach::Movement;
-}
+	if (!Owner) return false;
 
-FAbilityResult UUnitMovementAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
-{
-	UTacGridMovementService* MovementService = GetMovementService(SourceUnit);
-	if (!MovementService)
-	{
-		return CreateFailureResult(EAbilityFailureReason::Custom,
-			FText::FromString("Movement service not available"));
-	}
+	UTacGridMovementService* MovementService = GetMovementService();
+	if (!MovementService) return false;
 
 	FTacMovementVisualData OutVisuals;
 	TOptional<FTacMovementVisualData> OutSwappedVisuals;
-	bool bMoveSuccess = MovementService->MoveUnit(SourceUnit, TargetCell, OutVisuals, OutSwappedVisuals);
+	bool bMoveSuccess = MovementService->MoveUnit(Owner, TargetCell, OutVisuals, OutSwappedVisuals);
 
 	if (bMoveSuccess)
 	{
-		FAbilityResult Result = CreateSuccessResult();
-		Result.TurnAction = EAbilityTurnAction::EndTurn;
-		Result.UnitsAffected.Add(SourceUnit);
-		return Result;
+		Owner->GetStats().Status.SetFocus();
+		ConsumeCharge();
 	}
 
-	return CreateFailureResult(EAbilityFailureReason::Custom,
-		FText::FromString("Movement failed"));
+	return bMoveSuccess;
 }
 
-FAbilityValidation UUnitMovementAbility::CanExecute(AUnit* SourceUnit, FTacCoordinates TargetCell) const
+bool UUnitMovementAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	UTacGridTargetingService* TargetingService = GetTargetingService(SourceUnit);
-	if (!TargetingService)
-	{
-		return FAbilityValidation::Failure(EAbilityFailureReason::Custom,
-			FText::FromString("Targeting service not available"));
-	}
+	if (!Owner || RemainingCharges <= 0) return false;
 
-	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(SourceUnit, ETargetReach::Movement);
-	if (!ValidCells.Contains(TargetCell))
-	{
-		return FAbilityValidation::Failure(EAbilityFailureReason::OutOfRange,
-			FText::FromString("Target cell not in valid movement range"));
-	}
+	UTacGridTargetingService* TargetingService = GetTargetingService();
+	if (!TargetingService) return false;
 
-	return FAbilityValidation::Success();
+	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(Owner, GetTargeting());
+	return ValidCells.Contains(TargetCell);
+}
+
+bool UUnitMovementAbility::CanExecute() const
+{
+	if (!Owner || RemainingCharges <= 0) return false;
+
+	UTacGridTargetingService* TargetingService = GetTargetingService();
+	if (!TargetingService) return false;
+
+	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(Owner, GetTargeting());
+	return ValidCells.Num() > 0;
+}
+
+void UUnitMovementAbility::Subscribe()
+{
+	if (Owner)
+	{
+		Owner->OnUnitTurnEnd.AddDynamic(this, &UUnitMovementAbility::HandleTurnEnd);
+	}
+}
+
+void UUnitMovementAbility::Unsubscribe()
+{
+	if (Owner)
+	{
+		Owner->OnUnitTurnEnd.RemoveDynamic(this, &UUnitMovementAbility::HandleTurnEnd);
+	}
+}
+
+void UUnitMovementAbility::HandleTurnEnd(AUnit*)
+{
+	RestoreCharges();
 }
 

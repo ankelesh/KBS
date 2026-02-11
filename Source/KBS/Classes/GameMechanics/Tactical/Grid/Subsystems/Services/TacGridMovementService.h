@@ -58,6 +58,10 @@ class KBS_API UTacGridMovementService : public UObject
 public:
 	UTacGridMovementService();
 	void Initialize(UGridDataManager* InDataManager);
+
+	// Grid metadata initialization (call after initial PlaceUnit)
+	void InitializeUnitGridMetadata(AUnit* Unit, FTacCoordinates Position);
+
 	// moves unit, generating it's visuals
 	bool MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacMovementVisualData& OutVisuals, TOptional<FTacMovementVisualData>& OutSwappedUnitVisuals);
 	// make visuals without actual movement
@@ -92,4 +96,7 @@ private:
 
 	// Orientation calculation
 	FRotator CalculateCellOrientation(FTacCoordinates Location, ETeamSide TeamSide) const;
+
+	// Grid metadata management
+	void UpdateUnitGridMetadata(AUnit* Unit, FTacCoordinates Position, bool bOnField);
 };

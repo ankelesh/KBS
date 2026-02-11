@@ -21,6 +21,7 @@ public:
 	ETeamSide GetTeamSide() const { return TeamSide; }
 	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
 	const TArray<TObjectPtr<AUnit>>& GetUnits() const { return Units; }
+	bool IsAnyUnitAlive() const;
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")
 	ETeamSide TeamSide = ETeamSide::Attacker;

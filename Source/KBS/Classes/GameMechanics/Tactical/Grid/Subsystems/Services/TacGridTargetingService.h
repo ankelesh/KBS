@@ -10,6 +10,13 @@
 class AUnit;
 class UGridDataManager;
 enum class ETargetReach : uint8;
+enum class EAffiliationFilter : uint8
+{
+	Any,
+	Friendly,
+	Enemy
+};
+
 enum class ECorpseFilter : uint8
 {
 	Any,
@@ -33,22 +40,17 @@ public:
 	bool IsValidTargetCell(AUnit* Unit, const FTacCoordinates& Cell, ETargetReach Reach) const;
 	int32 CalculateDistance(AUnit* Unit1, AUnit* Unit2) const;
 	class UWeapon* SelectWeapon(AUnit* Attacker, AUnit* Target) const;
+	bool HasValidTargetAtCell(AUnit* Source, FTacCoordinates TargetCell, ETargetReach Reach) const;
+	bool HasAnyValidTargets(AUnit* Source, ETargetReach Reach) const;
 private:
 	UPROPERTY()
 	TObjectPtr<UGridDataManager> DataManager;
 	void GetClosestEnemyCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetFlankTargetCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
-	void GetAnyEnemyCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
-	void GetAllFriendlyCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
+	void GetUnitCellsByAffiliation(AUnit* SourceUnit, EAffiliationFilter Filter, TArray<FTacCoordinates>& OutCells) const;
 	void GetEmptyCellsOrFriendly(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetMovementCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetCorpseCells(AUnit* Unit, ECorpseFilter Filter, TArray<FTacCoordinates>& OutCells) const;
-	void GetAnyCorpseCells(TArray<FTacCoordinates>& OutCells) const;
-	void GetFriendlyCorpseCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
-	void GetEnemyCorpseCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
-	void GetAnyNonBlockedCorpseCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
-	void GetFriendlyNonBlockedCorpseCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
-	void GetEnemyNonBlockedCorpseCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetAdjacentMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetFlankMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetAirMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
@@ -56,6 +58,7 @@ private:
 	bool IsAdjacentCell(const FTacCoordinates& CellA, const FTacCoordinates& CellB) const;
 	bool IsFlankCell(const FTacCoordinates& Cell) const;
 	bool IsValidMultiCellDestination(AUnit* Unit, const FTacCoordinates& TargetCoords, ETacGridLayer Layer) const;
+	bool IsValidMoveDestination(AUnit* MovingUnit, const FTacCoordinates& TargetCoords) const;
 	TArray<AUnit*> GetUnitsInArea(FTacCoordinates CenterCell, const struct FAreaShape& AreaShape) const;
 	bool TryGetPrimaryCellForUnit(AUnit* Unit, FTacCoordinates& OutCell) const;
 	void AddUnitCell(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;

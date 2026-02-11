@@ -1,25 +1,60 @@
 #include "GameMechanics/Units/Abilities/UnitWaitAbility.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 
 
-UUnitWaitAbility::UUnitWaitAbility()
+bool UUnitWaitAbility::Execute(FTacCoordinates TargetCell)
 {
-	TurnAction = EAbilityTurnAction::Wait;
-}
+	if (!Owner) return false;
 
-FAbilityResult UUnitWaitAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
-{
-	if (!SourceUnit)
+	UTacTurnSubsystem* TurnSubsystem = GetTurnSubsystem();
+	if (!TurnSubsystem)
 	{
-		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No source unit"));
+		UE_LOG(LogTemp, Error, TEXT("UnitWaitAbility: Failed to get TurnSubsystem"));
+		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("%s uses Wait - will be reinserted into queue with negated initiative"),
-		*SourceUnit->GetName());
+	// Invoke Wait on turn order
+	TurnSubsystem->Wait();
 
-	FAbilityResult Result = CreateSuccessResult();
-	Result.UnitsAffected.Add(SourceUnit);
-	return Result;
+	UE_LOG(LogTemp, Log, TEXT("%s uses Wait - reinserted into queue with modified initiative"), *Owner->GetName());
+
+	// Set focused status to end turn
+	Owner->GetStats().Status.SetFocus();
+	ConsumeCharge();
+
+	return true;
+}
+
+bool UUnitWaitAbility::CanExecute(FTacCoordinates TargetCell) const
+{
+	return Owner && RemainingCharges > 0;
+}
+
+bool UUnitWaitAbility::CanExecute() const
+{
+	return Owner && RemainingCharges > 0;
+}
+
+void UUnitWaitAbility::Subscribe()
+{
+	if (UTacTurnSubsystem* TurnSubsystem = GetTurnSubsystem())
+	{
+		TurnSubsystem->OnRoundEnd.AddDynamic(this, &UUnitWaitAbility::HandleRoundEnd);
+	}
+}
+
+void UUnitWaitAbility::Unsubscribe()
+{
+	UTacTurnSubsystem* TurnSubsystem = GetTurnSubsystem();
+	if (TurnSubsystem)
+	{
+		TurnSubsystem->OnRoundEnd.RemoveDynamic(this, &UUnitWaitAbility::HandleRoundEnd);
+	}
+}
+
+void UUnitWaitAbility::HandleRoundEnd(int32)
+{
+	RestoreCharges();
 }
 

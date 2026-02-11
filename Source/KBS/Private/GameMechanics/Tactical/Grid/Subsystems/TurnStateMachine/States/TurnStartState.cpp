@@ -1,32 +1,20 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/TurnStartState.h"
-
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/TacTurnOrder.h"
+#include "GameMechanics/Units/Unit.h"
 
-void TurnStartState::Enter()
+void FTurnStartState::Enter()
 {
 	GetTurnOrder()->Advance();
 	BroadcastTurnStart();
+	if (!GetTurnOrder()->Empty())
+		GetTurnOrder()->GetCurrentUnit()->HandleTurnStart();
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Current unit was empty on start of turn!"));
+	}
 }
 
-void TurnStartState::Exit()
-{
-
-}
-
-void TurnStartState::UnitClicked(AUnit* Unit)
-{
-}
-
-void TurnStartState::AbilityClicked(UUnitAbilityInstance* Ability)
-{
-}
-
-ETurnProcessingSubstate TurnStartState::CanReleaseState()
-{
-	return ETurnProcessingSubstate::EFreeState;
-}
-
-ETurnState TurnStartState::NextState()
+ETurnState FTurnStartState::NextState()
 {
 	return ETurnState::EActionsProcessingState;
 }

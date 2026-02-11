@@ -3,6 +3,7 @@
 #include "GameMechanics/Units/Stats/BaseUnitStatTypes.h"
 #include "GameMechanics/Units/Stats/UnitDefenseStats.h"
 #include "GameMechanics/Units/Stats/UnitHealth.h"
+#include "GameMechanics/Units/Stats/UnitStatusContainer.h"
 #include "UnitStats.generated.h"
 
 USTRUCT(BlueprintType)
@@ -17,4 +18,6 @@ struct FUnitCoreStats
 	FUnitStatPercent Accuracy {75};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Core")
 	FUnitDefenseStats Defense;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Core")
+	FUnitStatusContainer Status;
 };

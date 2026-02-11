@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-
+#include "GameplayTypes/GridCoordinates.h"
 
 class FTacTurnOrder;
 
@@ -23,7 +23,8 @@ enum class ETurnProcessingSubstate : uint8
 {
 	EFreeState, // can release state
 	EAwaitingPresentationState, // can release, but needs presentation to end
-	EAwaitingInputState // can not proceed until input
+	EAwaitingInputState, // can not proceed until input
+	EProcessingEndState
 };
 class AUnit;
 class UUnitAbilityInstance;
@@ -34,12 +35,15 @@ class FTacTurnState
 public:
 	friend class UTacTurnSubsystem;
 	virtual ~FTacTurnState() = default;
+	explicit FTacTurnState(UTacTurnSubsystem* Parent, ETurnProcessingSubstate Substate = ETurnProcessingSubstate::EFreeState)
+		: TurnProcessing(Substate), ParentTurnSubsystem(Parent) {}
 	virtual void Enter();
 	virtual void Exit();
 	virtual void UnitClicked(AUnit * Unit) {}
 	virtual void CellClicked(FTacCoordinates Cell) {}
 	virtual void AbilityClicked(UUnitAbilityInstance * Ability) {}
 	virtual void OnPresentationComplete() {}
+	void SetParentTurnSubsystem(UTacTurnSubsystem * Parent) { ParentTurnSubsystem = Parent; };
 	virtual ETurnProcessingSubstate CanReleaseState(){ return TurnProcessing; };
 	virtual ETurnState NextState() = 0;
 protected:
@@ -49,7 +53,8 @@ protected:
 	void BroadcastRoundEnd();
 	void BroadcastTurnEnd();
 	void BroadcastTurnStart();
-	
+	void BroadcastBattleEnd();
+	bool CheckWinCondition() const;
 	ETurnProcessingSubstate TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	UTacTurnSubsystem* ParentTurnSubsystem;
 };

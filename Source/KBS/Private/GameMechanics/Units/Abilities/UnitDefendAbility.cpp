@@ -1,19 +1,48 @@
 #include "GameMechanics/Units/Abilities/UnitDefendAbility.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 
 
-FAbilityResult UUnitDefendAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
+bool UUnitDefendAbility::Execute(FTacCoordinates TargetCell)
 {
-	if (!SourceUnit)
+	if (!Owner) return false;
+
+	Owner->SetDefending(true);
+	UE_LOG(LogTemp, Log, TEXT("%s is now defending - incoming damage will be halved"), *Owner->GetName());
+
+	// Set Focused status to end turn
+	Owner->GetStats().Status.SetFocus();
+	ConsumeCharge();
+
+	return true;
+}
+
+bool UUnitDefendAbility::CanExecute(FTacCoordinates TargetCell) const
+{
+	return Owner && RemainingCharges > 0;
+}
+
+bool UUnitDefendAbility::CanExecute() const
+{
+	return Owner && RemainingCharges > 0;
+}
+
+void UUnitDefendAbility::Subscribe()
+{
+	if (Owner)
 	{
-		return CreateFailureResult(EAbilityFailureReason::Custom, FText::FromString("No source unit"));
+		Owner->OnUnitTurnEnd.AddDynamic(this, &UUnitDefendAbility::HandleTurnEnd);
 	}
+}
 
-	SourceUnit->SetDefending(true);
-	UE_LOG(LogTemp, Log, TEXT("%s is now defending - incoming damage will be halved"), *SourceUnit->GetName());
+void UUnitDefendAbility::Unsubscribe()
+{
+	if (Owner)
+	{
+		Owner->OnUnitTurnEnd.RemoveDynamic(this, &UUnitDefendAbility::HandleTurnEnd);
+	}
+}
 
-	FAbilityResult Result = CreateSuccessResult();
-	Result.UnitsAffected.Add(SourceUnit);
-	return Result;
+void UUnitDefendAbility::HandleTurnEnd(AUnit*)
+{
+	RestoreCharges();
 }

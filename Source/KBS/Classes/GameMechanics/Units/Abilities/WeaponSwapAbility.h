@@ -16,7 +16,7 @@ class KBS_API UWeaponSwapAbility : public UUnitAbilityInstance
 	GENERATED_BODY()
 
 public:
-	virtual FAbilityResult ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell) override;
+	virtual FAbilityResult Execute(AUnit* SourceUnit, FTacCoordinates TargetCell) override;
 	virtual ETargetReach GetTargeting() const override;
 
 protected:

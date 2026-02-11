@@ -48,6 +48,7 @@ public:
 	void RemoveUnit(AUnit* Unit);
 	// is true when current unit is nullptr and queue size is 0
 	bool Empty() const;
+	bool IsRoundEnd() const;
 private:
 	int32 InitiativeRoll(AUnit* Unit);
 	void SortQueue();

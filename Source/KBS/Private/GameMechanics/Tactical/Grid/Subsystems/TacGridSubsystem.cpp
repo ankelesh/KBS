@@ -69,6 +69,36 @@ TObjectPtr<UBattleTeam> UTacGridSubsystem::GetDefenderTeam()
 	return DataManager->GetDefenderTeam();
 }
 
+bool UTacGridSubsystem::IsBothTeamsAnyUnitAlive()
+{
+	if (!DataManager) return false;
+	return DataManager->IsBothTeamsAnyUnitAlive();
+}
+
+TObjectPtr<UBattleTeam> UTacGridSubsystem::GetWinnerTeam()
+{
+	if (!DataManager) return nullptr;
+
+	UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
+	UBattleTeam* DefenderTeam = DataManager->GetDefenderTeam();
+
+	if (!AttackerTeam || !DefenderTeam) return nullptr;
+
+	bool bAttackerAlive = AttackerTeam->IsAnyUnitAlive();
+	bool bDefenderAlive = DefenderTeam->IsAnyUnitAlive();
+
+	if (bAttackerAlive && !bDefenderAlive)
+	{
+		return AttackerTeam;
+	}
+	if (bDefenderAlive && !bAttackerAlive)
+	{
+		return DefenderTeam;
+	}
+
+	return nullptr;
+}
+
 void UTacGridSubsystem::ShowHighlights(const TArray<FTacCoordinates>& Cells, EHighlightType HighlightType)
 {
 	HighlightComponent->ShowHighlights(Cells, HighlightType);

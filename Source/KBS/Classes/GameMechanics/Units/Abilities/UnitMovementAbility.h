@@ -8,7 +8,14 @@ class KBS_API UUnitMovementAbility : public UUnitAbilityInstance
 {
 	GENERATED_BODY()
 public:
-	virtual ETargetReach GetTargeting() const override;
-	virtual FAbilityResult ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell) override;
-	virtual FAbilityValidation CanExecute(AUnit* SourceUnit, FTacCoordinates TargetCell) const override;
+	virtual bool Execute(FTacCoordinates TargetCell) override;
+	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
+	virtual bool CanExecute() const override;
+
+	virtual void Subscribe() override;
+	virtual void Unsubscribe() override;
+
+private:
+	UFUNCTION()
+	void HandleTurnEnd(AUnit*);
 };

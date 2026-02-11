@@ -3,6 +3,7 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/LargeUnit.h"
+#include "GameMechanics/Units/Unit.h"
 
 void FCorpseStack::Push(AUnit* Unit, const FVector& WorldLocation)
 {
@@ -607,4 +608,9 @@ TArray<AUnit*> UGridDataManager::GetAllUnits() const
 	TArray<AUnit*> Result;
 	AllUnits.GenerateValueArray(Result);
 	return Result;
+}
+
+bool UGridDataManager::IsBothTeamsAnyUnitAlive() const
+{
+	return AttackerTeam->IsAnyUnitAlive() && DefenderTeam->IsAnyUnitAlive();
 }

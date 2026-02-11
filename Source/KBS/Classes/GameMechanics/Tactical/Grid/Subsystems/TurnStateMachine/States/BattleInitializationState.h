@@ -7,9 +7,8 @@ class FBattleInitializationState : public FTacTurnState
 public:
 	virtual void Enter() override;
 	virtual void Exit() override;
-	virtual ETurnProcessingSubstate CanReleaseState() override;
 	virtual ETurnState NextState() override {return ETurnState::ERoundStartState;};
-	FBattleInitializationState();
+	FBattleInitializationState(UTacTurnSubsystem* Parent) : FTacTurnState(Parent, ETurnProcessingSubstate::EFreeState){}
 	
 protected:
 	void PrepareUnitStats();

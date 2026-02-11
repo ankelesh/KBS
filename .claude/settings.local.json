@@ -27,7 +27,8 @@
       "Bash(findstr:*)",
       "Bash(cmd /c \"dir /s /b E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\*Subsystem*\")",
       "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Classes\\GameMechanics\\Units\\Stats\\UnitStat.h\")",
-      "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Private\\GameMechanics\\Units\\Stats\\UnitStat.cpp\")"
+      "Bash(del \"E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Private\\GameMechanics\\Units\\Stats\\UnitStat.cpp\")",
+      "Bash(cmd /c \"dir /b E:\\Projects\\unreal_projects\\KBS\\Source\\KBS\\Classes\\GameMechanics\\Units\\Stats\"\")"
     ],
     "deny": [],
     "ask": []

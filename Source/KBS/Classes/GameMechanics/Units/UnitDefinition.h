@@ -50,8 +50,6 @@ public:
 	FString UnitName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStatsTemplate;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	FUnitProgressionData BaseProgressionTemplate;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<TObjectPtr<UWeaponDataAsset>> DefaultWeapons;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Attack"))

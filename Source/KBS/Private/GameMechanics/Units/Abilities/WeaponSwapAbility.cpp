@@ -5,7 +5,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 
 
-FAbilityResult UWeaponSwapAbility::ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell)
+FAbilityResult UWeaponSwapAbility::Execute(AUnit* SourceUnit, FTacCoordinates TargetCell)
 {
 	if (!Owner)
 	{

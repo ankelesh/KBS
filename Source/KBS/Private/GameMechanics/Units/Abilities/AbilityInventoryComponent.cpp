@@ -321,6 +321,7 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 	if (!CurrentActiveAbility)
 	{
 		EquipDefaultAbility();
+		checkf(CurrentActiveAbility, TEXT("AbilityInventory: No valid ability after EquipDefaultAbility()"));
 		return;
 	}
 
@@ -328,6 +329,7 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 	if (!OwnerUnit)
 	{
 		EquipDefaultAbility();
+		checkf(CurrentActiveAbility, TEXT("AbilityInventory: No valid ability after EquipDefaultAbility()"));
 		return;
 	}
 
@@ -339,12 +341,61 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Current ability '%s' not available, falling back to default attack"),
 			*CurrentActiveAbility->GetConfig()->AbilityName);
 		EquipDefaultAbility();
+		checkf(CurrentActiveAbility, TEXT("AbilityInventory: No valid ability after EquipDefaultAbility()"));
 	}
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Re-equipped last ability '%s'"),
 			*CurrentActiveAbility->GetConfig()->AbilityName);
 	}
+}
+
+bool UAbilityInventoryComponent::HasAnyAbilityAvailable() const
+{
+	const FUnitStatusContainer* Status = GetOwnerStatus();
+	if (!Status)
+	{
+		return false;
+	}
+
+	// Quick early-out: if TurnBlocked or Fleeing, no abilities available
+	if (!Status->CanAct() || Status->IsFleeing())
+	{
+		return false;
+	}
+
+	// Check default abilities
+	if (DefaultAttackAbility && IsAbilityAvailable(DefaultAttackAbility))
+	{
+		return true;
+	}
+	if (DefaultMoveAbility && IsAbilityAvailable(DefaultMoveAbility))
+	{
+		return true;
+	}
+	if (DefaultWaitAbility && IsAbilityAvailable(DefaultWaitAbility))
+	{
+		return true;
+	}
+	if (DefaultDefendAbility && IsAbilityAvailable(DefaultDefendAbility))
+	{
+		return true;
+	}
+	if (DefaultFleeAbility && IsAbilityAvailable(DefaultFleeAbility))
+	{
+		return true;
+	}
+
+	// Check other active abilities
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
+	{
+		if (IsAbilityAvailable(Ability))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // Spellbook methods
@@ -409,7 +460,7 @@ void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Sp
 	}
 
 	// Execute the spell (will swap weapons and equip auto-attack)
-	FAbilityResult Result = Spell->ApplyAbilityEffect(SourceUnit, EmptyCell);
+	FAbilityResult Result = Spell->Execute(SourceUnit, EmptyCell);
 
 	if (Result.bSuccess)
 	{
@@ -423,42 +474,37 @@ void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Sp
 	}
 }
 
-// Locking methods
-void UAbilityInventoryComponent::LockAllExcept(UUnitAbilityInstance* Exception)
+const FUnitStatusContainer* UAbilityInventoryComponent::GetOwnerStatus() const
 {
-	if (!Exception)
+	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
+	if (!OwnerUnit)
 	{
-		return;
+		return nullptr;
 	}
-	LockState.bSilenced = false;
-	LockState.ExclusiveAbilities.Empty();
-	LockState.ExclusiveAbilities.Add(Exception);
-}
-
-void UAbilityInventoryComponent::LockToBasicAttackOnly()
-{
-	LockState.bSilenced = true;
-	LockState.ExclusiveAbilities.Empty();
-}
-
-void UAbilityInventoryComponent::LockSpellbook()
-{
-	LockState.bSpellbookLocked = true;
-}
-
-void UAbilityInventoryComponent::UnlockSpellbook()
-{
-	LockState.bSpellbookLocked = false;
-}
-
-void UAbilityInventoryComponent::UnlockAll()
-{
-	LockState.Reset();
+	return &OwnerUnit->GetStats().Status;
 }
 
 bool UAbilityInventoryComponent::IsSpellbookAvailable() const
 {
-	return !LockState.bSpellbookLocked;
+	const FUnitStatusContainer* Status = GetOwnerStatus();
+	if (!Status)
+	{
+		return false;
+	}
+
+	// TurnBlocked or Fleeing blocks all abilities including spellbook
+	if (!Status->CanAct() || Status->IsFleeing())
+	{
+		return false;
+	}
+
+	// Silenced specifically blocks spellbook
+	if (!Status->CanUseSpellbook())
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool UAbilityInventoryComponent::IsDefaultAbility(UUnitAbilityInstance* Ability) const
@@ -481,16 +527,43 @@ bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbilityInstance* Abilit
 		return false;
 	}
 
-	bool bIsDefault = IsDefaultAbility(Ability);
-
-	if (LockState.bSilenced)
+	const FUnitStatusContainer* Status = GetOwnerStatus();
+	if (!Status)
 	{
-		return bIsDefault;
+		return false;
 	}
 
-	if (LockState.ExclusiveAbilities.Num() > 0)
+	// TurnBlocked or Fleeing blocks all abilities
+	if (!Status->CanAct() || Status->IsFleeing())
 	{
-		return LockState.ExclusiveAbilities.Contains(Ability);
+		return false;
+	}
+
+	// Focused: only current ability available
+	if (Status->IsFocused())
+	{
+		if (!CurrentActiveAbility)
+		{
+			UE_LOG(LogTemp, Error, TEXT("AbilityInventory: Unit is Focused but no ability equipped"));
+			return false;
+		}
+		return Ability == CurrentActiveAbility;
+	}
+
+	// Disoriented: only default abilities available
+	if (!Status->CanUseNonBasicAbilities())
+	{
+		return IsDefaultAbility(Ability);
+	}
+
+	// Silenced: blocks spellbook abilities
+	if (!Status->CanUseSpellbook())
+	{
+		bool bIsSpellbookAbility = SpellbookAbilities.Contains(Ability);
+		if (bIsSpellbookAbility)
+		{
+			return false;
+		}
 	}
 
 	return true;

@@ -4,11 +4,9 @@
 class FRoundStartState : public FTacTurnState
 {
 public:
-	friend class UTacTurnSubsystem;
+	explicit FRoundStartState(UTacTurnSubsystem* Parent)
+		: FTacTurnState(Parent, ETurnProcessingSubstate::EFreeState) {}
 	virtual void Enter() override;
 	virtual void Exit() override;
-	virtual void UnitClicked(AUnit* Unit) override;
-	virtual void AbilityClicked(UUnitAbilityInstance* Ability) override;
-	virtual ETurnProcessingSubstate CanReleaseState() override;
 	virtual ETurnState NextState() override;
 };

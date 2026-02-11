@@ -1,5 +1,6 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/TacTurnState.h"
 
+#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 
 void FTacTurnState::Enter()
@@ -29,6 +30,20 @@ void FTacTurnState::BroadcastTurnEnd()
 void FTacTurnState::BroadcastTurnStart()
 {
 	ParentTurnSubsystem->BroadcastTurnStart();
+}
+
+void FTacTurnState::BroadcastBattleEnd()
+{
+	ParentTurnSubsystem->BroadcastBattleEnd();
+}
+
+bool FTacTurnState::CheckWinCondition() const
+{
+	if (auto* GridSubsystem = ParentTurnSubsystem->GetWorld()->GetSubsystem<UTacGridSubsystem>())
+	{
+		return !GridSubsystem->IsBothTeamsAnyUnitAlive();
+	}
+	return false;
 }
 
 FTacTurnOrder* FTacTurnState::GetTurnOrder()

@@ -8,19 +8,6 @@ class UUnitAbilityInstance;
 struct FAbilityDisplayData;
 enum class EDefaultAbilitySlot : uint8;
 
-struct FAbilityLockState
-{
-	bool bSilenced = false;
-	TSet<TObjectPtr<UUnitAbilityInstance>> ExclusiveAbilities;
-	bool bSpellbookLocked = false;
-
-	void Reset()
-	{
-		bSilenced = false;
-		ExclusiveAbilities.Empty();
-		bSpellbookLocked = false;
-	}
-};
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UAbilityInventoryComponent : public UActorComponent
@@ -59,6 +46,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void EnsureValidAbility();
 
+	UFUNCTION(BlueprintPure, Category = "Abilities")
+	bool HasAnyAbilityAvailable() const;
+
 	// Spellbook functionality
 	UFUNCTION(BlueprintPure, Category = "Abilities|Spellbook")
 	TArray<UUnitAbilityInstance*> GetSpellbookAbilities() const;
@@ -72,24 +62,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
 	void ActivateSpellbookSpell(UUnitAbilityInstance* Spell);
 
-	// Ability locking
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Locking")
-	void LockAllExcept(UUnitAbilityInstance* Exception);
-
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Locking")
-	void LockToBasicAttackOnly();
-
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Locking")
-	void LockSpellbook();
-
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Locking")
-	void UnlockSpellbook();
-
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Locking")
-	void UnlockAll();
-
-	UFUNCTION(BlueprintPure, Category = "Abilities|Locking")
-	bool IsSpellbookAvailable() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
@@ -112,8 +84,9 @@ protected:
 	TArray<TObjectPtr<UUnitAbilityInstance>> SpellbookAbilities;
 
 private:
-	FAbilityLockState LockState;
 
 	bool IsDefaultAbility(UUnitAbilityInstance* Ability) const;
 	bool IsAbilityAvailable(UUnitAbilityInstance* Ability) const;
+	const FUnitStatusContainer* GetOwnerStatus() const;
+	const FUnitStatusContainer* GetOwnerStatus() const;
 };

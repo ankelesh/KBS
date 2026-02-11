@@ -237,3 +237,8 @@ bool FTacTurnOrder::Empty() const
 {
 	return !CurrentUnit.IsValid() && Queue.Num() == 0;
 }
+
+bool FTacTurnOrder::IsRoundEnd() const
+{
+	return Queue.Num() == 0;
+}

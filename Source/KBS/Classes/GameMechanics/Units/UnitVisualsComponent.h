@@ -34,6 +34,7 @@ public:
 	void RotateTowardTarget(FRotator TargetRotation, float Speed = 360.0f);
 	bool IsRotating() const { return bIsRotating; }
 	UNiagaraComponent* SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration);
+	void PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, class UWeapon* Weapon);
 
 	// Presentation operation management
 	void RegisterRotationOperation();
@@ -61,6 +62,10 @@ private:
 	FRotator PendingRotation;
 	bool bIsRotating = false;
 	float CurrentRotationSpeed = 360.0f;
+
+	// Attack animation constants
+	static constexpr float AttackRotationSpeed = 540.0f;
+	static constexpr float MeshYawOffset = -90.0f;
 
 	// Presentation operation tracking
 	FOperationHandle CurrentRotationOperation;

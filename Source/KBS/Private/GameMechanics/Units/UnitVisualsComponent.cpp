@@ -1,5 +1,8 @@
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -10,6 +13,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "TimerManager.h"
+#include "Kismet/KismetMathLibrary.h"
 UUnitVisualsComponent::UUnitVisualsComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -259,6 +263,33 @@ void UUnitVisualsComponent::PlayAttackMontage(UAnimMontage* Montage, float PlayR
 		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
 	}
 }
+
+void UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* Target, UWeapon* Weapon)
+{
+	if (!OwnerUnit || !Target || !Weapon) return;
+
+	// Get weapon config and attack montage
+	UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
+	UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
+
+	// Calculate rotation toward target
+	const FVector SourceLoc = OwnerUnit->GetActorLocation();
+	const FVector TargetLoc = Target->GetActorLocation();
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
+	LookAtRotation.Yaw += MeshYawOffset;
+
+	// Play rotation
+	RegisterRotationOperation();
+	RotateTowardTarget(LookAtRotation, AttackRotationSpeed);
+
+	// Play attack montage if available
+	if (AttackMontage)
+	{
+		RegisterMontageOperation();
+		PlayAttackMontage(AttackMontage);
+	}
+}
+
 void UUnitVisualsComponent::PlayHitReactionMontage(UAnimMontage* Montage)
 {
 	if (!Montage || !PrimarySkeletalMesh)

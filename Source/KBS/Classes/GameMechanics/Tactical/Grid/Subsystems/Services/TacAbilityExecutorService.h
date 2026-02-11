@@ -19,6 +19,6 @@ class KBS_API UTacAbilityExecutorService : public UObject
 public:
 	void Initialize();
 	// always single cell since user can not click more than one cell at a time
-	FAbilityValidation ValidateAbility(UUnitAbilityInstance* Ability, AUnit* Source, FTacCoordinates TargetCell) const;
-	FAbilityResult ExecuteAbility(UUnitAbilityInstance* Ability, AUnit* Source, FTacCoordinates TargetCell);
+	bool ValidateAbility(UUnitAbilityInstance* Ability, AUnit* Source, FTacCoordinates TargetCell) const;
+	bool ExecuteAbility(UUnitAbilityInstance* Ability, AUnit* Source, FTacCoordinates TargetCell);
 };

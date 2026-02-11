@@ -17,6 +17,8 @@ class UTacCombatSubsystem;
 class UTacGridMovementService;
 class UTacGridCombatSystem;
 class UTacGridTargetingService;
+class UTacTurnSubsystem;
+class UTacAbilityExecutorService;
 struct FAttackContext;
 
 UCLASS(Abstract, Blueprintable)
@@ -24,42 +26,37 @@ class KBS_API UUnitAbilityInstance : public UObject
 {
 	GENERATED_BODY()
 public:
-	void InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner);
+	virtual void InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner);
 
 	// Clean signature - no context bloat
-	virtual FAbilityResult TriggerAbility(AUnit* SourceUnit, FTacCoordinates TargetCell);
-	virtual FAbilityResult ApplyAbilityEffect(AUnit* SourceUnit, FTacCoordinates TargetCell);
-	virtual FAbilityValidation CanExecute(AUnit* SourceUnit, FTacCoordinates TargetCell) const;
+	virtual bool Execute(FTacCoordinates TargetCell) { return true; };
+	virtual bool CanExecute(FTacCoordinates TargetCell) const { return false; };
+	virtual bool CanExecute() const { return false; };
 
 	virtual ETargetReach GetTargeting() const;
 	virtual bool IsPassive() const;
-	virtual TMap<AUnit*, FPreviewHitResult> DamagePreview(AUnit* Source, const TArray<AUnit*>& Targets);
-	virtual void Subscribe();
-	virtual void Unsubscribe();
-	virtual FAbilityResult CreateSuccessResult() const;
-	virtual FAbilityResult CreateFailureResult(EAbilityFailureReason Reason, FText Message) const;
-
-	UFUNCTION()
-	virtual bool HandleAttackTrigger(FAttackContext& context) { return true; };
-	virtual bool AttackTriggerCleanup(FAttackContext& context) { return true; };
-	virtual bool HandleHitTrigger(FHitInstance& HitContext) { return true; };
-	virtual bool HitTriggerCleanup(FHitInstance& HitContext) { return true; };
-
+	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const {return {};};
+	virtual void Subscribe() {};
+	virtual void Unsubscribe() {};
+	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }
 	AUnit* GetOwner() const { return Owner; }
-	void ConsumeCharge();
-	void RestoreCharges();
+	void SetOwner(AUnit* NewOwner) { Owner = NewOwner; }
+	virtual void ConsumeCharge();
+	virtual void RestoreCharges();
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
-	FAbilityDisplayData GetAbilityDisplayData() const;
+	virtual FAbilityDisplayData GetAbilityDisplayData() const;
 
 protected:
 	// Service getters - full chain encapsulated, returns nullptr on any failure
-	UTacGridSubsystem* GetGridSubsystem(AUnit* Unit) const;
-	UTacGridMovementService* GetMovementService(AUnit* Unit) const;
-	UTacGridTargetingService* GetTargetingService(AUnit* Unit) const;
-	UTacCombatSubsystem* GetCombatSubsystem(AUnit* Unit) const;
+	UTacGridSubsystem* GetGridSubsystem() const;
+	UTacGridMovementService* GetMovementService() const;
+	UTacGridTargetingService* GetTargetingService() const;
+	UTacCombatSubsystem* GetCombatSubsystem() const;
+	UTacAbilityExecutorService* GetExecutorService() const;
+	UTacTurnSubsystem* GetTurnSubsystem() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<UUnitAbilityDefinition> Config;
@@ -67,6 +64,4 @@ protected:
 	int32 RemainingCharges = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<AUnit> Owner;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
-	EAbilityTurnAction TurnAction = EAbilityTurnAction::EndTurn;
 };

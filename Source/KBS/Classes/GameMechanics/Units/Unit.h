@@ -3,6 +3,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "UnitDisplayData.h"
+#include "UnitGridMetadata.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "Unit.generated.h"
 
@@ -12,6 +13,7 @@ class UBattleEffectComponent;
 class UBattleEffect;
 class UAbilityInventoryComponent;
 class UUnitVisualsComponent;
+class UTacGridMovementService;
 struct FDamageResult;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitClicked, AUnit*, ClickedUnit, FKey, ButtonPressed);
@@ -26,6 +28,7 @@ UCLASS()
 class KBS_API AUnit : public APawn
 {
 	GENERATED_BODY()
+	friend class UTacGridMovementService;
 public:
 	// --- Lifecycle ---
 	AUnit();
@@ -81,6 +84,9 @@ public:
 	virtual bool IsMultiCell() const { return false; }
 	UFUNCTION(BlueprintCallable, Category = "Display")
 	FUnitDisplayData GetDisplayData() const;
+	const FUnitGridMetadata& GetGridMetadata() const { return GridMetadata; }
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	FUnitGridMetadata GetGridMetadataCopy() const { return GridMetadata; }
 
 	// --- Components ---
 	UFUNCTION(BlueprintPure, Category = "Components")
@@ -107,6 +113,10 @@ protected:
 	TArray<TObjectPtr<UWeapon>> Weapons;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")
 	ETeamSide TeamSide = ETeamSide::Attacker;
+
+private:
+	// Grid positioning metadata (modified by UTacGridMovementService via friend access)
+	FUnitGridMetadata GridMetadata;
 };
 
 typedef TArray<TObjectPtr<AUnit>> FUnitArray;

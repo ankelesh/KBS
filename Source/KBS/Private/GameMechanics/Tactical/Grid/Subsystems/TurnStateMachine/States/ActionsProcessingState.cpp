@@ -13,19 +13,7 @@
 
 void FActionsProcessingState::Enter()
 {
-	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
-	UAbilityInventoryComponent* Inventory = CurrentUnit->GetAbilityInventory();
-	
-	Inventory->EnsureValidAbility();
-
-	UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
-	UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
-	UTacGridTargetingService* TargetingService = GridSubsystem->GetGridTargetingService();
-	ETargetReach AbilityTargeting = CurrentAbility->GetTargeting();
-	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(CurrentUnit, AbilityTargeting);
-
-	EHighlightType HighlightType = UAbilityTypesLibrary::TargetReachToHighlightType(AbilityTargeting);
-	GridSubsystem->ShowHighlights(ValidCells, HighlightType);
+	CheckAbilitiesAndSetupTurn();
 }
 
 void FActionsProcessingState::Exit()
@@ -35,108 +23,98 @@ void FActionsProcessingState::Exit()
 
 void FActionsProcessingState::CellClicked(FTacCoordinates Cell)
 {
-	if (TurnProcessing != ETurnProcessingSubstate::EAwaitingInputState)
-	{
-		return;
-	}
-
-	ExecuteAbilityOnTarget(Cell);
+	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingInputState)
+		ExecuteAbilityOnTarget(Cell);
 }
 
 void FActionsProcessingState::UnitClicked(AUnit* Unit)
 {
-	if (!Unit || TurnProcessing != ETurnProcessingSubstate::EAwaitingInputState)
+	if (Unit && TurnProcessing == ETurnProcessingSubstate::EAwaitingInputState)
 	{
-		return;
+		if (UTacGridSubsystem* GridSubsystem = Unit->GetWorld()->GetSubsystem<UTacGridSubsystem>(); GridSubsystem)
+		{
+			FTacCoordinates UnitCell;
+			if (GridSubsystem->GetUnitCoordinates(Unit, UnitCell))
+			{
+				ExecuteAbilityOnTarget(UnitCell);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("ActionsProcessingState: Failed to get coordinates for clicked unit"));
+			}
+		}
 	}
-
-	// Get unit's coordinates
-	UTacGridSubsystem* GridSubsystem = Unit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
-	FTacCoordinates UnitCell;
-	if (!GridSubsystem->GetUnitCoordinates(Unit, UnitCell))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ActionsProcessingState: Failed to get coordinates for clicked unit"));
-		return;
-	}
-
-	ExecuteAbilityOnTarget(UnitCell);
 }
 
 void FActionsProcessingState::AbilityClicked(UUnitAbilityInstance* Ability)
 {
-	if (!Ability || TurnProcessing != ETurnProcessingSubstate::EAwaitingInputState)
+	if (Ability && TurnProcessing == ETurnProcessingSubstate::EAwaitingInputState)
 	{
-		return;
+		AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
+		CurrentUnit->GetAbilityInventory()->EquipAbility(Ability);
+		CheckAbilitiesAndSetupTurn();
 	}
-
-	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
-	CurrentUnit->GetAbilityInventory()->EquipAbility(Ability);
-	RefreshForNextAction();
 }
 
 void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 {
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 	UUnitAbilityInstance* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
+	bool Result = Ability->Execute(TargetCell);
 
-	FAbilityResult Result = Ability->TriggerAbility(CurrentUnit, TargetCell);
-
-	if (!Result.bSuccess)
+	if (!Result)
 	{
 		// Stay in awaiting input, keep highlights
 		return;
 	}
 
+	// Check win condition after ability execution
+	if (CheckWinCondition())
+	{
+		bBattleEnded = true;
+		TurnProcessing = ETurnProcessingSubstate::EFreeState;
+		UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
+		GridSubsystem->ClearAllHighlights();
+		return;
+	}
+
 	// Check if presentation is running
-	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(CurrentUnit);
-	if (PresentationSys && !PresentationSys->IsIdle())
+	if (UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(CurrentUnit); PresentationSys && !PresentationSys->IsIdle())
 	{
 		// Wait for presentation to complete
-		PendingTurnAction = Result.TurnAction;
 		TurnProcessing = ETurnProcessingSubstate::EAwaitingPresentationState;
-		// TurnSubsystem will call OnPresentationComplete when ready
 	}
 	else
 	{
-		// No presentation, handle immediately
-		HandleAbilityComplete(Result.TurnAction);
+		// No presentation, loop back to ability check
+		CheckAbilitiesAndSetupTurn();
 	}
 }
 
-void FActionsProcessingState::RefreshForNextAction()
+void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 {
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 	UAbilityInventoryComponent* Inventory = CurrentUnit->GetAbilityInventory();
-
-	Inventory->EnsureValidAbility();
-
-	UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
 	UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
-	UTacGridTargetingService* TargetingService = GridSubsystem->GetGridTargetingService();
-	ETargetReach AbilityTargeting = CurrentAbility->GetTargeting();
-	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(CurrentUnit, AbilityTargeting);
-
-	EHighlightType HighlightType = UAbilityTypesLibrary::TargetReachToHighlightType(AbilityTargeting);
 
 	GridSubsystem->ClearAllHighlights();
-	GridSubsystem->ShowHighlights(ValidCells, HighlightType);
-}
 
-void FActionsProcessingState::HandleAbilityComplete(EAbilityTurnAction TurnAction)
-{
-	if (TurnAction == EAbilityTurnAction::FreeTurn)
+	if (Inventory->HasAnyAbilityAvailable())
 	{
-		RefreshForNextAction();
+		Inventory->EnsureValidAbility();
+		UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
+
+		UTacGridTargetingService* TargetingService = GridSubsystem->GetGridTargetingService();
+		ETargetReach AbilityTargeting = CurrentAbility->GetTargeting();
+		TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(CurrentUnit, AbilityTargeting);
+		EHighlightType HighlightType = UAbilityTypesLibrary::TargetReachToHighlightType(AbilityTargeting);
+
+		GridSubsystem->ShowHighlights(ValidCells, HighlightType);
 		TurnProcessing = ETurnProcessingSubstate::EAwaitingInputState;
 	}
-	else // EndTurn or Wait
+	else
 	{
-		bTurnEnded = true;
 		TurnProcessing = ETurnProcessingSubstate::EFreeState;
-
-		AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
-		UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
-		GridSubsystem->ClearAllHighlights();
 	}
 }
 
@@ -144,16 +122,15 @@ void FActionsProcessingState::OnPresentationComplete()
 {
 	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingPresentationState)
 	{
-		HandleAbilityComplete(PendingTurnAction);
+		CheckAbilitiesAndSetupTurn();
 	}
-}
-
-ETurnProcessingSubstate FActionsProcessingState::CanReleaseState()
-{
-	return TurnProcessing;
 }
 
 ETurnState FActionsProcessingState::NextState()
 {
+	if (bBattleEnded)
+	{
+		return ETurnState::EBattleEndState;
+	}
 	return ETurnState::ETurnEndState;
 }
