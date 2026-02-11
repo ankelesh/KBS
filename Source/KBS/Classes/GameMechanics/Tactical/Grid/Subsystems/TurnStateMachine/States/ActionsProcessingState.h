@@ -2,6 +2,8 @@
 #include "TacTurnState.h"
 #include "GameplayTypes/GridCoordinates.h"
 
+class UTacAbilityExecutorService;
+
 class FActionsProcessingState : public FTacTurnState
 {
 public:
@@ -20,5 +22,6 @@ private:
 	void ExecuteAbilityOnTarget(FTacCoordinates TargetCell);
 	void CheckAbilitiesAndSetupTurn();
 
+	UTacAbilityExecutorService* ExecutorService = nullptr;
 	bool bBattleEnded = false;
 };

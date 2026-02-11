@@ -8,5 +8,5 @@ class KBS_API UUnitFleeAbility : public UUnitAbilityInstance
 {
 	GENERATED_BODY()
 public:
-	virtual FAbilityResult Execute(AUnit* SourceUnit, FTacCoordinates TargetCell) override;
+	virtual bool Execute(FTacCoordinates TargetCell) override;
 };

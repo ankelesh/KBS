@@ -2,7 +2,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
-#include "GameMechanics/Units/UnitStats.h"
+#include "GameMechanics/Units/Stats/UnitStats.h"
 
 
 float FDamageCalculation::CalculateHitChance(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
@@ -141,8 +141,7 @@ FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, UWeapon* We
 	}
 	Preview.HitProbability = CalculateHitChance(Attacker, Weapon, Target);
 	Preview.DamageResult = CalculateDamage(Attacker, Weapon, Target);
-	const TArray<TObjectPtr<UBattleEffect>>& Effects = Weapon->GetEffects();
-	if (Effects.Num() > 0)
+	if (const TArray<UBattleEffect*>& Effects = Weapon->GetEffects(); Effects.Num() > 0)
 	{
 		float TotalEffectChance = 0.0f;
 		for (UBattleEffect* Effect : Effects)

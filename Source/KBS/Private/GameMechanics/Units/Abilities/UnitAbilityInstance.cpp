@@ -3,6 +3,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameplayTypes/CombatTypes.h"

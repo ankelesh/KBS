@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Subsystems/WorldSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
-#include "UObject/NoExportTypes.h"
 #include "TacCombatSubsystem.generated.h"
 
 class UGridDataManager;
@@ -23,14 +23,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEffectApplicationPhase, FAttackC
                                              HitContext);
 
 UCLASS()
-class KBS_API UTacCombatSubsystem : public UObject
+class KBS_API UTacCombatSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
-	UTacCombatSubsystem();
-
 public:
-	void Initialize();
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	UTacAbilityExecutorService* GetAbilityExecutorService() const { return AbilityExecutorService; }
 	UTacCombatStatisticsService* GetCombatStatisticsService() const { return CombatStatisticsService; }
 

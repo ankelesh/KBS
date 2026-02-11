@@ -48,12 +48,13 @@ void UTacTurnSubsystem::Deinitialize()
 
 void UTacTurnSubsystem::InitializeStates()
 {
-	States.Add(ETurnState::EBattleInitializationState, MakeUnique<FBattleInitializationState>());
-	States.Add(ETurnState::ERoundStartState, MakeUnique<FRoundStartState>());
-	States.Add(ETurnState::ETurnStartState, MakeUnique<FTurnStartState>());
-	States.Add(ETurnState::EActionsProcessingState, MakeUnique<FActionsProcessingState>());
-	States.Add(ETurnState::ETurnEndState, MakeUnique<FTurnEndState>());
-	States.Add(ETurnState::EBattleEndState, MakeUnique<FBattleEndState>());
+	States.Add(ETurnState::EBattleInitializationState, MakeUnique<FBattleInitializationState>(this
+		));
+	States.Add(ETurnState::ERoundStartState, MakeUnique<FRoundStartState>(this));
+	States.Add(ETurnState::ETurnStartState, MakeUnique<FTurnStartState>(this));
+	States.Add(ETurnState::EActionsProcessingState, MakeUnique<FActionsProcessingState>(this));
+	States.Add(ETurnState::ETurnEndState, MakeUnique<FTurnEndState>(this));
+	States.Add(ETurnState::EBattleEndState, MakeUnique<FBattleEndState>(this));
 
 	// Set parent reference for all states
 	for (auto& Pair : States)

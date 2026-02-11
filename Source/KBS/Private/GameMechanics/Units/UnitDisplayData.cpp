@@ -1,9 +1,23 @@
 #include "GameMechanics/Units/UnitDisplayData.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Stats/UnitStats.h"
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
+
+static TArray<EDamageSource> DamageSources {
+	EDamageSource::Physical,
+	EDamageSource::Fire,
+	EDamageSource::Earth, 
+	EDamageSource::Air,
+	EDamageSource::Water, 
+	EDamageSource::Life,
+	EDamageSource::Death, 
+	EDamageSource::Mind
+};
+
+
 FString DamageSourceToString(EDamageSource Source)
 {
 	switch (Source)
@@ -58,18 +72,9 @@ FWeaponDisplayData ConvertWeapon(const UWeapon* Weapon)
 	const FWeaponStats& Stats = Weapon->GetStats();
 	DisplayData.TargetType = TargetReachToString(Stats.TargetReach);
 	DisplayData.Damage = Stats.BaseDamage.GetValue();
-	TArray<FString> DamageTypeArray = ConvertDamageSourceSet(Stats.DamageSources.GetValue());
+	TArray<FString> DamageTypeArray = ConvertDamageSourceSet(Stats.DamageSources);
 	DisplayData.DamageTypes = FString::Join(DamageTypeArray, TEXT(" + "));
 	return DisplayData;
-}
-TArray<FString> ConvertDamageSourceSet(const TSet<EDamageSource>& SourceSet)
-{
-	TArray<FString> Result;
-	for (EDamageSource Source : SourceSet)
-	{
-		Result.Add(DamageSourceToString(Source));
-	}
-	return Result;
 }
 TArray<FString> ConvertActiveEffects(const TArray<TObjectPtr<UBattleEffect>>& Effects)
 {
@@ -126,12 +131,63 @@ FUnitDisplayData BuildUnitDisplayData(
 			DisplayData.Weapons.Add(ConvertWeapon(Weapon));
 		}
 	}
-	TArray<FString> ImmunitiesArray = ConvertDamageSourceSet(Stats.Defense.Immunities.ModifiedImmunities);
+	TArray<FString> ImmunitiesArray = ConvertImmunityMap(Stats.Defense.Immunities);
 	DisplayData.Immunities = FString::Join(ImmunitiesArray, TEXT(", "));
-	TArray<FString> WardsArray = ConvertDamageSourceSet(Stats.Defense.Wards.Wards);
+	TArray<FString> WardsArray = ConvertWardMap(Stats.Defense.Wards);
 	DisplayData.Wards = FString::Join(WardsArray, TEXT(", "));
-	DisplayData.Armour = ConvertArmourMap(Stats.Defense.Armour.ModifiedArmour);
+	DisplayData.Armour = ConvertArmourMap(Stats.Defense.Armour);
 	DisplayData.DamageReduction = Stats.Defense.DamageReduction.GetValue();
 	DisplayData.bIsDefending = Stats.Defense.bIsDefending;
 	return DisplayData;
+}
+
+FString ConvertArmourMap(const FUnitArmour& ArmourMap)
+{
+	TArray<FString> ArmourParts;
+	ArmourParts.Reserve(8);
+	for (auto DamageSrc : DamageSources)
+	{
+		FString SourceName = DamageSourceToString(DamageSrc);
+		ArmourParts.Add(FString::Printf(TEXT("%s: %d%%"), *SourceName, ArmourMap.GetValue(DamageSrc)));
+	}
+	return FString::Join(ArmourParts, TEXT(", "));
+}
+TArray<FString> ConvertImmunityMap(const FUnitImmunities& ImmunityMap)
+{
+	TArray<FString> ImmunitiesParts;
+	ImmunitiesParts.Reserve(8);
+	for (auto DamageSrc : DamageSources)
+	{
+		if (ImmunityMap.IsImmuneTo(DamageSrc))
+		{
+			FString SourceName = DamageSourceToString(DamageSrc);
+			ImmunitiesParts.Add(SourceName);
+		}
+	}
+	return ImmunitiesParts;
+}
+TArray<FString> ConvertWardMap(const FUnitWards& WardMap)
+{
+	TArray<FString> WardParts;
+	WardParts.Reserve(8);
+	for (auto DamageSrc : DamageSources)
+	{
+		if (WardMap.HasWardFor(DamageSrc))
+		{
+			FString SourceName = DamageSourceToString(DamageSrc);
+			WardParts.Add(SourceName);
+		}
+	}
+	return WardParts;
+}
+TArray<FString> ConvertDamageSourceSet(const FDamageSourceSetStat& DamageSourceSet)
+{
+	TArray<FString> DamageSourceSetParts;
+	DamageSourceSetParts.Reserve(8);
+	for (auto DamageSrc : DamageSourceSet.GetValue())
+	{
+		FString DamageSourceName = DamageSourceToString(DamageSrc);
+		DamageSourceSetParts.Add(DamageSourceName);
+	}
+	return DamageSourceSetParts;
 }

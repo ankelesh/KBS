@@ -39,31 +39,31 @@ void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 	UE_LOG(LogTemp, Log, TEXT("TacGridSubsystem: Registered successfully with Grid and HighlightComponent"));
 }
 
-TArray<TObjectPtr<AUnit>> UTacGridSubsystem::GetActiveUnits()
+TArray<AUnit*> UTacGridSubsystem::GetActiveUnits()
 {
-	if (!DataManager) return TArray<TObjectPtr<AUnit>>();
+	if (!DataManager) return TArray<AUnit*>();
 	return DataManager->GetAllAliveUnits();
 }
 
-TArray<TObjectPtr<AUnit>> UTacGridSubsystem::GetAllUnits()
+TArray<AUnit*> UTacGridSubsystem::GetAllUnits()
 {
-	if (!DataManager) return TArray<TObjectPtr<AUnit>>();
+	if (!DataManager) return TArray<AUnit*>();
 	return DataManager->GetAllUnits();
 }
 
-TArray<TObjectPtr<AUnit>> UTacGridSubsystem::GetDeadUnits()
+TArray<AUnit*> UTacGridSubsystem::GetDeadUnits()
 {
-	if (!DataManager) return TArray<TObjectPtr<AUnit>>();
+	if (!DataManager) return TArray<AUnit*>();
 	return DataManager->GetAllDeadUnits();
 }
 
-TObjectPtr<UBattleTeam> UTacGridSubsystem::GetAttackerTeam()
+UBattleTeam* UTacGridSubsystem::GetAttackerTeam()
 {
 	if (!DataManager) return nullptr;
 	return DataManager->GetAttackerTeam();
 }
 
-TObjectPtr<UBattleTeam> UTacGridSubsystem::GetDefenderTeam()
+UBattleTeam* UTacGridSubsystem::GetDefenderTeam()
 {
 	if (!DataManager) return nullptr;
 	return DataManager->GetDefenderTeam();
@@ -75,7 +75,7 @@ bool UTacGridSubsystem::IsBothTeamsAnyUnitAlive()
 	return DataManager->IsBothTeamsAnyUnitAlive();
 }
 
-TObjectPtr<UBattleTeam> UTacGridSubsystem::GetWinnerTeam()
+UBattleTeam* UTacGridSubsystem::GetWinnerTeam()
 {
 	if (!DataManager) return nullptr;
 

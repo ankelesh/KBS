@@ -1,9 +1,9 @@
 #include "GameMechanics/Units/Abilities/UnitFleeAbility.h"
 
 
-FAbilityResult UUnitFleeAbility::Execute(AUnit* SourceUnit, FTacCoordinates TargetCell)
+bool UUnitFleeAbility::Execute(FTacCoordinates TargetCell)
 {
 	// TODO: Implement flee logic
-	return CreateSuccessResult();
+	return true;
 }
 

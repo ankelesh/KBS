@@ -11,14 +11,14 @@ bool FUnitStatPercent::IsDirty() const
 	return bIsDirty;
 }
 
-void FUnitStatPercent::Recalc()
+void FUnitStatPercent::Recalc() const
 {
 	Modified = FMath::RoundToInt((Base + CalcFlatModifiers()) * CalcStatMultipliers());
 	Modified = FMath::Clamp(Modified, 0, 100);
 	bIsDirty = false;
 }
 
-int32 FUnitStatPercent::CalcFlatModifiers()
+int32 FUnitStatPercent::CalcFlatModifiers() const
 {
 	int32 Result = 0;
 	for (const FInt32StatModifier& Mod : FlatModifiers)
@@ -28,7 +28,7 @@ int32 FUnitStatPercent::CalcFlatModifiers()
 	return Result;
 }
 
-float FUnitStatPercent::CalcStatMultipliers()
+float FUnitStatPercent::CalcStatMultipliers() const
 {
 	float Result = 1.0f;
 	for (const FInt32StatModifier& Mod : StatMultipliers)
@@ -38,31 +38,31 @@ float FUnitStatPercent::CalcStatMultipliers()
 	return Result;
 }
 
-void FUnitStatPercent::AddFlatModifier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPercent::AddFlatModifier(const FGuid& EffectId, int32 Amount)
 {
 	FlatModifiers.Add(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-void FUnitStatPercent::AddMultiplier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPercent::AddMultiplier(const FGuid& EffectId, int32 Amount)
 {
 	StatMultipliers.Add(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-void FUnitStatPercent::RemoveFlatModifier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPercent::RemoveFlatModifier(const FGuid& EffectId, int32 Amount)
 {
 	FlatModifiers.Remove(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-void FUnitStatPercent::RemoveMultiplier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPercent::RemoveMultiplier(const FGuid& EffectId, int32 Amount)
 {
 	StatMultipliers.Remove(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-int32 FUnitStatPercent::GetValue()
+int32 FUnitStatPercent::GetValue() const
 {
 	if (bIsDirty)
 		Recalc();
@@ -73,6 +73,15 @@ void FUnitStatPercent::SetBase(const int32 NewBase)
 {
 	Base = FMath::Clamp(NewBase, 0, 100);
 	bIsDirty = true;
+}
+
+void FUnitStatPercent::InitFromBase(int32 InBase)
+{
+	Base = FMath::Clamp(InBase, 0, 100);
+	Modified = Base;
+	FlatModifiers.Empty();
+	StatMultipliers.Empty();
+	bIsDirty = false;
 }
 
 // FUnitStatPositive implementations
@@ -86,14 +95,14 @@ bool FUnitStatPositive::IsDirty() const
 	return bIsDirty;
 }
 
-void FUnitStatPositive::Recalc()
+void FUnitStatPositive::Recalc() const
 {
 	Modified = FMath::RoundToInt((Base + CalcFlatModifiers()) * CalcStatMultipliers());
 	Modified = FMath::Max(Modified, 0);
 	bIsDirty = false;
 }
 
-int32 FUnitStatPositive::CalcFlatModifiers()
+int32 FUnitStatPositive::CalcFlatModifiers() const
 {
 	int32 Result = 0;
 	for (const FInt32StatModifier& Mod : FlatModifiers)
@@ -103,7 +112,7 @@ int32 FUnitStatPositive::CalcFlatModifiers()
 	return Result;
 }
 
-float FUnitStatPositive::CalcStatMultipliers()
+float FUnitStatPositive::CalcStatMultipliers() const
 {
 	float Result = 1.0f;
 	for (const FInt32StatModifier& Mod : StatMultipliers)
@@ -113,31 +122,31 @@ float FUnitStatPositive::CalcStatMultipliers()
 	return Result;
 }
 
-void FUnitStatPositive::AddFlatModifier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPositive::AddFlatModifier(const FGuid& EffectId, int32 Amount)
 {
 	FlatModifiers.Add(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-void FUnitStatPositive::AddMultiplier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPositive::AddMultiplier(const FGuid& EffectId, int32 Amount)
 {
 	StatMultipliers.Add(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-void FUnitStatPositive::RemoveFlatModifier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPositive::RemoveFlatModifier(const FGuid& EffectId, int32 Amount)
 {
 	FlatModifiers.Remove(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-void FUnitStatPositive::RemoveMultiplier(const FGuid EffectId, const int32 Amount)
+void FUnitStatPositive::RemoveMultiplier(const FGuid& EffectId, int32 Amount)
 {
 	StatMultipliers.Remove(FInt32StatModifier(EffectId, Amount));
 	bIsDirty = true;
 }
 
-int32 FUnitStatPositive::GetValue()
+int32 FUnitStatPositive::GetValue() const
 {
 	if (bIsDirty)
 		Recalc();
@@ -148,6 +157,15 @@ void FUnitStatPositive::SetBase(const int32 NewBase)
 {
 	Base = FMath::Max(NewBase, 0);
 	bIsDirty = true;
+}
+
+void FUnitStatPositive::InitFromBase(int32 InBase)
+{
+	Base = FMath::Max(InBase, 0);
+	Modified = Base;
+	FlatModifiers.Empty();
+	StatMultipliers.Empty();
+	bIsDirty = false;
 }
 
 // FDamageSourceSetStat implementations
@@ -161,7 +179,7 @@ bool FDamageSourceSetStat::IsDirty() const
 	return bIsDirty;
 }
 
-void FDamageSourceSetStat::Recalc()
+void FDamageSourceSetStat::Recalc() const
 {
 	Modified = Base;
 	for (const FDamageSourceSetModifier& Mod : Modifiers)
@@ -171,13 +189,13 @@ void FDamageSourceSetStat::Recalc()
 	bIsDirty = false;
 }
 
-void FDamageSourceSetStat::AddModifier(const FGuid EffectId, const TSet<EDamageSource>& Sources)
+void FDamageSourceSetStat::AddModifier(const FGuid& EffectId, const TSet<EDamageSource>& Sources)
 {
 	Modifiers.Add(FDamageSourceSetModifier(EffectId, Sources));
 	bIsDirty = true;
 }
 
-void FDamageSourceSetStat::RemoveModifier(const FGuid EffectId)
+void FDamageSourceSetStat::RemoveModifier(const FGuid& EffectId)
 {
 	Modifiers.RemoveAll([&EffectId](const FDamageSourceSetModifier& Mod)
 	{
@@ -186,7 +204,7 @@ void FDamageSourceSetStat::RemoveModifier(const FGuid EffectId)
 	bIsDirty = true;
 }
 
-const TSet<EDamageSource>& FDamageSourceSetStat::GetValue()
+const TSet<EDamageSource>& FDamageSourceSetStat::GetValue() const
 {
 	if (bIsDirty)
 		Recalc();
@@ -197,4 +215,12 @@ void FDamageSourceSetStat::SetBase(const TSet<EDamageSource>& NewBase)
 {
 	Base = NewBase;
 	bIsDirty = true;
+}
+
+void FDamageSourceSetStat::InitFromBase(const TSet<EDamageSource>& InBase)
+{
+	Base = InBase;
+	Modified = InBase;
+	Modifiers.Empty();
+	bIsDirty = false;
 }

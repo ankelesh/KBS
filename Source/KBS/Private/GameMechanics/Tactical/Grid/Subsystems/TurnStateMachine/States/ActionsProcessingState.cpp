@@ -4,20 +4,28 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAbilityExecutorService.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 #include "GameplayTypes/AbilityTypes.h"
 
 void FActionsProcessingState::Enter()
 {
+	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
+	if (UTacCombatSubsystem* CombatSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacCombatSubsystem>())
+	{
+		ExecutorService = CombatSubsystem->GetAbilityExecutorService();
+	}
+
 	CheckAbilitiesAndSetupTurn();
 }
 
 void FActionsProcessingState::Exit()
 {
+	ExecutorService = nullptr;
 	FTacTurnState::Exit();
 }
 
@@ -58,35 +66,35 @@ void FActionsProcessingState::AbilityClicked(UUnitAbilityInstance* Ability)
 
 void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 {
+	if (!ExecutorService) return;
+
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 	UUnitAbilityInstance* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
-	bool Result = Ability->Execute(TargetCell);
 
-	if (!Result)
+	FAbilityResult Result = ExecutorService->CheckAndExecute(Ability, TargetCell);
+
+	if (Result.bInvalidInput)
 	{
-		// Stay in awaiting input, keep highlights
 		return;
 	}
 
-	// Check win condition after ability execution
-	if (CheckWinCondition())
+	if (Result.bBattleEnded)
 	{
 		bBattleEnded = true;
 		TurnProcessing = ETurnProcessingSubstate::EFreeState;
-		UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
-		GridSubsystem->ClearAllHighlights();
+		if (UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>())
+		{
+			GridSubsystem->ClearAllHighlights();
+		}
 		return;
 	}
 
-	// Check if presentation is running
-	if (UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(CurrentUnit); PresentationSys && !PresentationSys->IsIdle())
+	if (Result.bPresentationRunning)
 	{
-		// Wait for presentation to complete
 		TurnProcessing = ETurnProcessingSubstate::EAwaitingPresentationState;
 	}
 	else
 	{
-		// No presentation, loop back to ability check
 		CheckAbilitiesAndSetupTurn();
 	}
 }

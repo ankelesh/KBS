@@ -6,6 +6,7 @@
 #include "AbilityInventoryComponent.generated.h"
 class UUnitAbilityInstance;
 struct FAbilityDisplayData;
+struct FUnitStatusContainer;
 enum class EDefaultAbilitySlot : uint8;
 
 
@@ -55,6 +56,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook|Display")
 	TArray<FAbilityDisplayData> GetSpellbookDisplayData() const;
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook|Display")
+	bool IsSpellbookAvailable() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
 	void AddSpellbookAbility(UUnitAbilityInstance* Ability);
@@ -87,6 +90,5 @@ private:
 
 	bool IsDefaultAbility(UUnitAbilityInstance* Ability) const;
 	bool IsAbilityAvailable(UUnitAbilityInstance* Ability) const;
-	const FUnitStatusContainer* GetOwnerStatus() const;
 	const FUnitStatusContainer* GetOwnerStatus() const;
 };

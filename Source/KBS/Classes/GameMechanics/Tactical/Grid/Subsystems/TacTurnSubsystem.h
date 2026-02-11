@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "TurnStateMachine/TacTurnOrder.h"
 #include "TacTurnSubsystem.generated.h"
 
 class UBattleTeam;
@@ -12,9 +13,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, Turn);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTurnStart, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTurnEnd, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattleEnd, UBattleTeam*, WinnerTeam);
-
-
-class FTacTurnOrder;
 class FTacTurnState;
 class AUnit;
 class UUnitAbilityInstance;

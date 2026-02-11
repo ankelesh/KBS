@@ -75,9 +75,8 @@ public:
 	// --- Queries ---
 	const FGuid& GetUnitID() const { return UnitID; }
 	FUnitCoreStats& GetStats() { return BaseStats; }
-	const FUnitCoreStats& GetStats() const { return BaseStats; }
 	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
-	const float GetMovementSpeed() const;
+	float GetMovementSpeed() const;
 	ETeamSide GetTeamSide() const { return TeamSide; }
 	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
 	virtual int32 GetCellSize() const { return 1; }

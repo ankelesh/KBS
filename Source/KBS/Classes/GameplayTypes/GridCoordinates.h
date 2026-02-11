@@ -52,6 +52,13 @@ struct KBS_API FTacCoordinates
 	static FRotator GetFlankRotation(int32 Row, int32 Col);
 };
 
+inline uint32 GetTypeHash(const FTacCoordinates& Coords)
+{
+	uint32 Hash = HashCombine(GetTypeHash(Coords.Row), GetTypeHash(Coords.Col));
+	Hash = HashCombine(Hash, GetTypeHash(static_cast<uint8>(Coords.Layer)));
+	return Hash;
+}
+
 USTRUCT()
 struct KBS_API FGridConstants
 {

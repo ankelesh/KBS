@@ -18,6 +18,6 @@ public:
 
 private:
 	UFUNCTION()
-	void HandleTurnEnd(AUnit*);
+	void HandleTurnEnd(AUnit* Self);
 };
 

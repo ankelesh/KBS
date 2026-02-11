@@ -38,6 +38,8 @@ public:
 	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const {return {};};
 	virtual void Subscribe() {};
 	virtual void Unsubscribe() {};
+	virtual void AttackTriggerCleanup(FAttackContext& Context) {};
+	virtual void HitTriggerCleanup(FHitInstance& Hit) {};
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }

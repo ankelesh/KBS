@@ -124,7 +124,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 		MultiCellData.OccupiedCells.Add(FTacCoordinates(Coords.Row, Coords.Col, Coords.Layer));
 		MultiCellData.OccupiedCells.Add(FTacCoordinates(SecondaryCell.Y, SecondaryCell.X, Coords.Layer));
 		MultiCellData.bIsHorizontal = bIsHorizontal;
-		MultiCellUnits.Add(Unit->GetGUID(), MultiCellData);
+		MultiCellUnits.Add(Unit->GetUnitID(), MultiCellData);
 	}
 	else
 	{
@@ -180,7 +180,7 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 
 	if (Unit->IsMultiCell())
 	{
-		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(Unit->GetGUID());
+		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(Unit->GetUnitID());
 		if (MultiCellData)
 		{
 			for (const FTacCoordinates& CellCoord : MultiCellData->OccupiedCells)
@@ -192,15 +192,15 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 				}
 			}
 		}
-		MultiCellUnits.Remove(Unit->GetGUID());
+		MultiCellUnits.Remove(Unit->GetUnitID());
 	}
 	else
 	{
 		LayerArray[Coords.Row].Cells[Coords.Col] = nullptr;
 	}
 
-	UnitFlankStates.Remove(Unit->GetGUID());
-	UnitOriginalRotations.Remove(Unit->GetGUID());
+	UnitFlankStates.Remove(Unit->GetUnitID());
+	UnitOriginalRotations.Remove(Unit->GetUnitID());
 	return true;
 }
 
@@ -226,7 +226,7 @@ bool UGridDataManager::GetUnitPosition(const AUnit* Unit, FTacCoordinates& OutPo
 
 	if (Unit->IsMultiCell())
 	{
-		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(Unit->GetGUID());
+		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(Unit->GetUnitID());
 		if (MultiCellData)
 		{
 			OutPosition = MultiCellData->PrimaryCell;
@@ -267,7 +267,7 @@ bool UGridDataManager::IsUnitOnFlank(const AUnit* Unit) const
 	{
 		return false;
 	}
-	const bool* bOnFlank = UnitFlankStates.Find(Unit->GetGUID());
+	const bool* bOnFlank = UnitFlankStates.Find(Unit->GetUnitID());
 	return bOnFlank ? *bOnFlank : false;
 }
 void UGridDataManager::SetUnitFlankState(AUnit* Unit, bool bOnFlank)
@@ -278,11 +278,11 @@ void UGridDataManager::SetUnitFlankState(AUnit* Unit, bool bOnFlank)
 	}
 	if (bOnFlank)
 	{
-		UnitFlankStates.Add(Unit->GetGUID(), true);
+		UnitFlankStates.Add(Unit->GetUnitID(), true);
 	}
 	else
 	{
-		UnitFlankStates.Remove(Unit->GetGUID());
+		UnitFlankStates.Remove(Unit->GetUnitID());
 	}
 }
 FRotator UGridDataManager::GetUnitOriginalRotation(const AUnit* Unit) const
@@ -291,7 +291,7 @@ FRotator UGridDataManager::GetUnitOriginalRotation(const AUnit* Unit) const
 	{
 		return FRotator::ZeroRotator;
 	}
-	const FRotator* Rotation = UnitOriginalRotations.Find(Unit->GetGUID());
+	const FRotator* Rotation = UnitOriginalRotations.Find(Unit->GetUnitID());
 	return Rotation ? *Rotation : FRotator::ZeroRotator;
 }
 void UGridDataManager::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation)
@@ -300,7 +300,7 @@ void UGridDataManager::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rota
 	{
 		return;
 	}
-	UnitOriginalRotations.Add(Unit->GetGUID(), Rotation);
+	UnitOriginalRotations.Add(Unit->GetUnitID(), Rotation);
 }
 bool UGridDataManager::IsValidCell(FTacCoordinates Coords) const
 {
@@ -487,12 +487,12 @@ TArray<AUnit*> UGridDataManager::GetUnitsInCells(const TArray<FTacCoordinates>& 
 			const TObjectPtr<AUnit>& Unit = LayerArray[Coords.Row].Cells[Coords.Col];
 			if (Unit)
 			{
-				UniqueUnits.Add(Unit->GetGUID(), Unit);
+				UniqueUnits.Add(Unit->GetUnitID(), Unit);
 			}
 		}
 	}
 
-	TArray<AUnit*> Result;
+	TArray<TObjectPtr<AUnit>> Result;
 	UniqueUnits.GenerateValueArray(Result);
 	return Result;
 }
@@ -503,7 +503,7 @@ bool UGridDataManager::IsMultiCellUnit(const AUnit* Unit) const
 	{
 		return false;
 	}
-	return MultiCellUnits.Contains(Unit->GetGUID());
+	return MultiCellUnits.Contains(Unit->GetUnitID());
 }
 
 const FMultiCellUnitData* UGridDataManager::GetMultiCellData(const AUnit* Unit) const
@@ -512,7 +512,7 @@ const FMultiCellUnitData* UGridDataManager::GetMultiCellData(const AUnit* Unit) 
 	{
 		return nullptr;
 	}
-	return MultiCellUnits.Find(Unit->GetGUID());
+	return MultiCellUnits.Find(Unit->GetUnitID());
 }
 
 TArray<AUnit*> UGridDataManager::GetAllAliveUnits() const
@@ -525,7 +525,7 @@ TArray<AUnit*> UGridDataManager::GetAllAliveUnits() const
 		{
 			if (Unit)
 			{
-				UniqueUnits.Add(Unit->GetGUID(), Unit);
+				UniqueUnits.Add(Unit->GetUnitID(), Unit);
 			}
 		}
 	}
@@ -536,12 +536,12 @@ TArray<AUnit*> UGridDataManager::GetAllAliveUnits() const
 		{
 			if (Unit)
 			{
-				UniqueUnits.Add(Unit->GetGUID(), Unit);
+				UniqueUnits.Add(Unit->GetUnitID(), Unit);
 			}
 		}
 	}
 
-	TArray<AUnit*> Result;
+	TArray<TObjectPtr<AUnit>> Result;
 	UniqueUnits.GenerateValueArray(Result);
 	return Result;
 }
@@ -558,7 +558,7 @@ TArray<AUnit*> UGridDataManager::GetAllDeadUnits() const
 			{
 				if (Corpse)
 				{
-					UniqueCorpses.Add(Corpse->GetGUID(), Corpse);
+					UniqueCorpses.Add(Corpse->GetUnitID(), Corpse);
 				}
 			}
 		}
@@ -572,13 +572,13 @@ TArray<AUnit*> UGridDataManager::GetAllDeadUnits() const
 			{
 				if (Corpse)
 				{
-					UniqueCorpses.Add(Corpse->GetGUID(), Corpse);
+					UniqueCorpses.Add(Corpse->GetUnitID(), Corpse);
 				}
 			}
 		}
 	}
 
-	TArray<AUnit*> Result;
+	TArray<TObjectPtr<AUnit>> Result;
 	UniqueCorpses.GenerateValueArray(Result);
 	return Result;
 }
@@ -592,7 +592,7 @@ TArray<AUnit*> UGridDataManager::GetAllUnits() const
 	{
 		if (Unit)
 		{
-			AllUnits.Add(Unit->GetGUID(), Unit);
+			AllUnits.Add(Unit->GetUnitID(), Unit);
 		}
 	}
 
@@ -601,11 +601,11 @@ TArray<AUnit*> UGridDataManager::GetAllUnits() const
 	{
 		if (Unit)
 		{
-			AllUnits.Add(Unit->GetGUID(), Unit);
+			AllUnits.Add(Unit->GetUnitID(), Unit);
 		}
 	}
 
-	TArray<AUnit*> Result;
+	TArray<TObjectPtr<AUnit>> Result;
 	AllUnits.GenerateValueArray(Result);
 	return Result;
 }

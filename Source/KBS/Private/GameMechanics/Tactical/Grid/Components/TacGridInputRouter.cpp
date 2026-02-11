@@ -2,6 +2,7 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
@@ -18,53 +19,46 @@ UTacGridInputRouter::UTacGridInputRouter()
 
 void UTacGridInputRouter::Initialize(ATacBattleGrid* InGrid, UGridDataManager* InDataManager)
 {
+	checkf(InGrid, TEXT("InputRouter::Initialize: Grid cannot be null"));
+	checkf(InDataManager, TEXT("InputRouter::Initialize: DataManager cannot be null"));
+
 	Grid = InGrid;
 	DataManager = InDataManager;
 }
 void UTacGridInputRouter::HandleGridClick(FKey ButtonPressed)
 {
-	if (!Grid)
-	{
-		return;
-	}
+	check(Grid);
 
 	FTacCoordinates ClickedCell;
 	if (!GetCellUnderMouse(ClickedCell))
 	{
-		UE_LOG(LogTemp, Error, TEXT("InputRouter: Could not determine clicked cell"));
 		return;
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("InputRouter: Grid clicked at cell [%d,%d] Layer=%d"), ClickedCell.Row, ClickedCell.Col, (int32)ClickedCell.Layer);
 
-	// Forward to TurnSystem - let it handle all game logic
 	UWorld* World = Grid->GetWorld();
-	if (!World) return;
+	check(World);
 
-	// TODO: Forward to TacticalTurnSystem
-	// UTacTurnSubsystem* TurnSystem = World->GetSubsystem<UTacTurnSubsystem>();
-	// if (TurnSystem)
-	// {
-	// 	TurnSystem->HandleGridCellClicked(ClickedCell);
-	// }
+	UTacTurnSubsystem* TurnSystem = World->GetSubsystem<UTacTurnSubsystem>();
+	if (TurnSystem)
+	{
+		TurnSystem->CellClicked(ClickedCell);
+	}
 }
 bool UTacGridInputRouter::GetCellUnderMouse(FTacCoordinates& OutCell) const
 {
-	if (!Grid)
-	{
-		return false;
-	}
+	check(Grid);
+
 	UWorld* World = Grid->GetWorld();
-	if (!World)
-	{
-		return false;
-	}
+	check(World);
+
 	APlayerController* PC = World->GetFirstPlayerController();
 	if (!PC)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GetCellUnderMouse: No PlayerController found!"));
 		return false;
 	}
+
 	FVector WorldLocation, WorldDirection;
 	PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
 	FHitResult Hit;

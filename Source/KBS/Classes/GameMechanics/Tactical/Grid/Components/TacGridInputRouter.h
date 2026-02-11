@@ -24,6 +24,4 @@ private:
 
 	bool GetCellUnderMouse(FTacCoordinates& OutCell) const;
 
-	// TODO: Add method to TacticalTurnSystem:
-	// - void HandleGridCellClicked(FTacCoordinates ClickedCell);
 };

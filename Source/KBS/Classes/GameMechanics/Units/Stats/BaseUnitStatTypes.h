@@ -36,9 +36,10 @@ struct FUnitStatPercent
 	void AddMultiplier(const FGuid& EffectId, int32 Amount);
 	void RemoveMultiplier(const FGuid& EffectId, int32 Amount);
 
-	int32 GetValue();
+	int32 GetValue() const;
 	int32 GetBase() const { return Base; }
 	void SetBase(int32 NewBase);
+	void InitFromBase(int32 InBase);
 
 	FUnitStatPercent() : Base(0), Modified(0), bIsDirty(false) {}
 	explicit FUnitStatPercent(int32 InBase);
@@ -49,7 +50,7 @@ private:
 	int32 Base = 0;
 
 	UPROPERTY()
-	int32 Modified = 0;
+	mutable int32 Modified = 0;
 
 	UPROPERTY()
 	TArray<FInt32StatModifier> FlatModifiers;
@@ -58,13 +59,13 @@ private:
 	TArray<FInt32StatModifier> StatMultipliers;
 
 	UPROPERTY()
-	bool bIsDirty = false;
+	mutable bool bIsDirty = false;
 
 	// === Internal Methods ===
 	bool IsDirty() const;
-	void Recalc();
-	int32 CalcFlatModifiers();
-	float CalcStatMultipliers();
+	void Recalc() const;
+	int32 CalcFlatModifiers() const;
+	float CalcStatMultipliers() const;
 };
 
 // Positive stat (min=0, no max)
@@ -79,9 +80,10 @@ struct FUnitStatPositive
 	void AddMultiplier(const FGuid& EffectId, int32 Amount);
 	void RemoveMultiplier(const FGuid& EffectId, int32 Amount);
 
-	int32 GetValue();
+	int32 GetValue() const;
 	int32 GetBase() const { return Base; }
 	void SetBase(int32 NewBase);
+	void InitFromBase(int32 InBase);
 
 	FUnitStatPositive() : Base(0), Modified(0), bIsDirty(false) {}
 	explicit FUnitStatPositive(int32 InBase);
@@ -92,7 +94,7 @@ private:
 	int32 Base = 0;
 
 	UPROPERTY()
-	int32 Modified = 0;
+	mutable int32 Modified = 0;
 
 	UPROPERTY()
 	TArray<FInt32StatModifier> FlatModifiers;
@@ -101,13 +103,13 @@ private:
 	TArray<FInt32StatModifier> StatMultipliers;
 
 	UPROPERTY()
-	bool bIsDirty = false;
+	mutable bool bIsDirty = false;
 
 	// === Internal Methods ===
 	bool IsDirty() const;
-	void Recalc();
-	int32 CalcFlatModifiers();
-	float CalcStatMultipliers();
+	void Recalc() const;
+	int32 CalcFlatModifiers() const;
+	float CalcStatMultipliers() const;
 };
 
 // Immutable stat - set once at initialization, never modified (prevents balance-breaking modifications)
@@ -121,13 +123,44 @@ struct FUnitStatImmutableInt32
 
 	FUnitStatImmutableInt32() = default;
 	explicit FUnitStatImmutableInt32(int32 InValue) : Value(InValue) {}
-
-	// Enforce immutability - catch balance-breaking attempts at compile time
-	FUnitStatImmutableInt32& operator=(const FUnitStatImmutableInt32&) = delete;
-	FUnitStatImmutableInt32& operator=(int32) = delete;
-	FUnitStatImmutableInt32& operator+=(int32) = delete;
-	FUnitStatImmutableInt32& operator-=(int32) = delete;
 	FUnitStatImmutableInt32(const FUnitStatImmutableInt32&) = default;
+
+	// Runtime immutability enforcement - catches modifications while allowing UE's code generation
+	FUnitStatImmutableInt32& operator=(const FUnitStatImmutableInt32& Other)
+	{
+		if (Value != Other.Value)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Immutable stat modification attempt: %d -> %d"), Value, Other.Value);
+			checkf(false, TEXT("Attempted to modify immutable stat after initialization"));
+		}
+		Value = Other.Value;
+		return *this;
+	}
+
+	FUnitStatImmutableInt32& operator=(int32 NewValue)
+	{
+		if (Value != NewValue)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Immutable stat modification attempt: %d -> %d"), Value, NewValue);
+			checkf(false, TEXT("Attempted to modify immutable stat after initialization"));
+		}
+		Value = NewValue;
+		return *this;
+	}
+
+	FUnitStatImmutableInt32& operator+=(int32 Delta)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Immutable stat += operation attempted on value %d"), Value);
+		checkf(false, TEXT("Attempted to modify immutable stat with += operator"));
+		return *this;
+	}
+
+	FUnitStatImmutableInt32& operator-=(int32 Delta)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Immutable stat -= operation attempted on value %d"), Value);
+		checkf(false, TEXT("Attempted to modify immutable stat with -= operator"));
+		return *this;
+	}
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 Value = 0;
@@ -165,9 +198,10 @@ struct FDamageSourceSetStat
 	void AddModifier(const FGuid& EffectId, const TSet<EDamageSource>& Sources);
 	void RemoveModifier(const FGuid& EffectId);
 
-	const TSet<EDamageSource>& GetValue();
+	const TSet<EDamageSource>& GetValue() const;
 	const TSet<EDamageSource>& GetBase() const { return Base; }
 	void SetBase(const TSet<EDamageSource>& NewBase);
+	void InitFromBase(const TSet<EDamageSource>& InBase);
 
 	FDamageSourceSetStat() : bIsDirty(false) {}
 	explicit FDamageSourceSetStat(const TSet<EDamageSource>& InBase);
@@ -178,15 +212,15 @@ private:
 	TSet<EDamageSource> Base;
 
 	UPROPERTY()
-	TSet<EDamageSource> Modified;
+	mutable TSet<EDamageSource> Modified;
 
 	UPROPERTY()
 	TArray<FDamageSourceSetModifier> Modifiers;
 
 	UPROPERTY()
-	bool bIsDirty = false;
+	mutable bool bIsDirty = false;
 
 	// === Internal Methods ===
 	bool IsDirty() const;
-	void Recalc();
+	void Recalc() const;
 };

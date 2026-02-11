@@ -7,6 +7,7 @@
 class UBattleEffect;
 class UWeaponDataAsset;
 class UUnitVisualsComponent;
+class AUnit;
 USTRUCT(BlueprintType)
 struct FAreaShape
 {
@@ -49,6 +50,7 @@ public:
 
 	// Add enchantments/buffs to weapon stats (e.g., Stats.BaseDamage.AddFlatModifier(...))
 	FWeaponStats& GetMutableStats() { return Stats; }
+	FWeaponStats& GetStats() { return Stats; }
 	const FWeaponStats& GetStats() const { return Stats; }
 	const TArray<UBattleEffect*>& GetEffects() const { return ActiveEffects; }
 	FText GetEffectsTooltips(AUnit* Owner);

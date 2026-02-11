@@ -6,11 +6,8 @@
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAbilityExecutorService.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
-
-UTacCombatSubsystem::UTacCombatSubsystem()
-{
-}
 
 TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon* Weapon)
 {
@@ -175,8 +172,9 @@ void UTacCombatSubsystem::ExecuteDamageApplyPhase(FAttackContext& Context, FHitI
 	}
 }
 
-void UTacCombatSubsystem::Initialize()
+void UTacCombatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
+	Super::Initialize(Collection);
 	AbilityExecutorService = NewObject<UTacAbilityExecutorService>(this);
 	CombatStatisticsService = NewObject<UTacCombatStatisticsService>(this);
 }

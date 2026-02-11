@@ -20,4 +20,6 @@ struct FUnitCoreStats
 	FUnitDefenseStats Defense;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Core")
 	FUnitStatusContainer Status;
+
+	void InitFromBase(const FUnitCoreStats& Template);
 };

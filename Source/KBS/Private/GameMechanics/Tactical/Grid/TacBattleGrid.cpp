@@ -4,6 +4,8 @@
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TacGridInputRouter.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/CombatTypes.h"
 
@@ -51,6 +53,17 @@ void ATacBattleGrid::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializeComponents();
+
+	// Register with TacGridSubsystem
+	UWorld* World = GetWorld();
+	checkf(World, TEXT("TacBattleGrid: World is null in BeginPlay"));
+
+	UTacGridSubsystem* GridSubsystem = World->GetSubsystem<UTacGridSubsystem>();
+	checkf(GridSubsystem, TEXT("TacBattleGrid: Failed to get TacGridSubsystem"));
+
+	GridSubsystem->RegisterManager(DataManager);
+	UE_LOG(LogTemp, Log, TEXT("TacBattleGrid: Registered with TacGridSubsystem"));
+
 	// TODO: Move to subsystems
 #if WITH_EDITOR
 	if (EditorInitializer)
@@ -59,6 +72,13 @@ void ATacBattleGrid::BeginPlay()
 		EditorInitializer->SetupUnitEventBindings();
 	}
 #endif
+
+	// Start battle after units are spawned
+	UTacTurnSubsystem* TurnSubsystem = World->GetSubsystem<UTacTurnSubsystem>();
+	checkf(TurnSubsystem, TEXT("TacBattleGrid: Failed to get TacTurnSubsystem"));
+
+	TurnSubsystem->StartBattle();
+	UE_LOG(LogTemp, Log, TEXT("TacBattleGrid: Battle started"));
 }
 void ATacBattleGrid::HandleUnitClicked(AUnit* Unit, FKey ButtonPressed)
 {
@@ -85,8 +105,13 @@ void ATacBattleGrid::InitializeComponents()
 	HighlightComponent->Initialize(Root, Config);
 	HighlightComponent->CreateHighlightPool();
 	AdjustCollisionBox();
-	// TODO: MovementComponent, TargetingComponent, TurnManager moved to subsystems
-	// InputRouter->Initialize(this, DataManager, MovementComponent, TargetingComponent, TurnManager);
+
+	// Initialize InputRouter
+	if (InputRouter)
+	{
+		InputRouter->Initialize(this, DataManager);
+		UE_LOG(LogTemp, Log, TEXT("TacBattleGrid: InputRouter initialized"));
+	}
 }
 
 // TODO: Moved to TacGridEditorInitializer and GridEditorVisualComponent

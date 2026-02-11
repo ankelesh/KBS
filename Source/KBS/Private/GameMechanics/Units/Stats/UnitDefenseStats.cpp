@@ -11,7 +11,7 @@ FUnitImmunities::FUnitImmunities(TSet<EDamageSource> Immunities)
 {
 }
 
-void FUnitImmunities::Recalc()
+void FUnitImmunities::Recalc() const
 {
 	if (bIsDirty)
 	{
@@ -20,7 +20,7 @@ void FUnitImmunities::Recalc()
 	}
 }
 
-TSet<EDamageSource> FUnitImmunities::CalcAdditions()
+TSet<EDamageSource> FUnitImmunities::CalcAdditions() const
 {
 	TSet<EDamageSource> AdditionsMap;
 	for (const FUnitImmunityModifier& Mod : ModifyingEffects)
@@ -31,7 +31,7 @@ TSet<EDamageSource> FUnitImmunities::CalcAdditions()
 	return AdditionsMap;
 }
 
-TSet<EDamageSource> FUnitImmunities::CalcSubtractions()
+TSet<EDamageSource> FUnitImmunities::CalcSubtractions() const
 {
 	TSet<EDamageSource> SubtractionsMap;
 	for (const FUnitImmunityModifier& Mod : ModifyingEffects)
@@ -42,23 +42,31 @@ TSet<EDamageSource> FUnitImmunities::CalcSubtractions()
 	return SubtractionsMap;
 }
 
-void FUnitImmunities::AddModifier(const FGuid Id, const EDamageSource Source, bool bIsGranting)
+void FUnitImmunities::AddModifier(const FGuid& Id, EDamageSource Source, bool bIsGranting)
 {
 	ModifyingEffects.Add(FUnitImmunityModifier(Id, Source, bIsGranting));
 	bIsDirty = true;
 }
 
-void FUnitImmunities::RemoveModifier(const FGuid Id, const EDamageSource Source, bool bIsGranting)
+void FUnitImmunities::RemoveModifier(const FGuid& Id, EDamageSource Source, bool bIsGranting)
 {
 	ModifyingEffects.Remove(FUnitImmunityModifier(Id, Source, bIsGranting));
 	bIsDirty = true;
 }
 
-bool FUnitImmunities::IsImmuneTo(EDamageSource Source)
+bool FUnitImmunities::IsImmuneTo(EDamageSource Source) const
 {
 	if (bIsDirty)
 		Recalc();
 	return ModifiedImmunities.Contains(Source);
+}
+
+void FUnitImmunities::InitFromBase(const FUnitImmunities& Template)
+{
+	BaseImmunities = Template.BaseImmunities;
+	ModifiedImmunities = BaseImmunities;
+	ModifyingEffects.Empty();
+	bIsDirty = false;
 }
 
 // FUnitWards implementations
@@ -95,6 +103,11 @@ bool FUnitWards::UseWard(EDamageSource Source)
 	}
 }
 
+void FUnitWards::InitFromBase(const FUnitWards& Template)
+{
+	Wards = Template.Wards;
+}
+
 // FUnitArmour implementations
 FUnitArmour::FUnitArmour()
 	: BaseArmour(InitArmourMap()), ModifiedArmour(InitArmourMap()), FlatModifiers(), MultiplierModifiers(), OverridingModifiers(), bIsDirty(false)
@@ -111,7 +124,7 @@ bool FUnitArmour::IsDirty() const
 	return bIsDirty;
 }
 
-void FUnitArmour::Recalc()
+void FUnitArmour::Recalc() const
 {
 	if (!bIsDirty) return;
 	ModifiedArmour = BaseArmour;
@@ -122,7 +135,7 @@ void FUnitArmour::Recalc()
 	bIsDirty = false;
 }
 
-void FUnitArmour::CalcFlatModifiers()
+void FUnitArmour::CalcFlatModifiers() const
 {
 	for (const FUnitArmourModifier& Mod : FlatModifiers)
 	{
@@ -130,7 +143,7 @@ void FUnitArmour::CalcFlatModifiers()
 	}
 }
 
-void FUnitArmour::CalcArmourMultipliers()
+void FUnitArmour::CalcArmourMultipliers() const
 {
 	TMap<EDamageSource, int32> FinalMultipliers;
 	for (const FUnitArmourModifier& Mod : MultiplierModifiers)
@@ -145,7 +158,7 @@ void FUnitArmour::CalcArmourMultipliers()
 	}
 }
 
-void FUnitArmour::CalcOverrides()
+void FUnitArmour::CalcOverrides() const
 {
 	TMap<EDamageSource, int32> FinalOverrides;
 	for (const FUnitArmourModifier& Mod : OverridingModifiers)
@@ -168,7 +181,7 @@ void FUnitArmour::CalcOverrides()
 	}
 }
 
-void FUnitArmour::ClampArmour()
+void FUnitArmour::ClampArmour() const
 {
 	for (auto& Pair : ModifiedArmour)
 	{
@@ -177,50 +190,50 @@ void FUnitArmour::ClampArmour()
 	}
 }
 
-void FUnitArmour::AddFlatModifier(const FGuid EffectId, const int32 Amount, const EDamageSource Source)
+void FUnitArmour::AddFlatModifier(const FGuid& EffectId, int32 Amount, EDamageSource Source)
 {
 	FlatModifiers.Add(FUnitArmourModifier(Amount, EffectId, Source));
 	bIsDirty = true;
 }
 
-void FUnitArmour::AddMultiplier(const FGuid EffectId, const int32 Amount, const EDamageSource Source)
+void FUnitArmour::AddMultiplier(const FGuid& EffectId, int32 Amount, EDamageSource Source)
 {
 	MultiplierModifiers.Add(FUnitArmourModifier(Amount, EffectId, Source));
 	bIsDirty = true;
 }
 
-void FUnitArmour::AddOverride(const FGuid EffectId , const int32 Amount, const EDamageSource Source)
+void FUnitArmour::AddOverride(const FGuid& EffectId, int32 Amount, EDamageSource Source)
 {
 	OverridingModifiers.Add(FUnitArmourModifier(Amount, EffectId, Source));
 	bIsDirty = true;
 }
 
-void FUnitArmour::RemoveFlatModifier(const FGuid EffectId, const int32 Amount, const EDamageSource Source)
+void FUnitArmour::RemoveFlatModifier(const FGuid& EffectId, int32 Amount, EDamageSource Source)
 {
 	FlatModifiers.Remove(FUnitArmourModifier(Amount, EffectId, Source));
 	bIsDirty = true;
 }
 
-void FUnitArmour::RemoveMultiplier(const FGuid EffectId, const int32 Amount, const EDamageSource Source)
+void FUnitArmour::RemoveMultiplier(const FGuid& EffectId, int32 Amount, EDamageSource Source)
 {
 	MultiplierModifiers.Remove(FUnitArmourModifier(Amount, EffectId, Source));
 	bIsDirty = true;
 }
 
-void FUnitArmour::RemoveOverride(const FGuid EffectId , const int32 Amount, const EDamageSource Source)
+void FUnitArmour::RemoveOverride(const FGuid& EffectId, int32 Amount, EDamageSource Source)
 {
 	OverridingModifiers.Remove(FUnitArmourModifier(Amount, EffectId, Source));
 	bIsDirty = true;
 }
 
-int32 FUnitArmour::GetValue(EDamageSource Src)
+int32 FUnitArmour::GetValue(EDamageSource Src) const
 {
 	if (bIsDirty)
 		Recalc();
 	return ModifiedArmour[Src];
 }
 
-void FUnitArmour::SetBase(const int32 NewBase, EDamageSource Src)
+void FUnitArmour::SetBase(int32 NewBase, EDamageSource Src)
 {
 	BaseArmour[Src] = NewBase;
 	bIsDirty = true;
@@ -238,4 +251,25 @@ TMap<EDamageSource, int32> FUnitArmour::InitArmourMap()
 	Map.Add(EDamageSource::Death, 0);
 	Map.Add(EDamageSource::Mind, 0);
 	return Map;
+}
+
+void FUnitArmour::InitFromBase(const FUnitArmour& Template)
+{
+	BaseArmour = Template.BaseArmour;
+	ModifiedArmour = BaseArmour;
+	FlatModifiers.Empty();
+	MultiplierModifiers.Empty();
+	OverridingModifiers.Empty();
+	bIsDirty = false;
+}
+
+// FUnitDefenseStats implementations
+void FUnitDefenseStats::InitFromBase(const FUnitDefenseStats& Template)
+{
+	Wards.InitFromBase(Template.Wards);
+	Immunities.InitFromBase(Template.Immunities);
+	Armour.InitFromBase(Template.Armour);
+	// DamageReduction is immutable but we can copy the value directly
+	const_cast<int32&>(DamageReduction.Value) = Template.DamageReduction.Value;
+	bIsDefending = false;
 }

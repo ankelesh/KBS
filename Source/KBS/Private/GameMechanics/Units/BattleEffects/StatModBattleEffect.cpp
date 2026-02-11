@@ -67,8 +67,8 @@ bool UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 
 void UStatModBattleEffect::ApplyStatModifications()
 {
-	UStatModBattleEffectDataAsset* Config = GetStatModConfig();
-	if (!Owner || !Config)
+	UStatModBattleEffectDataAsset* Cfg = GetStatModConfig();
+	if (!Owner || !Cfg)
 	{
 		return;
 	}
@@ -77,33 +77,33 @@ void UStatModBattleEffect::ApplyStatModifications()
 	const FGuid& EffId = GetEffectId();
 
 	// Apply stat modifiers (0 = no modification)
-	AppliedMaxHealthMod = Config->MaxHealthModifier;
+	AppliedMaxHealthMod = Cfg->MaxHealthModifier;
 	if (AppliedMaxHealthMod != 0)
 	{
 		Stats.Health.AddMaxModifier(EffId, AppliedMaxHealthMod, true);
 	}
 
-	AppliedInitiativeMod = Config->InitiativeModifier;
+	AppliedInitiativeMod = Cfg->InitiativeModifier;
 	if (AppliedInitiativeMod != 0)
 	{
 		Stats.Initiative.AddFlatModifier(EffId, AppliedInitiativeMod);
 	}
 
-	AppliedAccuracyMod = Config->AccuracyModifier;
+	AppliedAccuracyMod = Cfg->AccuracyModifier;
 	if (AppliedAccuracyMod != 0)
 	{
 		Stats.Accuracy.AddFlatModifier(EffId, AppliedAccuracyMod);
 	}
 
 	// Apply immunities
-	AppliedImmunities = Config->ImmunitiesToGrant.Array();
+	AppliedImmunities = Cfg->ImmunitiesToGrant.Array();
 	for (EDamageSource Immunity : AppliedImmunities)
 	{
 		Stats.Defense.Immunities.AddModifier(EffId, Immunity, true);
 	}
 
 	// Apply armour modifiers
-	for (const auto& ArmorPair : Config->ArmourModifiers)
+	for (const auto& ArmorPair : Cfg->ArmourModifiers)
 	{
 		if (ArmorPair.Value != 0)
 		{

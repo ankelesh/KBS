@@ -1,5 +1,6 @@
 #include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
@@ -112,8 +113,7 @@ ETargetReach UUnitAutoAttackAbility::GetTargeting() const
 	}
 	else
 	{
-		UWeapon* Weapon = FDamageCalculation::SelectMaxReachWeapon(Owner);
-		if (Weapon)
+		if (const UWeapon* Weapon = FDamageCalculation::SelectMaxReachWeapon(Owner))
 		{
 			return Weapon->GetReach();
 		}
@@ -137,7 +137,7 @@ void UUnitAutoAttackAbility::Unsubscribe()
 	}
 }
 
-void UUnitAutoAttackAbility::HandleTurnEnd(AUnit*)
+void UUnitAutoAttackAbility::HandleTurnEnd(AUnit* Self)
 {
 	RestoreCharges();
 }

@@ -1,6 +1,6 @@
 #include "GameplayTypes/CombatTypes.h"
 #include "GameMechanics/Units/Unit.h"
-
+#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 
 void FHitInstance::Reset()
 {

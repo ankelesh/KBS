@@ -333,10 +333,7 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 		return;
 	}
 
-	FTacCoordinates EmptyCell;
-	FAbilityValidation Validation = CurrentActiveAbility->CanExecute(OwnerUnit, EmptyCell);
-
-	if (!Validation.bIsValid)
+	if (!CurrentActiveAbility->CanExecute())
 	{
 		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Current ability '%s' not available, falling back to default attack"),
 			*CurrentActiveAbility->GetConfig()->AbilityName);
@@ -430,6 +427,19 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetSpellbookDisplayData(
 	return DisplayDataArray;
 }
 
+bool UAbilityInventoryComponent::IsSpellbookAvailable() const
+{
+	if (GetOwnerStatus()->CanUseSpellbook() && !SpellbookAbilities.IsEmpty())
+	{
+		for (auto Ability : SpellbookAbilities)
+		{
+			if (Ability->CanExecute())
+				return true;
+		}
+	}
+	return false;
+}
+
 void UAbilityInventoryComponent::AddSpellbookAbility(UUnitAbilityInstance* Ability)
 {
 	if (!Ability)
@@ -441,37 +451,9 @@ void UAbilityInventoryComponent::AddSpellbookAbility(UUnitAbilityInstance* Abili
 
 void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Spell)
 {
-	if (!Spell)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: Attempted to activate null spell"));
-		return;
-	}
-
-	// Validate the spell can be used (check charges, etc.)
-	AUnit* SourceUnit = Cast<AUnit>(GetOwner());
-	FTacCoordinates EmptyCell; // Spellbook activation doesn't need target
-	FAbilityValidation Validation = Spell->CanExecute(SourceUnit, EmptyCell);
-
-	if (!Validation.bIsValid)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: Spell '%s' cannot be activated: %s"),
-			*Spell->GetConfig()->AbilityName, *Validation.FailureMessage.ToString());
-		return;
-	}
-
-	// Execute the spell (will swap weapons and equip auto-attack)
-	FAbilityResult Result = Spell->Execute(SourceUnit, EmptyCell);
-
-	if (Result.bSuccess)
-	{
-		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Spell '%s' activated successfully"),
-			*Spell->GetConfig()->AbilityName);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: Spell '%s' failed: %s"),
-			*Spell->GetConfig()->AbilityName, *Result.FailureMessage.ToString());
-	}
+	checkf(!Spell, TEXT("AbilityInventory: Attempted to activate null spell"));
+	if (Spell->CanExecute())
+		EquipAbility(Spell);
 }
 
 const FUnitStatusContainer* UAbilityInventoryComponent::GetOwnerStatus() const
@@ -482,29 +464,6 @@ const FUnitStatusContainer* UAbilityInventoryComponent::GetOwnerStatus() const
 		return nullptr;
 	}
 	return &OwnerUnit->GetStats().Status;
-}
-
-bool UAbilityInventoryComponent::IsSpellbookAvailable() const
-{
-	const FUnitStatusContainer* Status = GetOwnerStatus();
-	if (!Status)
-	{
-		return false;
-	}
-
-	// TurnBlocked or Fleeing blocks all abilities including spellbook
-	if (!Status->CanAct() || Status->IsFleeing())
-	{
-		return false;
-	}
-
-	// Silenced specifically blocks spellbook
-	if (!Status->CanUseSpellbook())
-	{
-		return false;
-	}
-
-	return true;
 }
 
 bool UAbilityInventoryComponent::IsDefaultAbility(UUnitAbilityInstance* Ability) const

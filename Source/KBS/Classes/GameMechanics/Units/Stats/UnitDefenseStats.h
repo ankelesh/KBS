@@ -38,8 +38,9 @@ struct FUnitImmunities
 	// === Public API ===
 	void AddModifier(const FGuid& Id, EDamageSource Source, bool bIsGranting = true);
 	void RemoveModifier(const FGuid& Id, EDamageSource Source, bool bIsGranting = true);
-	bool IsImmuneTo(EDamageSource Source);
+	bool IsImmuneTo(EDamageSource Source) const;
 	const TSet<EDamageSource>& GetBase() const { return BaseImmunities; }
+	void InitFromBase(const FUnitImmunities& Template);
 
 	FUnitImmunities();
 	explicit FUnitImmunities(TSet<EDamageSource> Immunities);
@@ -50,18 +51,18 @@ private:
 	TSet<EDamageSource> BaseImmunities;
 
 	UPROPERTY()
-	TSet<EDamageSource> ModifiedImmunities;
+	mutable TSet<EDamageSource> ModifiedImmunities;
 
 	UPROPERTY()
 	TArray<FUnitImmunityModifier> ModifyingEffects;
 
 	UPROPERTY()
-	bool bIsDirty = false;
+	mutable bool bIsDirty = false;
 
 	// === Internal Methods ===
-	void Recalc();
-	TSet<EDamageSource> CalcAdditions();
-	TSet<EDamageSource> CalcSubtractions();
+	void Recalc() const;
+	TSet<EDamageSource> CalcAdditions() const;
+	TSet<EDamageSource> CalcSubtractions() const;
 };
 
 USTRUCT(BlueprintType)
@@ -73,6 +74,8 @@ struct FUnitWards
 	void Remove(EDamageSource Source);
 	bool HasWardFor(EDamageSource Source) const;
 	bool UseWard(EDamageSource Source);
+	void InitFromBase(const FUnitWards& Template);
+	const TSet<EDamageSource>& GetWards() const { return Wards; }
 
 	FUnitWards() = default;
 	explicit FUnitWards(TSet<EDamageSource> Source);
@@ -118,9 +121,10 @@ struct FUnitArmour
 	void AddOverride(const FGuid& EffectId, int32 Amount, EDamageSource Source);
 	void RemoveOverride(const FGuid& EffectId, int32 Amount, EDamageSource Source);
 
-	int32 GetValue(EDamageSource Src);
+	int32 GetValue(EDamageSource Src) const;
 	void SetBase(int32 NewBase, EDamageSource Src);
 	const TMap<EDamageSource, int32>& GetBaseArmour() const { return BaseArmour; }
+	void InitFromBase(const FUnitArmour& Template);
 
 	FUnitArmour();
 	explicit FUnitArmour(TMap<EDamageSource, int32> Base);
@@ -131,7 +135,7 @@ private:
 	TMap<EDamageSource, int32> BaseArmour;
 
 	UPROPERTY()
-	TMap<EDamageSource, int32> ModifiedArmour;
+	mutable TMap<EDamageSource, int32> ModifiedArmour;
 
 	UPROPERTY()
 	TArray<FUnitArmourModifier> FlatModifiers;
@@ -143,15 +147,15 @@ private:
 	TArray<FUnitArmourModifier> OverridingModifiers;
 
 	UPROPERTY()
-	bool bIsDirty = false;
+	mutable bool bIsDirty = false;
 
 	// === Internal Methods ===
 	bool IsDirty() const;
-	void Recalc();
-	void CalcFlatModifiers();
-	void CalcArmourMultipliers();
-	void CalcOverrides();
-	void ClampArmour();
+	void Recalc() const;
+	void CalcFlatModifiers() const;
+	void CalcArmourMultipliers() const;
+	void CalcOverrides() const;
+	void ClampArmour() const;
 
 	static TMap<EDamageSource, int32> InitArmourMap();
 };
@@ -171,4 +175,6 @@ struct FUnitDefenseStats
 	FUnitStatImmutableInt32 DamageReduction {0};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defense")
 	bool bIsDefending = false;
+
+	void InitFromBase(const FUnitDefenseStats& Template);
 };

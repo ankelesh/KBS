@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "GameplayTypes/GridCoordinates.h"
 #include "TacGridSubsystem.generated.h"
 
 
@@ -26,13 +27,13 @@ public:
 	void ClearHighlights(EHighlightType HighlightType);
 	void ClearAllHighlights();
 
-	TArray<TObjectPtr<AUnit> > GetActiveUnits();
-	TArray<TObjectPtr<AUnit> > GetAllUnits();
-	TArray<TObjectPtr<AUnit> > GetDeadUnits();
-	TObjectPtr<UBattleTeam> GetAttackerTeam();
-	TObjectPtr<UBattleTeam> GetDefenderTeam();
+	TArray<AUnit*> GetActiveUnits();
+	TArray<AUnit*> GetAllUnits();
+	TArray<AUnit*> GetDeadUnits();
+	UBattleTeam* GetAttackerTeam();
+	UBattleTeam* GetDefenderTeam();
 	bool IsBothTeamsAnyUnitAlive();
-	TObjectPtr<UBattleTeam> GetWinnerTeam();
+	UBattleTeam* GetWinnerTeam();
 
 	bool GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& OutCoordinates) const;
 	

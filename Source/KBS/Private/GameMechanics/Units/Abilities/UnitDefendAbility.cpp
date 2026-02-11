@@ -42,7 +42,7 @@ void UUnitDefendAbility::Unsubscribe()
 	}
 }
 
-void UUnitDefendAbility::HandleTurnEnd(AUnit*)
+void UUnitDefendAbility::HandleTurnEnd(AUnit* Self)
 {
 	RestoreCharges();
 }

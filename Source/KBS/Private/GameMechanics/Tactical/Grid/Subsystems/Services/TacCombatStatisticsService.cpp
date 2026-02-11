@@ -7,13 +7,13 @@ void UTacCombatStatisticsService::ProcessStatistics(const FCombatHitResult& Resu
 	if (Result.bHit)
 	{
 		Stats.Hits++;
-		Stats.TotalDamage += Result.Damage;
+		Stats.TotalDamage += Result.DamageResult.Damage;
 	}
 	else
 	{
 		Stats.Misses++;
 	}
-	Stats.EffectsApplied += Result.EffectsApplied.Num();
+	Stats.EffectsApplied += Result.EffectsApplied;
 }
 
 void UTacCombatStatisticsService::ResetStatistics()

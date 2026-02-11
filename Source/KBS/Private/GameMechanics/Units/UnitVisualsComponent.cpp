@@ -269,7 +269,7 @@ void UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* Target, 
 	if (!OwnerUnit || !Target || !Weapon) return;
 
 	// Get weapon config and attack montage
-	UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
+	const UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
 	UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
 
 	// Calculate rotation toward target

@@ -32,10 +32,6 @@ public:
 	void RegisterAbility(UUnitAbilityInstance* Ability);
 	void UnregisterAbility(UUnitAbilityInstance* Ability);
 
-	// Broadcast global battlefield events
-	void BroadcastAnyUnitAttacked(AUnit* Victim, AUnit* Attacker);
-	void BroadcastAnyUnitDamaged(AUnit* Victim, AUnit* Attacker);
-	void BroadcastAnyUnitAttacks(AUnit* Attacker, AUnit* Target);
 
 private:
 	TMap<EAbilityEventType, TArray<UUnitAbilityInstance*>> RegisteredAbilities;

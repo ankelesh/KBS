@@ -1,14 +1,12 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameplayTypes/DamageTypes.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
-#include "GameMechanics/Units/Stats/UnitStats.h"
 #include "CombatTypes.generated.h"
 
 class AUnit;
 class UBattleEffect;
-
+class UUnitAbilityInstance;
+class UWeapon;
 USTRUCT(BlueprintType)
 struct FDamageResult
 {
@@ -37,6 +35,7 @@ struct FHitInstance
 	TArray<UUnitAbilityInstance*> InterferingAbilities;
 	
 	void Reset();
+	FHitInstance() = default;
 	explicit FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UWeapon* Weapon);
 	void Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled = false);
 	void CheckCancellation();
@@ -61,6 +60,7 @@ struct FAttackContext
 	bool bIsReactionHit;
 	
 	void Reset();
+	FAttackContext() = default;
 	explicit FAttackContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction = false);
 	void Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled = false);
 	void CheckCancellation();

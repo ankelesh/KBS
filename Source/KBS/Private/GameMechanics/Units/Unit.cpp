@@ -48,7 +48,7 @@ void AUnit::BeginPlay()
 	{
 		VisualsComponent->InitializeFromDefinition(UnitDefinition);
 	}
-	BaseStats = UnitDefinition->BaseStatsTemplate;
+	BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
 	for (UWeaponDataAsset* WeaponData : UnitDefinition->DefaultWeapons)
 	{
 		if (WeaponData)
@@ -170,7 +170,7 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 	UnitDefinition = InDefinition;
 	if (UnitDefinition)
 	{
-		BaseStats = UnitDefinition->BaseStatsTemplate;
+		BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
 
 		// Recreate weapons from new definition
 		Weapons.Empty();
@@ -202,7 +202,7 @@ void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 	UE_LOG(LogTemp, Warning, TEXT("[EVENT] Unit '%s' clicked with button '%s'"), *GetName(), *ButtonPressed.ToString());
 	OnUnitClicked.Broadcast(this, ButtonPressed);
 }
-const float AUnit::GetMovementSpeed() const
+float AUnit::GetMovementSpeed() const
 	{ return UnitDefinition->MovementSpeed; }
 void AUnit::TakeHit(const FDamageResult& DamageResult)
 {

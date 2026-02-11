@@ -17,7 +17,7 @@ void FUnitHealth::SetMaxBase(int32 NewBase, bool bShouldHeal)
 	}
 }
 
-void FUnitHealth::AddMaxModifier(const FGuid EffectId, int32 Amount, bool bShouldHeal)
+void FUnitHealth::AddMaxModifier(const FGuid& EffectId, int32 Amount, bool bShouldHeal)
 {
 	int32 OldMax = Maximum.GetValue();
 	Maximum.AddFlatModifier(EffectId, Amount);
@@ -34,7 +34,7 @@ void FUnitHealth::AddMaxModifier(const FGuid EffectId, int32 Amount, bool bShoul
 	}
 }
 
-void FUnitHealth::AddMaxMultiplier(const FGuid EffectId, int32 Amount, bool bShouldHeal)
+void FUnitHealth::AddMaxMultiplier(const FGuid& EffectId, int32 Amount, bool bShouldHeal)
 {
 	int32 OldMax = Maximum.GetValue();
 	Maximum.AddMultiplier(EffectId, Amount);
@@ -51,13 +51,13 @@ void FUnitHealth::AddMaxMultiplier(const FGuid EffectId, int32 Amount, bool bSho
 	}
 }
 
-void FUnitHealth::RemoveMaxModifier(const FGuid EffectId, int32 Amount)
+void FUnitHealth::RemoveMaxModifier(const FGuid& EffectId, int32 Amount)
 {
 	Maximum.RemoveFlatModifier(EffectId, Amount);
 	ClampCurrent();
 }
 
-void FUnitHealth::RemoveMaxMultiplier(const FGuid EffectId, int32 Amount)
+void FUnitHealth::RemoveMaxMultiplier(const FGuid& EffectId, int32 Amount)
 {
 	Maximum.RemoveMultiplier(EffectId, Amount);
 	ClampCurrent();
@@ -87,12 +87,12 @@ void FUnitHealth::FullHeal()
 	Current = Maximum.GetValue();
 }
 
-int32 FUnitHealth::GetMaximum()
+int32 FUnitHealth::GetMaximum() const
 {
 	return Maximum.GetValue();
 }
 
-float FUnitHealth::GetHealthPercent()
+float FUnitHealth::GetHealthPercent() const
 {
 	int32 Max = Maximum.GetValue();
 	if (Max <= 0)
@@ -104,4 +104,10 @@ void FUnitHealth::ClampCurrent()
 {
 	int32 Max = Maximum.GetValue();
 	Current = FMath::Clamp(Current, 0, Max);
+}
+
+void FUnitHealth::InitFromBase(const FUnitHealth& Template)
+{
+	Maximum.InitFromBase(Template.Maximum.GetBase());
+	Current = Maximum.GetValue();
 }

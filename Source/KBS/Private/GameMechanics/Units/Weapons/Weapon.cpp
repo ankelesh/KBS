@@ -54,4 +54,5 @@ void UWeapon::InitializeFromDataAsset()
 
 FText UWeapon::GetEffectsTooltips(AUnit* Owner)
 {
+	return FText();
 }

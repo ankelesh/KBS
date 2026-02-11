@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "UnitStats.h"
+#include "GameMechanics/Units/Stats/UnitStats.h"
 #include "UnitDefinition.generated.h"
 class UWeaponDataAsset;
 class USkeletalMesh;

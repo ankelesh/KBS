@@ -21,7 +21,7 @@ private:
 	GENERATED_BODY()
 
 	UFUNCTION()
-	void HandleTurnEnd(AUnit*);
+	void HandleTurnEnd(AUnit* Self);
 
 public:
 	virtual ETargetReach GetTargeting() const override;

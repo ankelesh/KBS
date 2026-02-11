@@ -12,3 +12,18 @@ enum class EDefaultAbilitySlot : uint8
 	Defend UMETA(DisplayName = "Defend"),
 	Flee UMETA(DisplayName = "Flee")
 };
+
+USTRUCT(BlueprintType)
+struct FAbilityResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bInvalidInput = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bPresentationRunning = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bBattleEnded = false;
+};

@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "Weapons/WeaponDisplayData.h"
-#include "UnitStats.h"
+#include "GameMechanics/Units/Stats/UnitStats.h"
 #include "UnitDisplayData.generated.h"
 USTRUCT(BlueprintType)
 struct KBS_API FUnitDisplayData
@@ -63,12 +63,20 @@ class UBattleEffect;
 enum class EDamageSource : uint8;
 enum class ETargetReach : uint8;
 enum class ETeamSide : uint8;
+struct FUnitArmour;
+struct FUnitImmunities;
+struct FUnitWards;
+struct FUnitCoreStats;
+struct FDamageSourceSetStat;
 FString DamageSourceToString(EDamageSource Source);
 FString TargetReachToString(ETargetReach Reach);
 FWeaponDisplayData ConvertWeapon(const UWeapon* Weapon);
-TArray<FString> ConvertDamageSourceSet(const TSet<EDamageSource>& SourceSet);
+
 TArray<FString> ConvertActiveEffects(const TArray<TObjectPtr<UBattleEffect>>& Effects);
-FString ConvertArmourMap(const TMap<EDamageSource, int32>& ArmourMap);
+FString ConvertArmourMap(const FUnitArmour& ArmourMap);
+TArray<FString> ConvertImmunityMap(const FUnitImmunities& ImmunityMap);
+TArray<FString> ConvertWardMap(const FUnitWards& WardMap);
+TArray<FString> ConvertDamageSourceSet(const FDamageSourceSetStat& DamageSourceSet);
 FUnitDisplayData BuildUnitDisplayData(
 	const FString& UnitName,
 	float CurrentHealth,

@@ -24,10 +24,13 @@ struct FUnitHealth
 	void FullHeal();
 
 	// Queries
-	int32 GetMaximum();
+	int32 GetMaximum() const;
 	int32 GetCurrent() const { return Current; }
 	bool IsDead() const { return Current <= 0; }
-	float GetHealthPercent();
+	float GetHealthPercent() const;
+
+	// Init from template
+	void InitFromBase(const FUnitHealth& Template);
 
 	FUnitHealth() : Maximum(100), Current(100) {}
 	explicit FUnitHealth(int32 MaxHP) : Maximum(MaxHP), Current(MaxHP) {}

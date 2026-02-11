@@ -62,7 +62,7 @@ void UUnitMovementAbility::Unsubscribe()
 	}
 }
 
-void UUnitMovementAbility::HandleTurnEnd(AUnit*)
+void UUnitMovementAbility::HandleTurnEnd(AUnit* Self)
 {
 	RestoreCharges();
 }
