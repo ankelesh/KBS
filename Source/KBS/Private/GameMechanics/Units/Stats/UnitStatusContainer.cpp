@@ -34,6 +34,12 @@ bool FUnitStatusContainer::AddStatus(EUnitStatus Status, const FGuid& EffectId)
 			bFocused = true;
 			return bWasInactive;
 		}
+	case EUnitStatus::Defending:
+		{
+			const bool bWasInactive = !bDefending;
+			bDefending = true;
+			return bWasInactive;
+		}
 	case EUnitStatus::Fleeing:
 		{
 			const bool bWasInactive = !bFleeing;
@@ -87,6 +93,12 @@ bool FUnitStatusContainer::RemoveStatus(EUnitStatus Status, const FGuid& EffectI
 			bFleeing = false;
 			return bWasActive;
 		}
+	case EUnitStatus::Defending:
+		{
+			const bool bWasActive = !bDefending;
+			bDefending = false;
+			return bWasActive;
+		}
 	case EUnitStatus::Channeling:
 		{
 			const bool bWasActive = bChanneling;
@@ -123,6 +135,9 @@ void FUnitStatusContainer::ClearStatus(EUnitStatus Status)
 	case EUnitStatus::Channeling:
 		bChanneling = false;
 		break;
+	case EUnitStatus::Defending:
+		bDefending = false;
+		break;
 	}
 }
 
@@ -135,6 +150,7 @@ void FUnitStatusContainer::ClearAll()
 	bFocused = false;
 	bFleeing = false;
 	bChanneling = false;
+	bDefending = false;
 }
 
 bool FUnitStatusContainer::CanAct() const
@@ -175,6 +191,8 @@ bool FUnitStatusContainer::IsStatusActive(EUnitStatus Status) const
 		return bFleeing;
 	case EUnitStatus::Channeling:
 		return bChanneling;
+	case EUnitStatus::Defending:
+		return bDefending;
 	default:
 		return false;
 	}

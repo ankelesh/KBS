@@ -11,7 +11,8 @@ enum class EUnitStatus : uint8
 	Disoriented,
 	Focused,
 	Fleeing,
-	Channeling
+	Channeling,
+	Defending,
 };
 
 USTRUCT(BlueprintType)
@@ -26,6 +27,7 @@ struct FUnitStatusContainer
 	void SetFocus() {bFocused = true;}
 	void SetFleeing() {bFleeing = true;}
 	void SetChanneling() {bChanneling = true;}
+	void SetDefending() {bDefending = true;}
 	void BlockTurn(FGuid const& EffectId) { TurnBlockedModifiers.Add(EffectId); }
 	void Pin(FGuid const& EffectId) { PinnedModifiers.Add(EffectId); }
 	void Silence(FGuid const& EffectId) { SilencedModifiers.Add(EffectId); }
@@ -46,6 +48,7 @@ struct FUnitStatusContainer
 	bool IsFocused() const { return bFocused; }
 	bool IsFleeing() const { return bFleeing; }
 	bool IsChanneling() const { return bChanneling; }
+	bool IsDefending() const { return bDefending; }
 	bool HasReplacementBehavior() const { return bFleeing || bChanneling; }
 
 	bool IsStatusActive(EUnitStatus Status) const;
@@ -75,4 +78,7 @@ private:
 
 	UPROPERTY()
 	bool bChanneling = false;
+	
+	UPROPERTY()
+	bool bDefending = false;
 };

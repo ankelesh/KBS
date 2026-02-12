@@ -70,7 +70,6 @@ public:
 	// --- Combat ---
 	void TakeHit(const FDamageResult& DamageResult);
 	bool ApplyEffect(UBattleEffect* Effect);
-	void SetDefending(bool bDefending);
 
 	// --- Queries ---
 	const FGuid& GetUnitID() const { return UnitID; }

@@ -6,7 +6,7 @@ bool UUnitDefendAbility::Execute(FTacCoordinates TargetCell)
 {
 	if (!Owner) return false;
 
-	Owner->SetDefending(true);
+	Owner->GetStats().Status.SetDefending();
 	UE_LOG(LogTemp, Log, TEXT("%s is now defending - incoming damage will be halved"), *Owner->GetName());
 
 	// Set Focused status to end turn

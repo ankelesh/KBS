@@ -5,7 +5,7 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "TacGridSubsystem.generated.h"
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridSubsystemReady, UTacGridSubsystem*, Subsystem);
 class UGridDataManager;
 class UTacGridMovementService;
 class UTacGridTargetingService;
@@ -36,7 +36,8 @@ public:
 	UBattleTeam* GetWinnerTeam();
 
 	bool GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& OutCoordinates) const;
-	
+
+	FOnGridSubsystemReady Ready;
 	
 private:
 	UPROPERTY()

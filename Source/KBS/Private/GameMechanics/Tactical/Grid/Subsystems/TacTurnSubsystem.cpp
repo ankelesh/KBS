@@ -12,18 +12,26 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/GridCoordinates.h"
 
+void UTacTurnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+	if (UPresentationSubsystem* PresentationSys = GetWorld()->GetSubsystem<UPresentationSubsystem>())
+	{
+		PresentationSys->OnAllPresentationsComplete.AddDynamic(this, &UTacTurnSubsystem::OnPresentationComplete);
+	}
+	if (UTacGridSubsystem* GridSubsys = GetWorld()->GetSubsystem<UTacGridSubsystem>())
+	{
+		GridSubsystem = GridSubsys;
+		GridSubsystem->Ready.AddDynamic(this, &UTacTurnSubsystem::GridAvailable);
+	}
+}
+
 void UTacTurnSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
 	TurnOrder = MakeUnique<FTacTurnOrder>();
 	InitializeStates();
-
-	// Subscribe to presentation complete delegate
-	if (UPresentationSubsystem* PresentationSys = GetWorld()->GetSubsystem<UPresentationSubsystem>())
-	{
-		PresentationSys->OnAllPresentationsComplete.AddDynamic(this, &UTacTurnSubsystem::OnPresentationComplete);
-	}
 }
 
 void UTacTurnSubsystem::Deinitialize()
@@ -44,6 +52,10 @@ void UTacTurnSubsystem::Deinitialize()
 	TurnOrder.Reset();
 
 	Super::Deinitialize();
+}
+
+void UTacTurnSubsystem::GridAvailable(UTacGridSubsystem* Grid)
+{
 }
 
 void UTacTurnSubsystem::InitializeStates()
@@ -164,10 +176,7 @@ void UTacTurnSubsystem::Wait()
 
 void UTacTurnSubsystem::ReloadTurnOrder()
 {
-	if (UTacGridSubsystem* Grid = GetWorld()->GetSubsystem<UTacGridSubsystem>())
-	{
-		TurnOrder->Repopulate(Grid->GetActiveUnits(), Grid->GetAttackerTeam());
-	}
+	TurnOrder->Repopulate(GridSubsystem->GetActiveUnits(), GridSubsystem->GetAttackerTeam());
 }
 
 void UTacTurnSubsystem::BroadcastRoundStart()
@@ -192,12 +201,5 @@ void UTacTurnSubsystem::BroadcastTurnEnd()
 
 void UTacTurnSubsystem::BroadcastBattleEnd()
 {
-	if (UTacGridSubsystem* Grid = GetWorld()->GetSubsystem<UTacGridSubsystem>())
-	{
-		OnBattleEnd.Broadcast(Grid->GetWinnerTeam());
-	}
-	else
-	{
-		OnBattleEnd.Broadcast(nullptr);
-	}
+	OnBattleEnd.Broadcast(GridSubsystem->GetWinnerTeam());
 }

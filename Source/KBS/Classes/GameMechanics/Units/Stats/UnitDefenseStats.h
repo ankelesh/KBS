@@ -173,8 +173,7 @@ struct FUnitDefenseStats
 	FUnitArmour Armour;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defense")
 	FUnitStatImmutableInt32 DamageReduction {0};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Defense")
-	bool bIsDefending = false;
+
 
 	void InitFromBase(const FUnitDefenseStats& Template);
 };

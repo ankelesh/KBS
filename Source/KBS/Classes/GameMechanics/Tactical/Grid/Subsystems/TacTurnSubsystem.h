@@ -7,6 +7,7 @@
 #include "TurnStateMachine/TacTurnOrder.h"
 #include "TacTurnSubsystem.generated.h"
 
+class UTacGridSubsystem;
 class UBattleTeam;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStart, int32, Turn);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, Turn);
@@ -22,7 +23,12 @@ enum class ETurnState : uint8;
 UCLASS()
 class KBS_API UTacTurnSubsystem : public UWorldSubsystem
 {
+public:
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+
+private:
 	GENERATED_BODY()
+
 public:
 	friend class FTacTurnState;
 
@@ -49,12 +55,16 @@ public:
 	void AbilityClicked(UUnitAbilityInstance* Ability);
 
 	int32 GetCurrentRound() const { return CurrentRound; }
+	
+	UFUNCTION(BlueprintCallable)
+	void GridAvailable(UTacGridSubsystem* Grid);
+	UFUNCTION(BlueprintCallable)
+	void OnPresentationComplete();
 
 private:
 	void InitializeStates();
 	void TransitionToState(ETurnState NextState);
 	void AttemptTransition();
-	void OnPresentationComplete();
 
 	void ReloadTurnOrder();
 	void BroadcastRoundStart();
@@ -67,4 +77,5 @@ private:
 	TMap<ETurnState, TUniquePtr<FTacTurnState>> States;
 	FTacTurnState* CurrentState = nullptr;
 	int32 CurrentRound;
+	UTacGridSubsystem* GridSubsystem = nullptr;
 };

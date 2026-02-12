@@ -35,8 +35,8 @@ void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 	GridMovementService->Initialize(InDataManager);
 	GridTargetingService = NewObject<UTacGridTargetingService>(this);
 	GridTargetingService->Initialize(InDataManager);
-
 	UE_LOG(LogTemp, Log, TEXT("TacGridSubsystem: Registered successfully with Grid and HighlightComponent"));
+	Ready.Broadcast(this);
 }
 
 TArray<AUnit*> UTacGridSubsystem::GetActiveUnits()

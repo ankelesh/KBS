@@ -137,7 +137,7 @@ FUnitDisplayData BuildUnitDisplayData(
 	DisplayData.Wards = FString::Join(WardsArray, TEXT(", "));
 	DisplayData.Armour = ConvertArmourMap(Stats.Defense.Armour);
 	DisplayData.DamageReduction = Stats.Defense.DamageReduction.GetValue();
-	DisplayData.bIsDefending = Stats.Defense.bIsDefending;
+	DisplayData.bIsDefending = Stats.Status.IsDefending();
 	return DisplayData;
 }
 

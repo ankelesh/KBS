@@ -252,15 +252,11 @@ bool AUnit::ApplyEffect(UBattleEffect* Effect)
 		return false;
 	}
 }
-void AUnit::SetDefending(bool bDefending)
-{
-	BaseStats.Defense.bIsDefending = bDefending;
-}
 void AUnit::HandleTurnStart()
 {
 	if (BaseStats.Health.IsDead()) return;
 	UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
-	BaseStats.Defense.bIsDefending = false;
+	BaseStats.Status.ClearStatus(EUnitStatus::Defending);
 	if (AbilityInventory)
 	{
 		AbilityInventory->SelectAttackAbility();

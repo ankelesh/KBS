@@ -19,6 +19,13 @@ void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDe
 	}
 }
 
+bool UUnitAbilityInstance::RefreshAvailability() const
+{
+	bool bResult = CanExecute();
+	OnAbilityAvailabilityChange.Broadcast(this, bResult);
+	return bResult;
+}
+
 ETargetReach UUnitAbilityInstance::GetTargeting() const
 {
 	if (Config)

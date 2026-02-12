@@ -27,6 +27,7 @@ FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weap
 	const FWeaponStats& WeaponStats = Weapon->GetStats();
 	const FUnitCoreStats& TargetStats = Target->GetStats();
 	const FUnitDefenseStats& Defense = TargetStats.Defense;
+	const bool bIsTargetDefending = Target->GetStats().Status.IsDefending(); 
 	EDamageSource BestSource = SelectBestDamageSource(WeaponStats.DamageSources.GetValue(), Target);
 	Result.DamageSource = BestSource;
 	if (BestSource == EDamageSource::None)
@@ -51,7 +52,7 @@ FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weap
 	float ArmorValue = ArmorPercent / 100.0f;
 	float DamageAfterArmor = BaseDamage * (1.0f - ArmorValue);
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
-	if (Defense.bIsDefending)
+	if (bIsTargetDefending)
 	{
 		FinalDamage *= 0.5f;
 	}

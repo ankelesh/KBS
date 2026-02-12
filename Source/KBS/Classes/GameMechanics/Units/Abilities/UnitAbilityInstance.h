@@ -21,6 +21,7 @@ class UTacTurnSubsystem;
 class UTacAbilityExecutorService;
 struct FAttackContext;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbilityInstance*, Ability, bool, Available);
 UCLASS(Abstract, Blueprintable)
 class KBS_API UUnitAbilityInstance : public UObject
 {
@@ -32,6 +33,7 @@ public:
 	virtual bool Execute(FTacCoordinates TargetCell) { return true; };
 	virtual bool CanExecute(FTacCoordinates TargetCell) const { return false; };
 	virtual bool CanExecute() const { return false; };
+	virtual bool RefreshAvailability() const;
 
 	virtual ETargetReach GetTargeting() const;
 	virtual bool IsPassive() const;
@@ -51,6 +53,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
 	virtual FAbilityDisplayData GetAbilityDisplayData() const;
 
+	UPROPERTY(EditAnywhere, BlueprintAssignable, Category = "Abilities|Events")
+	FOnAbilityAvailabilityChange OnAbilityAvailabilityChange;
 protected:
 	// Service getters - full chain encapsulated, returns nullptr on any failure
 	UTacGridSubsystem* GetGridSubsystem() const;

@@ -271,5 +271,4 @@ void FUnitDefenseStats::InitFromBase(const FUnitDefenseStats& Template)
 	Armour.InitFromBase(Template.Armour);
 	// DamageReduction is immutable but we can copy the value directly
 	const_cast<int32&>(DamageReduction.Value) = Template.DamageReduction.Value;
-	bIsDefending = false;
 }
