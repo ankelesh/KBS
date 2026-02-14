@@ -22,6 +22,7 @@ class UTacAbilityExecutorService;
 struct FAttackContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbilityInstance*, Ability, bool, Available);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityUsed, int32, ChargesLeft, bool, Available);
 UCLASS(Abstract, Blueprintable)
 class KBS_API UUnitAbilityInstance : public UObject
 {
@@ -37,6 +38,7 @@ public:
 
 	virtual ETargetReach GetTargeting() const;
 	virtual bool IsPassive() const;
+	virtual bool HasExplicitCharges() const { return false; }
 	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const {return {};};
 	virtual void Subscribe() {};
 	virtual void Unsubscribe() {};
@@ -49,12 +51,15 @@ public:
 	void SetOwner(AUnit* NewOwner) { Owner = NewOwner; }
 	virtual void ConsumeCharge();
 	virtual void RestoreCharges();
+	void BroadcastUsage() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
 	virtual FAbilityDisplayData GetAbilityDisplayData() const;
 
 	UPROPERTY(EditAnywhere, BlueprintAssignable, Category = "Abilities|Events")
 	FOnAbilityAvailabilityChange OnAbilityAvailabilityChange;
+	UPROPERTY(EditAnywhere, BlueprintAssignable, Category = "Abilities|Events")
+	FOnAbilityUsed OnAbilityUsed;
 protected:
 	// Service getters - full chain encapsulated, returns nullptr on any failure
 	UTacGridSubsystem* GetGridSubsystem() const;

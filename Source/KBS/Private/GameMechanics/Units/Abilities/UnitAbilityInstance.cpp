@@ -6,7 +6,6 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
-#include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 
 void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
@@ -56,6 +55,12 @@ void UUnitAbilityInstance::RestoreCharges()
 		RemainingCharges = Config->MaxCharges;
 	}
 }
+
+void UUnitAbilityInstance::BroadcastUsage() const
+{
+	OnAbilityUsed.Broadcast(RemainingCharges, CanExecute());
+}
+
 FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
 {
 	FAbilityDisplayData DisplayData;
@@ -68,14 +73,7 @@ FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
 	DisplayData.RemainingCharges = RemainingCharges;
 	DisplayData.MaxCharges = Config->MaxCharges;
 	DisplayData.bIsEmpty = false;
-	if (Config->MaxCharges < 0)
-	{
-		DisplayData.bCanExecuteThisTurn = true;
-	}
-	else
-	{
-		DisplayData.bCanExecuteThisTurn = RemainingCharges > 0;
-	}
+	DisplayData.bCanExecuteThisTurn = CanExecute();
 	DisplayData.TargetingInfo = UAbilityTypesLibrary::TargetReachToString(Config->Targeting);
 	DisplayData.Description = FString::Printf(TEXT("%s - %s"), *Config->AbilityName, *DisplayData.TargetingInfo);
 	return DisplayData;

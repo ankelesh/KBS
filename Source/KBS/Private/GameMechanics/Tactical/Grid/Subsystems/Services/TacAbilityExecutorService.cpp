@@ -51,5 +51,6 @@ FAbilityResult UTacAbilityExecutorService::Execute(UUnitAbilityInstance* Ability
 	}
 
 	OnAbilityCompleted.Broadcast(Ability, TargetCell, Result);
+	Ability->BroadcastUsage();
 	return Result;
 }

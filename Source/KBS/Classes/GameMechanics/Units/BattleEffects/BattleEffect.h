@@ -8,6 +8,9 @@ class AUnit;
 class UNiagaraComponent;
 
 typedef TArray<TObjectPtr<UBattleEffect>> BattleEffectArray;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEffectDurationChange, int32, NewDuration);
+
 UCLASS(Abstract, Blueprintable)
 class KBS_API UBattleEffect : public UObject
 {
@@ -40,8 +43,12 @@ public:
 	bool IsRequringRoll() const { return bIsAccuracyDependent; }
 	AUnit* GetOwner() const { return Owner; }
 	const FGuid& GetEffectId() const { return EffectId; }
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnEffectDurationChange OnDurationChange;
 protected:
-	void DecrementDuration() { if (Duration > 0) Duration--; }
+	void DecrementDuration() { if (Duration > 0) Duration--; BroadcastDurationChange(); }
+	void BroadcastDurationChange() const { OnDurationChange.Broadcast(Duration);}
 	virtual void SpawnEffectVFX();
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
 	TObjectPtr<UBattleEffectDataAsset> Config;
