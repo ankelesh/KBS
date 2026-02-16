@@ -52,8 +52,9 @@ void ATacBattleGrid::OnConstruction(const FTransform& Transform)
 void ATacBattleGrid::BeginPlay()
 {
 	Super::BeginPlay();
+	Player1ControlledTeam = Config->PlayerTeamSide;
 	InitializeComponents();
-
+	
 	// Register with TacGridSubsystem
 	UWorld* World = GetWorld();
 	checkf(World, TEXT("TacBattleGrid: World is null in BeginPlay"));

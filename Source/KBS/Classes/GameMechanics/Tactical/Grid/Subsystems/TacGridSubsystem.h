@@ -32,6 +32,7 @@ public:
 	TArray<AUnit*> GetDeadUnits();
 	UBattleTeam* GetAttackerTeam();
 	UBattleTeam* GetDefenderTeam();
+	UBattleTeam* GetPlayerTeam();
 	bool IsBothTeamsAnyUnitAlive();
 	UBattleTeam* GetWinnerTeam();
 

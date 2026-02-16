@@ -70,6 +70,7 @@ void UGridDataManager::Initialize(ATacBattleGrid* InGrid)
 		AttackerTeam->SetTeamSide(ETeamSide::Attacker);
 		DefenderTeam = NewObject<UBattleTeam>(Grid);
 		DefenderTeam->SetTeamSide(ETeamSide::Defender);
+		PlayerTeam = Grid->GetPlayerTeamSide() == ETeamSide::Attacker ? AttackerTeam : DefenderTeam;
 	}
 	GroundLayer.SetNum(FGridConstants::GridSize);
 	AirLayer.SetNum(FGridConstants::GridSize);

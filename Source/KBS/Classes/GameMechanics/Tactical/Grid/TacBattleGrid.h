@@ -32,6 +32,8 @@ public:
 	TObjectPtr<UMaterialInterface> CurrentSelectedDecalMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Decals")
 	TObjectPtr<UMaterialInterface> FriendlyDecalMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Teams")
+	ETeamSide PlayerTeamSide = ETeamSide::Attacker;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|VFX", meta = (DisplayName = "Niagara Systems (indexed by EHighlightType)"))
 	TArray<TObjectPtr<class UNiagaraSystem>> HighlightNiagaraSystems;
@@ -55,6 +57,7 @@ public:
 	UGridHighlightComponent* GetHighlightComponent() { return HighlightComponent; }
 	float GetCellSize() const { return Config ? Config->CellSize : 200.0f; }
 	float GetAirLayerHeight() const { return Config ? Config->AirLayerHeight : 500.0f; }
+	ETeamSide GetPlayerTeamSide() const { return Player1ControlledTeam; }
 
 	// EDITOR - public for editor components
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Runtime")

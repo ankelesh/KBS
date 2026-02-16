@@ -59,14 +59,19 @@ TArray<AUnit*> UTacGridSubsystem::GetDeadUnits()
 
 UBattleTeam* UTacGridSubsystem::GetAttackerTeam()
 {
-	if (!DataManager) return nullptr;
+	
 	return DataManager->GetAttackerTeam();
 }
 
 UBattleTeam* UTacGridSubsystem::GetDefenderTeam()
 {
-	if (!DataManager) return nullptr;
+	
 	return DataManager->GetDefenderTeam();
+}
+
+UBattleTeam* UTacGridSubsystem::GetPlayerTeam()
+{
+	return DataManager->GetPlayerTeam();
 }
 
 bool UTacGridSubsystem::IsBothTeamsAnyUnitAlive()
@@ -77,7 +82,7 @@ bool UTacGridSubsystem::IsBothTeamsAnyUnitAlive()
 
 UBattleTeam* UTacGridSubsystem::GetWinnerTeam()
 {
-	if (!DataManager) return nullptr;
+	
 
 	UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
 	UBattleTeam* DefenderTeam = DataManager->GetDefenderTeam();

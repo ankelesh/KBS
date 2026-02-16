@@ -82,6 +82,7 @@ public:
 	UBattleTeam* GetEnemyTeam(AUnit* Unit) const;
 	UBattleTeam* GetAttackerTeam() const { return AttackerTeam; }
 	UBattleTeam* GetDefenderTeam() const { return DefenderTeam; }
+	UBattleTeam* GetPlayerTeam() const { return PlayerTeam; }
 	ATacBattleGrid* GetGrid() const { return Grid; }
 	UFUNCTION(BlueprintCallable, Category = "Grid|Teams")
 	TArray<AUnit*> GetUnitsFromTeam(bool bIsAttacker) const;
@@ -118,5 +119,7 @@ private:
 	TObjectPtr<UBattleTeam> AttackerTeam;
 	UPROPERTY()
 	TObjectPtr<UBattleTeam> DefenderTeam;
+	UPROPERTY()
+	TObjectPtr<UBattleTeam> PlayerTeam;
 	FVector GridWorldLocation;
 };
