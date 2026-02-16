@@ -10,6 +10,7 @@ class UNiagaraComponent;
 typedef TArray<TObjectPtr<UBattleEffect>> BattleEffectArray;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEffectDurationChange, int32, NewDuration);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEffectRemoved, UBattleEffect*, Effect);
 
 UCLASS(Abstract, Blueprintable)
 class KBS_API UBattleEffect : public UObject
@@ -24,7 +25,7 @@ public:
 	
 	// Triggers
 	virtual void OnApplied() {}
-	virtual void OnRemoved() {}
+	virtual void OnRemoved();
 	virtual void OnTurnStart() {}
 	virtual void OnTurnEnd() {}
 	virtual void OnUnitAttacked(AUnit* AttackingUnit) {}
@@ -46,6 +47,8 @@ public:
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnEffectDurationChange OnDurationChange;
+	UPROPERTY(BlueprintAssignable)
+	FOnEffectRemoved OnEffectRemoved;
 protected:
 	void DecrementDuration() { if (Duration > 0) Duration--; BroadcastDurationChange(); }
 	void BroadcastDurationChange() const { OnDurationChange.Broadcast(Duration);}

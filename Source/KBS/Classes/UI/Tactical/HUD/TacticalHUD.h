@@ -3,8 +3,13 @@
 #include "TacticalHUD.generated.h"
 
 class UUnitDetailsPopup;
+class UUnitSpellbookPopup;
+class UTurnQueuePanel;
 class UOverlay;
 class AUnit;
+class UUnitAbilityInstance;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpellbookAbilitySelected, UUnitAbilityInstance*, Ability);
 
 UCLASS(Blueprintable)
 class KBS_API UTacticalHUD : public UKbsHUD
@@ -12,6 +17,10 @@ class KBS_API UTacticalHUD : public UKbsHUD
 	GENERATED_BODY()
 
 public:
+	// Event fired when an ability is selected from the spellbook (for linking to AbilityPanel)
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnSpellbookAbilitySelected OnSpellbookAbilitySelected;
+
 	// Show unit details popup modally
 	UFUNCTION(BlueprintCallable, Category = "Tactical HUD")
 	void ShowUnitDetailsPopup(AUnit* Unit);
@@ -20,22 +29,59 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tactical HUD")
 	void HideUnitDetailsPopup();
 
+	// Show spellbook popup modally
+	UFUNCTION(BlueprintCallable, Category = "Tactical HUD")
+	void ShowSpellbookPopup(AUnit* Unit);
+
+	// Hide spellbook popup
+	UFUNCTION(BlueprintCallable, Category = "Tactical HUD")
+	void HideSpellbookPopup();
+
+	// Get spellbook popup instance (for direct event binding)
+	UFUNCTION(BlueprintPure, Category = "Tactical HUD")
+	UUnitSpellbookPopup* GetSpellbookPopup() const { return SpellbookPopup; }
+
 protected:
 	virtual void NativeConstruct() override;
 
-	// Overlay for managing Z-ordering (popup always on top)
+	// Generic popup management with input locking
+	void ShowPopup(UUserWidget* PopupWidget);
+	void HidePopup(UUserWidget* PopupWidget);
+
+	// Main HUD layout overlay (non-popup widgets at lower Z, popups on top)
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
-	UOverlay* PopupOverlay;
+	UOverlay* HUDLayout;
 
 	// Widget class for unit details popup
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
 	TSubclassOf<UUnitDetailsPopup> UnitDetailsPopupClass;
 
+	// Widget class for spellbook popup
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
+	TSubclassOf<UUnitSpellbookPopup> SpellbookPopupClass;
+
+	// Widget class for turn queue panel
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
+	TSubclassOf<UTurnQueuePanel> TurnQueuePanelClass;
+
 private:
 	UFUNCTION()
 	void OnUnitDetailsPopupCloseRequested();
 
-	// Cached popup instance (created on first use, hidden by default)
+	UFUNCTION()
+	void OnSpellbookPopupCloseRequested();
+
+	UFUNCTION()
+	void HandleSpellbookAbilitySelected(UUnitAbilityInstance* Ability);
+
+	// Cached popup instances (created on first use, hidden by default)
 	UPROPERTY()
 	TObjectPtr<UUnitDetailsPopup> UnitDetailsPopup;
+
+	UPROPERTY()
+	TObjectPtr<UUnitSpellbookPopup> SpellbookPopup;
+
+	// Cached panel instances
+	UPROPERTY()
+	TObjectPtr<UTurnQueuePanel> TurnQueuePanel;
 };

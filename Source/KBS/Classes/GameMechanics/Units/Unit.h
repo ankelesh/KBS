@@ -24,6 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStart, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnEnd, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitMoved, AUnit*, Unit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitHealthChanged, AUnit*, Unit, int32, NewHealth);
 UCLASS()
 class KBS_API AUnit : public APawn
 {
@@ -53,6 +54,8 @@ public:
 	FOnUnitTurnEnd OnUnitTurnEnd;
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitMoved OnUnitMoved;
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitHealthChanged OnHealthChanged;
 
 	// --- Incoming Event Handlers ---
 	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
@@ -85,6 +88,8 @@ public:
 	const FUnitGridMetadata& GetGridMetadata() const { return GridMetadata; }
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	FUnitGridMetadata GetGridMetadataCopy() const { return GridMetadata; }
+	UFUNCTION(BlueprintPure, Category = "Unit")
+	UUnitDefinition* GetUnitDefinition() const { return UnitDefinition; }
 
 	// --- Components ---
 	UFUNCTION(BlueprintPure, Category = "Components")

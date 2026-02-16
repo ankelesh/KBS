@@ -55,7 +55,12 @@ public:
 	void AbilityClicked(UUnitAbilityInstance* Ability);
 
 	int32 GetCurrentRound() const { return CurrentRound; }
-	
+
+	// Turn order queries
+	AUnit* GetCurrentUnit() const;
+	TArray<AUnit*> GetRemainingUnits(int32 TruncList = -1) const;
+	int32 GetUnitInitiative(AUnit* Unit) const;
+
 	UFUNCTION(BlueprintCallable)
 	void GridAvailable(UTacGridSubsystem* Grid);
 	UFUNCTION(BlueprintCallable)

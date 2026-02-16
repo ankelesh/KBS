@@ -14,7 +14,9 @@ class UPassiveAbilitySlotSnapshot;
 class UBattleEffectSlotSnapshot;
 class UWeaponSlot;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCloseRequired);
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FUnitDetailsPopupOnCloseRequired);
 
 // Modal popup displaying comprehensive unit information
 // Hidden by default, shows portrait, stats, weapons, abilities, and effects
@@ -27,7 +29,7 @@ class KBS_API UUnitDetailsPopup : public UUserWidget
 public:
 	// Event fired when popup should close (e.g., right-click)
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnCloseRequired OnCloseRequired;
+	FUnitDetailsPopupOnCloseRequired OnCloseRequired;
 
 	// Setup popup with unit data (BP invokable)
 	UFUNCTION(BlueprintCallable, Category = "Unit Details Popup")

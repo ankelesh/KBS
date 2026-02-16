@@ -8,7 +8,7 @@
 struct FAbilityDisplayData;
 class UUnitAbilityInstance;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilitySelected, UUnitAbilityInstance*, Ability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActiveAbilitySlotOnAbilitySelected, UUnitAbilityInstance*, Ability);
 
 // State-displaying representation of UnitAbilityInstance, clickable brick for larger panels
 // States: Enabled (available, clickable), Disabled (visible, greyed out), Hidden (collapsed)
@@ -19,7 +19,7 @@ class KBS_API UActiveAbilitySlot : public UUserWidget
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnAbilitySelected OnAbilitySelected;
+	FActiveAbilitySlotOnAbilitySelected OnAbilitySelected;
 
 	// Replace current ability (unbinds old, binds new, checks CanExecute for initial state)
 	void SetAbility(UUnitAbilityInstance* NewAbility);
@@ -37,6 +37,7 @@ public:
 	void Disable();  // Enabled/Selected → Disabled
 	void Hide();     // Any → Hidden
 
+	bool HasAbility(UUnitAbilityInstance* Ability) const;
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;

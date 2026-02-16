@@ -3,7 +3,6 @@
 Strategy turn-based game. Learning developer.
 
 ## Paths
-$CMD = E:\Projects\KBS_tasks\Tasks
 $SRC = ./Source/KBS/
 $TST = ./Source/KBSTests/
 $AST = ./Content/
@@ -11,15 +10,12 @@ $H = Classes/
 $CPP = Private/
 $GM = GameMechanics/
 $TACT = $GM/Tactical/
-$STRAT = $GM/Strategic/
 $UNITS = $GM/Units/
-$UABILITY = $UNITS/Abilities
-$CMP = $TACT/Grid/Components/
 $TYPES = GameplayTypes/
+$UI = $H/UI/
 
 Note: Headers in $SRC$H{path}, Impl in $SRC$CPP{path}
 Main scene: $AST/BaseTestGround.umap
-Main orchestrator (tactical): $TACT/Grid/TacBattleGrid
 
 ## Guidelines
 - Ask, don't assume
@@ -27,6 +23,9 @@ Main orchestrator (tactical): $TACT/Grid/TacBattleGrid
 - Self-doc code; critical comments only
 - Minimal explanations unless requested
 - If .h only change, skip .cpp mentions
+- Do not read cpp's if you don't need implementation - use signatures from .h, they are valid.
+- Do not check owned members and subsystems on nullptr. If you need to be sure that subsystem exists, make checkf once, on init.
+- Prefer checkf to nullptr graceful handling - we have contract that if function needs domain object, it should never receive nullptr or fail hard.
 
 ## Response protocol
 1. **Plan:** What I'll do (bullets)
@@ -34,14 +33,7 @@ Main orchestrator (tactical): $TACT/Grid/TacBattleGrid
 3. **Notes:** Only if deviated
 
 ## Constraints
-Ask before modifying .uproject, project settings, or build files
-Don't build anything
-
-## Doc links
-Only when requested or proposing solution
+Don't build or test anything
 
 ## Error handling
 Try alternatives automatically. If 2+ repeats fail, stop and report
-
-## After task complete
-Copy task file to $CMD/task_logs/

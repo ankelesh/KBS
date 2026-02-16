@@ -32,12 +32,14 @@ void UBattleEffectSlot::SetupEffect(UBattleEffect* Effect)
 	if (BoundEffect)
 	{
 		BoundEffect->OnDurationChange.RemoveDynamic(this, &UBattleEffectSlot::OnEffectDurationChanged);
+		BoundEffect->OnEffectRemoved.RemoveDynamic(this, &UBattleEffectSlot::OnEffectRemovedHandler);
 	}
 
 	BoundEffect = Effect;
 
-	// Bind to duration change delegate
+	// Bind to effect events
 	BoundEffect->OnDurationChange.AddDynamic(this, &UBattleEffectSlot::OnEffectDurationChanged);
+	BoundEffect->OnEffectRemoved.AddDynamic(this, &UBattleEffectSlot::OnEffectRemovedHandler);
 
 	// Update all visuals
 	UpdateEffectIcon();
@@ -58,6 +60,7 @@ void UBattleEffectSlot::Clear()
 	if (BoundEffect)
 	{
 		BoundEffect->OnDurationChange.RemoveDynamic(this, &UBattleEffectSlot::OnEffectDurationChanged);
+		BoundEffect->OnEffectRemoved.RemoveDynamic(this, &UBattleEffectSlot::OnEffectRemovedHandler);
 		BoundEffect = nullptr;
 	}
 
@@ -83,6 +86,12 @@ void UBattleEffectSlot::Clear()
 void UBattleEffectSlot::OnEffectDurationChanged(int32 NewDuration)
 {
 	UpdateDurationDisplay();
+}
+
+void UBattleEffectSlot::OnEffectRemovedHandler(UBattleEffect* Effect)
+{
+	// Auto-clear when effect is removed
+	Clear();
 }
 
 void UBattleEffectSlot::UpdateDurationDisplay()

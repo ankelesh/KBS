@@ -174,6 +174,21 @@ void UTacTurnSubsystem::Wait()
 	}
 }
 
+AUnit* UTacTurnSubsystem::GetCurrentUnit() const
+{
+	return TurnOrder ? TurnOrder->GetCurrentUnit() : nullptr;
+}
+
+TArray<AUnit*> UTacTurnSubsystem::GetRemainingUnits(int32 TruncList) const
+{
+	return TurnOrder ? TurnOrder->GetRemainingUnits(TruncList) : TArray<AUnit*>();
+}
+
+int32 UTacTurnSubsystem::GetUnitInitiative(AUnit* Unit) const
+{
+	return TurnOrder ? TurnOrder->GetUnitInitiative(Unit) : 0;
+}
+
 void UTacTurnSubsystem::ReloadTurnOrder()
 {
 	TurnOrder->Repopulate(GridSubsystem->GetActiveUnits(), GridSubsystem->GetAttackerTeam());

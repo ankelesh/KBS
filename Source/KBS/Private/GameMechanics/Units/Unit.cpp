@@ -207,6 +207,7 @@ float AUnit::GetMovementSpeed() const
 void AUnit::TakeHit(const FDamageResult& DamageResult)
 {
 	BaseStats.Health.TakeDamage(DamageResult.Damage);
+	OnHealthChanged.Broadcast(this, BaseStats.Health.GetCurrent());
 	if (DamageResult.DamageBlocked > 0)
 	{
 		BaseStats.Defense.Wards.UseWard(DamageResult.DamageSource);

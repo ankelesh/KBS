@@ -3,16 +3,20 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitDisplayData.h"
+#include "GameMechanics/Units/UnitDefinition.h"
 
-void UUnitTurnQueueSlot::SetupSlot(const FUnitTurnQueueDisplay& DisplayData, int32 RolledInitiative, AUnit* Unit)
+void UUnitTurnQueueSlot::SetupSlot(AUnit* Unit, int32 RolledInitiative, bool bIsCurrentUnit)
 {
+	checkf(Unit, TEXT("UUnitTurnQueueSlot::SetupSlot - Unit is null"));
+
 	TrackedUnit = Unit;
+	UUnitDefinition* UnitDef = Unit->GetUnitDefinition();
 
 	// Set unit name
 	if (UnitName)
 	{
-		UnitName->SetText(FText::FromString(DisplayData.UnitName));
+		FString Name = UnitDef ? UnitDef->UnitName : TEXT("Unknown");
+		UnitName->SetText(FText::FromString(Name));
 		UnitName->SetVisibility(ESlateVisibility::Visible);
 	}
 
@@ -25,9 +29,9 @@ void UUnitTurnQueueSlot::SetupSlot(const FUnitTurnQueueDisplay& DisplayData, int
 	}
 
 	// Set portrait
-	if (Portrait && DisplayData.PortraitTexture)
+	if (Portrait && UnitDef && UnitDef->Portrait)
 	{
-		Portrait->SetBrushFromTexture(DisplayData.PortraitTexture);
+		Portrait->SetBrushFromTexture(UnitDef->Portrait);
 		Portrait->SetVisibility(ESlateVisibility::Visible);
 	}
 
@@ -38,7 +42,7 @@ void UUnitTurnQueueSlot::SetupSlot(const FUnitTurnQueueDisplay& DisplayData, int
 	}
 
 	// Call BP hook for custom styling
-	BP_OnSetupSlot(DisplayData, RolledInitiative);
+	BP_OnSetupSlot(Unit, RolledInitiative, bIsCurrentUnit);
 }
 
 void UUnitTurnQueueSlot::Clear()

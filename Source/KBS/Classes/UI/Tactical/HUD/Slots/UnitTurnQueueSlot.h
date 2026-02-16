@@ -5,7 +5,6 @@
 #include "UnitTurnQueueSlot.generated.h"
 
 class AUnit;
-struct FUnitTurnQueueDisplay;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDetailsRequested, AUnit*, Unit);
 
@@ -20,9 +19,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitDetailsRequested OnDetailsRequested;
 
-	// Setup slot with display data, rolled initiative, and unit reference (for right-click callback)
+	// Setup slot with unit, rolled initiative, and current unit flag for visual styling
 	UFUNCTION(BlueprintCallable, Category = "Unit Turn Queue")
-	void SetupSlot(const FUnitTurnQueueDisplay& DisplayData, int32 RolledInitiative, AUnit* Unit);
+	void SetupSlot(AUnit* Unit, int32 RolledInitiative, bool bIsCurrentUnit);
 
 	// Clear all widget contents (empties text, clears portrait, resets border)
 	UFUNCTION(BlueprintCallable, Category = "Unit Turn Queue")
@@ -54,7 +53,7 @@ protected:
 public:
 	// Blueprint hooks for custom visual styling (empty by default, override to add styling)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Turn Queue|Visuals")
-	void BP_OnSetupSlot(const FUnitTurnQueueDisplay& DisplayData, int32 RolledInitiative);
+	void BP_OnSetupSlot(AUnit* Unit, int32 RolledInitiative, bool bIsCurrentUnit);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Turn Queue|Visuals")
 	void BP_OnClear();

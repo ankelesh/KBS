@@ -224,6 +224,11 @@ void UActiveAbilitySlot::Hide()
 	ApplyHiddenVisuals();
 }
 
+bool UActiveAbilitySlot::HasAbility(UUnitAbilityInstance* Ability) const
+{
+	return (Ability == BoundAbility);
+}
+
 // Visual state helpers - C++ guarantees essential state, BP hooks add custom styling
 void UActiveAbilitySlot::ApplySelectedVisuals()
 {

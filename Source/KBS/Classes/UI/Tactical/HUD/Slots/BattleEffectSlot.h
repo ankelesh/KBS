@@ -64,6 +64,9 @@ private:
 	UFUNCTION()
 	void OnEffectDurationChanged(int32 NewDuration);
 
+	UFUNCTION()
+	void OnEffectRemovedHandler(UBattleEffect* Effect);
+
 	void UpdateDurationDisplay();
 	void UpdateEffectFrame();
 	void UpdateEffectIcon();

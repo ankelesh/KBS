@@ -30,6 +30,10 @@ bool UBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 {
 	return false;
 }
+void UBattleEffect::OnRemoved()
+{
+	OnEffectRemoved.Broadcast(this);
+}
 void UBattleEffect::SpawnEffectVFX()
 {
 	if (!Owner || !Config || !Config->AppliedVFX.Get())
