@@ -2,22 +2,59 @@
 #include "UI/Tactical/HUD/Popups/UnitDetailsPopup.h"
 #include "UI/Tactical/HUD/Popups/UnitSpellbookPopup.h"
 #include "UI/Tactical/HUD/Panels/TurnQueuePanel.h"
+#include "UI/Tactical/HUD/Panels/AbilityPanel.h"
+#include "UI/Tactical/HUD/Panels/CurrentUnitPanel.h"
+#include "UI/Tactical/HUD/Panels/HoveredUnitPanel.h"
+#include "UI/Tactical/HUD/Panels/TeamPanel.h"
+#include "UI/Tactical/HUD/Labels/TurnCounterLabel.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "Components/Overlay.h"
 
 void UTacticalHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	TurnSubsystem = GetWorld()->GetSubsystem<UTacTurnSubsystem>();
+	checkf(TurnSubsystem, TEXT("UTacticalHUD::NativeConstruct - TacTurnSubsystem not found"));
+
 	// Add non-popup widgets to HUDLayout (they will have lower Z-order)
+	if (TurnCounterLabelClass && HUDLayout)
+	{
+		TurnCounterLabel = CreateWidget<UTurnCounterLabel>(this, TurnCounterLabelClass);
+		HUDLayout->AddChild(TurnCounterLabel);
+	}
+
 	if (TurnQueuePanelClass && HUDLayout)
 	{
 		TurnQueuePanel = CreateWidget<UTurnQueuePanel>(this, TurnQueuePanelClass);
-		if (TurnQueuePanel)
-		{
-			HUDLayout->AddChild(TurnQueuePanel);
-		}
+		HUDLayout->AddChild(TurnQueuePanel);
+	}
+
+	if (TeamPanelClass && HUDLayout)
+	{
+		TeamPanel = CreateWidget<UTeamPanel>(this, TeamPanelClass);
+		HUDLayout->AddChild(TeamPanel);
+	}
+
+	if (CurrentUnitPanelClass && HUDLayout)
+	{
+		CurrentUnitPanel = CreateWidget<UCurrentUnitPanel>(this, CurrentUnitPanelClass);
+		HUDLayout->AddChild(CurrentUnitPanel);
+	}
+
+	if (HoveredUnitPanelClass && HUDLayout)
+	{
+		HoveredUnitPanel = CreateWidget<UHoveredUnitPanel>(this, HoveredUnitPanelClass);
+		HUDLayout->AddChild(HoveredUnitPanel);
+	}
+
+	if (AbilityPanelClass && HUDLayout)
+	{
+		AbilityPanel = CreateWidget<UAbilityPanel>(this, AbilityPanelClass);
+		HUDLayout->AddChild(AbilityPanel);
+		AbilityPanel->OnAbilitySelected.AddDynamic(this, &UTacticalHUD::HandleAbilityPanelAbilitySelected);
 	}
 
 	// Create and cache popup instances (added last = highest Z-order)
@@ -83,7 +120,23 @@ void UTacticalHUD::OnSpellbookPopupCloseRequested()
 
 void UTacticalHUD::HandleSpellbookAbilitySelected(UUnitAbilityInstance* Ability)
 {
-	// TODO: transfer this to ability panel
+	AbilityPanel->SelectAbility(Ability);
+	OnSpellbookAbilitySelected.Broadcast(Ability);
+}
+
+void UTacticalHUD::HandleAbilityPanelAbilitySelected(UUnitAbilityInstance* Ability)
+{
+	TurnSubsystem->AbilityClicked(Ability);
+}
+
+void UTacticalHUD::SetHoveredUnit(AUnit* Unit)
+{
+	HoveredUnitPanel->SetHoveredUnit(Unit);
+}
+
+void UTacticalHUD::ClearHoveredUnit()
+{
+	HoveredUnitPanel->Clear();
 }
 
 void UTacticalHUD::ShowPopup(UUserWidget* PopupWidget)
