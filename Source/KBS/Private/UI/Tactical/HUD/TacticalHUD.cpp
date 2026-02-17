@@ -121,6 +121,7 @@ void UTacticalHUD::OnSpellbookPopupCloseRequested()
 void UTacticalHUD::HandleSpellbookAbilitySelected(UUnitAbilityInstance* Ability)
 {
 	AbilityPanel->SelectAbility(Ability);
+	TurnSubsystem->AbilityClicked(Ability);
 	OnSpellbookAbilitySelected.Broadcast(Ability);
 }
 
