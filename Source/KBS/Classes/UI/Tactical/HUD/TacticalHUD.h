@@ -5,9 +5,15 @@
 class UUnitDetailsPopup;
 class UUnitSpellbookPopup;
 class UTurnQueuePanel;
+class UTurnCounterLabel;
+class UTeamPanel;
+class UCurrentUnitPanel;
+class UHoveredUnitPanel;
+class UAbilityPanel;
 class UOverlay;
 class AUnit;
 class UUnitAbilityInstance;
+class UTacTurnSubsystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpellbookAbilitySelected, UUnitAbilityInstance*, Ability);
 
@@ -41,6 +47,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tactical HUD")
 	UUnitSpellbookPopup* GetSpellbookPopup() const { return SpellbookPopup; }
 
+	UFUNCTION(BlueprintCallable, Category = "Tactical HUD")
+	void SetHoveredUnit(AUnit* Unit);
+
+	UFUNCTION(BlueprintCallable, Category = "Tactical HUD")
+	void ClearHoveredUnit();
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -64,6 +76,21 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
 	TSubclassOf<UTurnQueuePanel> TurnQueuePanelClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
+	TSubclassOf<UTurnCounterLabel> TurnCounterLabelClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
+	TSubclassOf<UTeamPanel> TeamPanelClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
+	TSubclassOf<UCurrentUnitPanel> CurrentUnitPanelClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
+	TSubclassOf<UHoveredUnitPanel> HoveredUnitPanelClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
+	TSubclassOf<UAbilityPanel> AbilityPanelClass;
+
 private:
 	UFUNCTION()
 	void OnUnitDetailsPopupCloseRequested();
@@ -73,6 +100,9 @@ private:
 
 	UFUNCTION()
 	void HandleSpellbookAbilitySelected(UUnitAbilityInstance* Ability);
+
+	UFUNCTION()
+	void HandleAbilityPanelAbilitySelected(UUnitAbilityInstance* Ability);
 
 	// Cached popup instances (created on first use, hidden by default)
 	UPROPERTY()
@@ -84,4 +114,22 @@ private:
 	// Cached panel instances
 	UPROPERTY()
 	TObjectPtr<UTurnQueuePanel> TurnQueuePanel;
+
+	UPROPERTY()
+	TObjectPtr<UTurnCounterLabel> TurnCounterLabel;
+
+	UPROPERTY()
+	TObjectPtr<UTeamPanel> TeamPanel;
+
+	UPROPERTY()
+	TObjectPtr<UCurrentUnitPanel> CurrentUnitPanel;
+
+	UPROPERTY()
+	TObjectPtr<UHoveredUnitPanel> HoveredUnitPanel;
+
+	UPROPERTY()
+	TObjectPtr<UAbilityPanel> AbilityPanel;
+
+	UPROPERTY()
+	TObjectPtr<UTacTurnSubsystem> TurnSubsystem = nullptr;
 };
