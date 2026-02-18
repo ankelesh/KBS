@@ -5,7 +5,7 @@
 
 bool UUnitWaitAbility::Execute(FTacCoordinates TargetCell)
 {
-	if (!Owner) return false;
+	if (!Owner || IsOutsideFocus()) return false;
 
 	UTacTurnSubsystem* TurnSubsystem = GetTurnSubsystem();
 	if (!TurnSubsystem)
@@ -28,12 +28,12 @@ bool UUnitWaitAbility::Execute(FTacCoordinates TargetCell)
 
 bool UUnitWaitAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	return Owner && RemainingCharges > 0;
+	return Owner && RemainingCharges > 0 && !IsOutsideFocus();
 }
 
 bool UUnitWaitAbility::CanExecute() const
 {
-	return Owner && RemainingCharges > 0;
+	return Owner && RemainingCharges > 0 && !IsOutsideFocus();
 }
 
 void UUnitWaitAbility::Subscribe()

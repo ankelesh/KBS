@@ -37,6 +37,12 @@ void FTacTurnState::BroadcastBattleEnd()
 	ParentTurnSubsystem->BroadcastBattleEnd();
 }
 
+UTacAICombatService* FTacTurnState::GetAIService()
+{
+	if (!ParentTurnSubsystem) return nullptr;
+	return ParentTurnSubsystem->GetAICombatService();
+}
+
 bool FTacTurnState::CheckWinCondition() const
 {
 	if (auto* GridSubsystem = ParentTurnSubsystem->GetWorld()->GetSubsystem<UTacGridSubsystem>())

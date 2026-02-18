@@ -2,6 +2,7 @@
 #include "UI/Tactical/HUD/TacticalHUD.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "Blueprint/UserWidget.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacSubsystemControl.h"
 
 void ATacticalGameController::BeginPlay()
 {
@@ -9,21 +10,25 @@ void ATacticalGameController::BeginPlay()
 
 	if (UWorld* World = GetWorld())
 	{
-		if (UTacGridSubsystem* GridSubsystem = World->GetSubsystem<UTacGridSubsystem>())
+		UTacSubsystemControl* Control = World->GetSubsystem<UTacSubsystemControl>();
+		if (Control->IsReadyForStart())
 		{
-			GridSubsystem->Ready.AddDynamic(this, &ATacticalGameController::OnGridSubsystemReady);
+			OnSubsystemInitComplete();
+		}
+		else
+		{
+			Control->ReadyForStart.AddDynamic(this, &ATacticalGameController::OnSubsystemInitComplete);
 		}
 	}
 }
 
-void ATacticalGameController::OnGridSubsystemReady(UTacGridSubsystem* Subsystem)
+void ATacticalGameController::OnSubsystemInitComplete()
 {
-	if (TacticalHUDClass)
+	checkf(TacticalHUDClass, TEXT("TacticalHUDClass is not set in controller Blueprint"));
+	TacticalHUD = CreateWidget<UTacticalHUD>(this, TacticalHUDClass);
+	if (TacticalHUD)
 	{
-		TacticalHUD = CreateWidget<UTacticalHUD>(this, TacticalHUDClass);
-		if (TacticalHUD)
-		{
-			TacticalHUD->AddToViewport();
-		}
+		TacticalHUD->AddToViewport();
 	}
 }
+

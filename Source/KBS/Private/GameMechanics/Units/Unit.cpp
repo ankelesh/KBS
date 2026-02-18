@@ -194,7 +194,7 @@ FUnitDisplayData AUnit::GetDisplayData() const
 	const FString Name = UnitDefinition ? UnitDefinition->UnitName : TEXT("Unknown");
 	UTexture2D* Portrait = UnitDefinition ? UnitDefinition->Portrait : nullptr;
 	const TArray<TObjectPtr<UBattleEffect>> Effects = EffectManager ? EffectManager->GetActiveEffects() : TArray<TObjectPtr<UBattleEffect>>();
-	return BuildUnitDisplayData(Name, BaseStats.Health.GetCurrent(), BaseStats, Portrait, Effects, Weapons, TeamSide);
+	return BuildUnitDisplayData(Name, BaseStats.Health.GetCurrent(), BaseStats, Portrait, Effects, Weapons, GridMetadata.Team);
 }
 void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 {

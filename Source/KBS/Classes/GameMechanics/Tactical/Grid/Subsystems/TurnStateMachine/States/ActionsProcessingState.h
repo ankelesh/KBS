@@ -21,6 +21,8 @@ public:
 private:
 	void ExecuteAbilityOnTarget(FTacCoordinates TargetCell);
 	void CheckAbilitiesAndSetupTurn();
+	bool IsAIUnit(AUnit* Unit) const;
+	void HandleAITurn(AUnit* Unit);
 
 	UTacAbilityExecutorService* ExecutorService = nullptr;
 	bool bBattleEnded = false;

@@ -208,10 +208,12 @@ void UTacGridTargetingService::GetClosestEnemyCells(AUnit* Unit, TArray<FTacCoor
 		{
 			continue;
 		}
-
-		if (AUnit* TargetUnit = DataManager->GetUnit(TargetCoords); TargetUnit && Metadata.IsEnemy(TargetUnit->GetGridMetadata()))
+		AUnit* TargetUnit = DataManager->GetUnit(TargetCoords);
+		if ( TargetUnit )
 		{
-			AddUnitCellUnique(TargetUnit, OutCells);
+			bool res = Metadata.IsEnemy(TargetUnit->GetGridMetadata());
+			if (res)
+				AddUnitCellUnique(TargetUnit, OutCells);
 		}
 	}
 }

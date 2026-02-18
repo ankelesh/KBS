@@ -11,6 +11,7 @@ class UCurrentUnitPanel;
 class UHoveredUnitPanel;
 class UAbilityPanel;
 class UOverlay;
+class UCanvasPanel;
 class AUnit;
 class UUnitAbilityInstance;
 class UTacTurnSubsystem;
@@ -60,36 +61,38 @@ protected:
 	void ShowPopup(UUserWidget* PopupWidget);
 	void HidePopup(UUserWidget* PopupWidget);
 
-	// Main HUD layout overlay (non-popup widgets at lower Z, popups on top)
+	// Canvas for panel contents (non-popup widgets)
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	UCanvasPanel* PanelCanvas;
+
+	// Overlay for popups (modal widgets on top)
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
 	UOverlay* HUDLayout;
 
-	// Widget class for unit details popup
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UUnitDetailsPopup> UnitDetailsPopupClass;
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UUnitDetailsPopup> UnitDetailsPopup;
 
-	// Widget class for spellbook popup
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UUnitSpellbookPopup> SpellbookPopupClass;
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UUnitSpellbookPopup> SpellbookPopup;
 
-	// Widget class for turn queue panel
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UTurnQueuePanel> TurnQueuePanelClass;
+	// Panel widgets bound from designer
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UTurnQueuePanel> TurnQueuePanel;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UTurnCounterLabel> TurnCounterLabelClass;
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UTurnCounterLabel> TurnCounterLabel;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UTeamPanel> TeamPanelClass;
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UTeamPanel> TeamPanel;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UCurrentUnitPanel> CurrentUnitPanelClass;
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UCurrentUnitPanel> CurrentUnitPanel;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UHoveredUnitPanel> HoveredUnitPanelClass;
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UHoveredUnitPanel> HoveredUnitPanel;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UAbilityPanel> AbilityPanelClass;
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UAbilityPanel> AbilityPanel;
 
 private:
 	UFUNCTION()
@@ -103,32 +106,6 @@ private:
 
 	UFUNCTION()
 	void HandleAbilityPanelAbilitySelected(UUnitAbilityInstance* Ability);
-
-	// Cached popup instances (created on first use, hidden by default)
-	UPROPERTY()
-	TObjectPtr<UUnitDetailsPopup> UnitDetailsPopup;
-
-	UPROPERTY()
-	TObjectPtr<UUnitSpellbookPopup> SpellbookPopup;
-
-	// Cached panel instances
-	UPROPERTY()
-	TObjectPtr<UTurnQueuePanel> TurnQueuePanel;
-
-	UPROPERTY()
-	TObjectPtr<UTurnCounterLabel> TurnCounterLabel;
-
-	UPROPERTY()
-	TObjectPtr<UTeamPanel> TeamPanel;
-
-	UPROPERTY()
-	TObjectPtr<UCurrentUnitPanel> CurrentUnitPanel;
-
-	UPROPERTY()
-	TObjectPtr<UHoveredUnitPanel> HoveredUnitPanel;
-
-	UPROPERTY()
-	TObjectPtr<UAbilityPanel> AbilityPanel;
 
 	UPROPERTY()
 	TObjectPtr<UTacTurnSubsystem> TurnSubsystem = nullptr;

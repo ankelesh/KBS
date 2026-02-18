@@ -11,6 +11,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
+#include "Components/HorizontalBox.h"
 
 void UAbilityPanel::NativeConstruct()
 {
@@ -18,6 +19,7 @@ void UAbilityPanel::NativeConstruct()
 
 	checkf(DefaultAbilitiesPanel, TEXT("DefaultAbilitiesPanel not bound in AbilityPanel"));
 	checkf(SpellbookSlot, TEXT("SpellbookSlot not bound in AbilityPanel"));
+	checkf(ActiveAbilitySlotsContainer, TEXT("ActiveAbilitySlotsContainer not bound in AbilityPanel"));
 	checkf(ActiveAbilitySlotClass, TEXT("ActiveAbilitySlotClass not set in AbilityPanel"));
 
 	// Get subsystems - check once on init
@@ -41,7 +43,7 @@ void UAbilityPanel::NativeConstruct()
 	checkf(OwningHUD, TEXT("OwningHUD not found in AbilityPanel"));
 
 	// Bind to TurnSubsystem
-	TurnSubsystem->OnTurnStart.AddDynamic(this, &UAbilityPanel::OnTurnStarted);
+
 
 	// Bind to DefaultAbilitiesPanel
 	DefaultAbilitiesPanel->OnAbilitySelected.AddDynamic(this, &UAbilityPanel::OnDefaultAbilitySelected);
@@ -58,8 +60,14 @@ void UAbilityPanel::NativeConstruct()
 		UActiveAbilitySlot* AASlot = CreateWidget<UActiveAbilitySlot>(this, ActiveAbilitySlotClass);
 		checkf(AASlot, TEXT("Failed to create ActiveAbilitySlot %d"), i);
 
+		ActiveAbilitySlotsContainer->AddChild(AASlot);
 		AASlot->OnAbilitySelected.AddDynamic(this, &UAbilityPanel::OnActiveAbilitySlotSelected);
 		ActiveAbilitySlots.Add(AASlot);
+	}
+	TurnSubsystem->OnTurnStart.AddDynamic(this, &UAbilityPanel::OnTurnStarted);
+	if (AUnit* InitFrom = TurnSubsystem->GetCurrentUnit())
+	{
+		OnTurnStarted(InitFrom);
 	}
 }
 

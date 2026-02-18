@@ -4,7 +4,7 @@
 class FTurnEndState : public FTacTurnState
 {
 public:
-	explicit FTurnEndState(UTacTurnSubsystem* Parent) : FTacTurnState(Parent, ETurnProcessingSubstate::EProcessingEndState){}
+	explicit FTurnEndState(UTacTurnSubsystem* Parent) : FTacTurnState(Parent, ETurnProcessingSubstate::EFreeState){}
 	virtual void Enter() override;
 	virtual ETurnState NextState() override;
 };

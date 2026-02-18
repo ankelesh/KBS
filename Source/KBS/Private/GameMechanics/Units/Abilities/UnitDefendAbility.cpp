@@ -18,7 +18,7 @@ bool UUnitDefendAbility::Execute(FTacCoordinates TargetCell)
 
 bool UUnitDefendAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	return Owner && RemainingCharges > 0;
+	return Owner && RemainingCharges > 0 || IsOutsideFocus();
 }
 
 bool UUnitDefendAbility::CanExecute() const

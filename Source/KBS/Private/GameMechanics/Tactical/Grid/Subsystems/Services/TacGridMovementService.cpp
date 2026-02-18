@@ -3,7 +3,6 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitGridMetadata.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/FlankCellDefinitions.h"
 #include "GameplayTypes/TacticalMovementConstants.h"
@@ -16,11 +15,6 @@ UTacGridMovementService::UTacGridMovementService()
 void UTacGridMovementService::Initialize(UGridDataManager* InDataManager)
 {
 	DataManager = InDataManager;
-}
-
-void UTacGridMovementService::InitializeUnitGridMetadata(AUnit* Unit, FTacCoordinates Position)
-{
-	UpdateUnitGridMetadata(Unit, Position, true);
 }
 
 //=============================================================================
@@ -85,9 +79,6 @@ bool UTacGridMovementService::ExecuteDataMove(AUnit* Unit, FTacCoordinates From,
 		return false;
 	}
 
-	// Update unit's grid metadata after successful move
-	UpdateUnitGridMetadata(Unit, To, true);
-
 	return true;
 }
 
@@ -133,10 +124,6 @@ bool UTacGridMovementService::ExecuteSwapMove(AUnit* Unit1, FTacCoordinates Pos1
 		DataManager->PlaceUnit(Unit2, Pos2);
 		return false;
 	}
-
-	// Update both units' grid metadata after successful swap
-	UpdateUnitGridMetadata(Unit1, Pos2, true);
-	UpdateUnitGridMetadata(Unit2, Pos1, true);
 
 	return true;
 }
@@ -204,24 +191,6 @@ FRotator UTacGridMovementService::CalculateCellOrientation(FTacCoordinates Locat
 
 	return DefaultRotation;
 }
-
-//=============================================================================
-// Grid Metadata Management
-//=============================================================================
-
-void UTacGridMovementService::UpdateUnitGridMetadata(AUnit* Unit, FTacCoordinates Position, bool bOnField)
-{
-	if (!Unit || !DataManager)
-	{
-		return;
-	}
-
-	const bool bOnFlank = bOnField ? DataManager->IsFlankCell(Position) : false;
-
-	// Direct access via friend relationship
-	Unit->GridMetadata = FUnitGridMetadata(Position, Unit->GetTeamSide(), bOnField, bOnFlank);
-}
-
 
 //=============================================================================
 // Public Methods

@@ -13,7 +13,6 @@ class UBattleEffectComponent;
 class UBattleEffect;
 class UAbilityInventoryComponent;
 class UUnitVisualsComponent;
-class UTacGridMovementService;
 struct FDamageResult;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitClicked, AUnit*, ClickedUnit, FKey, ButtonPressed);
@@ -29,7 +28,7 @@ UCLASS()
 class KBS_API AUnit : public APawn
 {
 	GENERATED_BODY()
-	friend class UTacGridMovementService;
+	friend class UGridDataManager;
 public:
 	// --- Lifecycle ---
 	AUnit();
@@ -79,8 +78,10 @@ public:
 	FUnitCoreStats& GetStats() { return BaseStats; }
 	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
 	float GetMovementSpeed() const;
-	ETeamSide GetTeamSide() const { return TeamSide; }
-	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
+	UFUNCTION(BlueprintCallable)
+	ETeamSide GetTeamSide() const { return GridMetadata.Team; }
+	UFUNCTION(BlueprintCallable)
+	void SetTeamSide(ETeamSide Side) { GridMetadata.Team = Side; }
 	virtual int32 GetCellSize() const { return 1; }
 	virtual bool IsMultiCell() const { return false; }
 	UFUNCTION(BlueprintCallable, Category = "Display")
@@ -114,9 +115,6 @@ protected:
 	FUnitCoreStats BaseStats;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<TObjectPtr<UWeapon>> Weapons;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")
-	ETeamSide TeamSide = ETeamSide::Attacker;
-
 private:
 	// Grid positioning metadata (modified by UTacGridMovementService via friend access)
 	FUnitGridMetadata GridMetadata;

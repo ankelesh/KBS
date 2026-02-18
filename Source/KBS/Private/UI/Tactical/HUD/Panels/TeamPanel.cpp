@@ -1,5 +1,5 @@
 #include "UI/Tactical/HUD/Panels/TeamPanel.h"
-#include "UI/Tactical/Tables/TeamTable.h"
+#include "UI/Tactical/HUD/Tables/TeamTable.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
@@ -10,7 +10,8 @@
 void UTeamPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
-
+	UE_LOG(LogTemp, Error, TEXT("TeamPanel NativeConstruct: Class=%s, Outer=%s"),
+		*GetClass()->GetName(), *GetOuter()->GetName());
 	checkf(TeamTableClass, TEXT("TeamTableClass not set in TeamPanel"));
 
 	GridSubsystem = GetWorld()->GetSubsystem<UTacGridSubsystem>();
@@ -33,7 +34,14 @@ void UTeamPanel::NativeConstruct()
 	SwapButton->OnClicked.AddDynamic(this, &UTeamPanel::OnSwapButtonClicked);
 	TurnSubsystem->OnTurnStart.AddDynamic(this, &UTeamPanel::OnTurnStarted);
 
-	ShowTeam(GridSubsystem->GetPlayerTeam()->GetTeamSide());
+	if (AUnit* CurrentUnit = TurnSubsystem->GetCurrentUnit())
+	{
+		ShowTeam(CurrentUnit->GetTeamSide());
+	}
+	else
+	{
+		ShowTeam(GridSubsystem->GetPlayerTeam()->GetTeamSide());
+	}
 }
 
 void UTeamPanel::NativeDestruct()

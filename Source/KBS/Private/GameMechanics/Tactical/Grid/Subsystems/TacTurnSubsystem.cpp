@@ -1,4 +1,5 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
+DEFINE_LOG_CATEGORY(LogKBSTurn);
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/TacTurnOrder.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/BattleInitializationState.h"
@@ -9,6 +10,9 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/RoundEndState.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/BattleEndState.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacSubsystemControl.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAICombatService.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/GridCoordinates.h"
 
@@ -22,8 +26,14 @@ void UTacTurnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	if (UTacGridSubsystem* GridSubsys = GetWorld()->GetSubsystem<UTacGridSubsystem>())
 	{
 		GridSubsystem = GridSubsys;
-		GridSubsystem->Ready.AddDynamic(this, &UTacTurnSubsystem::GridAvailable);
+		check(GridSubsys);
 	}
+	UTacCombatSubsystem* CombatSubsystem = GetWorld()->GetSubsystem<UTacCombatSubsystem>();
+	checkf(CombatSubsystem, TEXT("UTacTurnSubsystem: CombatSubsystem not found"));
+	AICombatService = NewObject<UTacAICombatService>(this);
+	AICombatService->Initialize(GridSubsystem, CombatSubsystem);
+	UTacSubsystemControl* Control = GetWorld()->GetSubsystem<UTacSubsystemControl>();
+	Control->GridReadyForStart.AddDynamic(this, &UTacTurnSubsystem::GridAvailable);
 }
 
 void UTacTurnSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -54,8 +64,10 @@ void UTacTurnSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UTacTurnSubsystem::GridAvailable(UTacGridSubsystem* Grid)
+void UTacTurnSubsystem::GridAvailable()
 {
+	UTacSubsystemControl* Control = GetWorld()->GetSubsystem<UTacSubsystemControl>();
+	Control->NotifyTurnReady();
 }
 
 void UTacTurnSubsystem::InitializeStates()
@@ -66,6 +78,7 @@ void UTacTurnSubsystem::InitializeStates()
 	States.Add(ETurnState::ETurnStartState, MakeUnique<FTurnStartState>(this));
 	States.Add(ETurnState::EActionsProcessingState, MakeUnique<FActionsProcessingState>(this));
 	States.Add(ETurnState::ETurnEndState, MakeUnique<FTurnEndState>(this));
+	States.Add(ETurnState::ERoundEndState, MakeUnique<FRoundEndState>(this));
 	States.Add(ETurnState::EBattleEndState, MakeUnique<FBattleEndState>(this));
 
 	// Set parent reference for all states
@@ -91,13 +104,15 @@ void UTacTurnSubsystem::TransitionToState(ETurnState NextState)
 
 	if (auto NextStatePtr = States.Find(NextState))
 	{
+		const UEnum* StateEnum = StaticEnum<ETurnState>();
+		UE_LOG(LogKBSTurn, Log, TEXT("State transition -> %s"), *StateEnum->GetNameStringByValue(static_cast<int64>(NextState)));
 		CurrentState->Exit();
 		CurrentState = NextStatePtr->Get();
 		CurrentState->Enter();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("TacTurnSubsystem: Invalid next state"));
+		UE_LOG(LogKBSTurn, Error, TEXT("Invalid next state requested: %d"), static_cast<int32>(NextState));
 	}
 }
 
@@ -105,37 +120,28 @@ void UTacTurnSubsystem::AttemptTransition()
 {
 	check(CurrentState);
 
-	// Transition loop: keep transitioning until stuck in awaiting input or presentation
-	while (true)
+	// Check win condition - if battle ended, force to battle end state
+	if (CurrentState->CheckWinCondition())
 	{
-		// Check win condition - if battle ended, force to battle end state
-		if (CurrentState->CheckWinCondition())
-		{
-			TransitionToState(ETurnState::EBattleEndState);
-			break;
-		}
-
-		ETurnProcessingSubstate Substate = CurrentState->CanReleaseState();
-
-		// Can't release - stuck in awaiting input
-		if (Substate == ETurnProcessingSubstate::EAwaitingInputState)
-		{
-			break;
-		}
-
-		// Awaiting presentation - check if presentation is actually running
-		if (Substate == ETurnProcessingSubstate::EAwaitingPresentationState)
-		{
-			break;
-		}
-
-		// Free to transition
-		if (Substate == ETurnProcessingSubstate::EFreeState)
-		{
-			ETurnState NextStateEnum = CurrentState->NextState();
-			TransitionToState(NextStateEnum);
-		}
+		TransitionToState(ETurnState::EBattleEndState);
+		return;
 	}
+
+	ETurnProcessingSubstate Substate = CurrentState->CanReleaseState();
+
+	// Can't release - stuck in awaiting input or presentation
+	if (Substate != ETurnProcessingSubstate::EFreeState)
+	{
+		return;
+	}
+
+	// Free to transition - do ONE transition
+	ETurnState NextStateEnum = CurrentState->NextState();
+	TransitionToState(NextStateEnum);
+
+	// Recursively attempt one more transition
+	// (allows rapid transitions through multiple "instant" states without waiting for next event)
+	AttemptTransition();
 }
 
 void UTacTurnSubsystem::UnitClicked(AUnit* Unit)

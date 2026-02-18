@@ -19,26 +19,6 @@ UUnitAbilityInstance* UAbilityInventoryComponent::GetCurrentActiveAbility() cons
 TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAvailableActiveAbilities() const
 {
 	TArray<UUnitAbilityInstance*> Result;
-	if (DefaultAttackAbility && IsAbilityAvailable(DefaultAttackAbility))
-	{
-		Result.Add(DefaultAttackAbility);
-	}
-	if (DefaultMoveAbility && IsAbilityAvailable(DefaultMoveAbility))
-	{
-		Result.Add(DefaultMoveAbility);
-	}
-	if (DefaultWaitAbility && IsAbilityAvailable(DefaultWaitAbility))
-	{
-		Result.Add(DefaultWaitAbility);
-	}
-	if (DefaultDefendAbility && IsAbilityAvailable(DefaultDefendAbility))
-	{
-		Result.Add(DefaultDefendAbility);
-	}
-	if (DefaultFleeAbility && IsAbilityAvailable(DefaultFleeAbility))
-	{
-		Result.Add(DefaultFleeAbility);
-	}
 	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
 	{
 		if (IsAbilityAvailable(Ability))
@@ -362,23 +342,23 @@ bool UAbilityInventoryComponent::HasAnyAbilityAvailable() const
 	}
 
 	// Check default abilities
-	if (DefaultAttackAbility && IsAbilityAvailable(DefaultAttackAbility))
+	if (IsAbilityAvailable(DefaultAttackAbility))
 	{
 		return true;
 	}
-	if (DefaultMoveAbility && IsAbilityAvailable(DefaultMoveAbility))
+	if (IsAbilityAvailable(DefaultMoveAbility))
 	{
 		return true;
 	}
-	if (DefaultWaitAbility && IsAbilityAvailable(DefaultWaitAbility))
+	if (IsAbilityAvailable(DefaultWaitAbility))
 	{
 		return true;
 	}
-	if (DefaultDefendAbility && IsAbilityAvailable(DefaultDefendAbility))
+	if (IsAbilityAvailable(DefaultDefendAbility))
 	{
 		return true;
 	}
-	if (DefaultFleeAbility && IsAbilityAvailable(DefaultFleeAbility))
+	if (IsAbilityAvailable(DefaultFleeAbility))
 	{
 		return true;
 	}
@@ -456,6 +436,24 @@ void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Sp
 		EquipAbility(Spell);
 }
 
+bool UAbilityInventoryComponent::IsFocusedOn(const UUnitAbilityInstance* Ability) const
+{
+	return CurrentActiveAbility == Ability;
+}
+
+void UAbilityInventoryComponent::RecheckContents()
+{
+	for (auto Ability : SpellbookAbilities)
+		Ability->RefreshAvailability();
+	for (auto Ability : AvailableActiveAbilities)
+		Ability->RefreshAvailability();
+	DefaultAttackAbility->RefreshAvailability();
+	DefaultMoveAbility->RefreshAvailability();
+	DefaultWaitAbility->RefreshAvailability();
+	DefaultDefendAbility->RefreshAvailability();
+	DefaultFleeAbility->RefreshAvailability();
+}
+
 const FUnitStatusContainer* UAbilityInventoryComponent::GetOwnerStatus() const
 {
 	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
@@ -506,13 +504,13 @@ bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbilityInstance* Abilit
 			UE_LOG(LogTemp, Error, TEXT("AbilityInventory: Unit is Focused but no ability equipped"));
 			return false;
 		}
-		return Ability == CurrentActiveAbility;
+		return Ability == CurrentActiveAbility && Ability->CanExecute();
 	}
 
 	// Disoriented: only default abilities available
 	if (!Status->CanUseNonBasicAbilities())
 	{
-		return IsDefaultAbility(Ability);
+		return IsDefaultAbility(Ability) && Ability->CanExecute();
 	}
 
 	// Silenced: blocks spellbook abilities
@@ -525,5 +523,5 @@ bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbilityInstance* Abilit
 		}
 	}
 
-	return true;
+	return Ability->CanExecute();
 }

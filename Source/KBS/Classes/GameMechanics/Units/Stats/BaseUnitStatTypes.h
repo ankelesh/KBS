@@ -41,7 +41,7 @@ struct FUnitStatPercent
 	void SetBase(int32 NewBase);
 	void InitFromBase(int32 InBase);
 
-	FUnitStatPercent() : Base(0), Modified(0), bIsDirty(false) {}
+	FUnitStatPercent() : Base(0), Modified(0), bIsDirty(true) {}
 	explicit FUnitStatPercent(int32 InBase);
 
 private:
@@ -85,7 +85,7 @@ struct FUnitStatPositive
 	void SetBase(int32 NewBase);
 	void InitFromBase(int32 InBase);
 
-	FUnitStatPositive() : Base(0), Modified(0), bIsDirty(false) {}
+	FUnitStatPositive() : Base(0), Modified(0), bIsDirty(true) {}
 	explicit FUnitStatPositive(int32 InBase);
 
 private:
@@ -203,7 +203,7 @@ struct FDamageSourceSetStat
 	void SetBase(const TSet<EDamageSource>& NewBase);
 	void InitFromBase(const TSet<EDamageSource>& InBase);
 
-	FDamageSourceSetStat() : bIsDirty(false) {}
+	FDamageSourceSetStat() : bIsDirty(true) {}
 	explicit FDamageSourceSetStat(const TSet<EDamageSource>& InBase);
 
 private:

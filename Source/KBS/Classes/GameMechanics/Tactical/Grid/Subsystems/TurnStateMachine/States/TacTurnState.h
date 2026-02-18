@@ -30,6 +30,7 @@ class AUnit;
 class UUnitAbilityInstance;
 class UTacTurnSubsystem;
 class FTacTurnOrder;
+class UTacAICombatService;
 class FTacTurnState
 {
 public:
@@ -54,6 +55,7 @@ protected:
 	void BroadcastTurnEnd();
 	void BroadcastTurnStart();
 	void BroadcastBattleEnd();
+	UTacAICombatService* GetAIService();
 	bool CheckWinCondition() const;
 	ETurnProcessingSubstate TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	UTacTurnSubsystem* ParentTurnSubsystem;

@@ -68,6 +68,8 @@ protected:
 	UTacCombatSubsystem* GetCombatSubsystem() const;
 	UTacAbilityExecutorService* GetExecutorService() const;
 	UTacTurnSubsystem* GetTurnSubsystem() const;
+	
+	bool IsOutsideFocus() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<UUnitAbilityDefinition> Config;

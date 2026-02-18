@@ -76,18 +76,15 @@ bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 		}
 	}
 
-	if (bSuccess)
-	{
-		Owner->GetStats().Status.SetFocus();
-		ConsumeCharge();
-	}
+	Owner->GetStats().Status.SetFocus();
+	ConsumeCharge();
 
 	return bSuccess;
 }
 
 bool UUnitAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	if (!Owner || RemainingCharges <= 0) return false;
+	if (!Owner || RemainingCharges <= 0 || IsOutsideFocus()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	if (!TargetingService) return false;
@@ -97,7 +94,7 @@ bool UUnitAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 
 bool UUnitAutoAttackAbility::CanExecute() const
 {
-	if (!Owner || RemainingCharges <= 0) return false;
+	if (!Owner || RemainingCharges <= 0 || IsOutsideFocus()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	if (!TargetingService) return false;

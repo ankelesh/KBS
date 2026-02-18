@@ -13,6 +13,7 @@ class UTacTurnSubsystem;
 class UTacGridSubsystem;
 class UTacticalHUD;
 class UUnitSpellbookPopup;
+class UHorizontalBox;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAbilityPanelOnAbilitySelected, UUnitAbilityInstance*, Ability);
 
@@ -47,6 +48,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
 	TObjectPtr<USpellbookSlot> SpellbookSlot;
+
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UHorizontalBox> ActiveAbilitySlotsContainer;
 
 	// Widget classes for dynamic creation
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")

@@ -3,99 +3,38 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
-#include "Components/HorizontalBox.h"
-#include "Blueprint/WidgetTree.h"
 
 void UDefaultAbilitiesPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	CreateSlots();
+	AttackSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	MoveSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	WaitSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	DefendSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	FleeSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+
+	Clear();
 }
 
 void UDefaultAbilitiesPanel::NativeDestruct()
 {
-	if (AttackSlot)
-	{
-		AttackSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-	}
-	if (MoveSlot)
-	{
-		MoveSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-	}
-	if (WaitSlot)
-	{
-		WaitSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-	}
-	if (DefendSlot)
-	{
-		DefendSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-	}
-	if (FleeSlot)
-	{
-		FleeSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-	}
+	AttackSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	MoveSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	WaitSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	DefendSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
+	FleeSlot->OnAbilitySelected.RemoveDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
 
 	Super::NativeDestruct();
 }
 
-void UDefaultAbilitiesPanel::CreateSlots()
-{
-	checkf(ActiveAbilitySlotClass, TEXT("ActiveAbilitySlotClass not set in DefaultAbilitiesPanel"));
-	checkf(SlotsContainer, TEXT("SlotsContainer not bound in DefaultAbilitiesPanel"));
-
-	AttackSlot = CreateWidget<UActiveAbilitySlot>(this, ActiveAbilitySlotClass);
-	MoveSlot = CreateWidget<UActiveAbilitySlot>(this, ActiveAbilitySlotClass);
-	WaitSlot = CreateWidget<UActiveAbilitySlot>(this, ActiveAbilitySlotClass);
-	DefendSlot = CreateWidget<UActiveAbilitySlot>(this, ActiveAbilitySlotClass);
-	FleeSlot = CreateWidget<UActiveAbilitySlot>(this, ActiveAbilitySlotClass);
-
-	int32 CreatedCount = 0;
-	if (AttackSlot)
-	{
-		SlotsContainer->AddChildToHorizontalBox(AttackSlot);
-		AttackSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-		++CreatedCount;
-	}
-	if (MoveSlot)
-	{
-		SlotsContainer->AddChildToHorizontalBox(MoveSlot);
-		MoveSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-		++CreatedCount;
-	}
-	if (WaitSlot)
-	{
-		SlotsContainer->AddChildToHorizontalBox(WaitSlot);
-		WaitSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-		++CreatedCount;
-	}
-	if (DefendSlot)
-	{
-		SlotsContainer->AddChildToHorizontalBox(DefendSlot);
-		DefendSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-		++CreatedCount;
-	}
-	if (FleeSlot)
-	{
-		SlotsContainer->AddChildToHorizontalBox(FleeSlot);
-		FleeSlot->OnAbilitySelected.AddDynamic(this, &UDefaultAbilitiesPanel::OnChildAbilitySelected);
-		++CreatedCount;
-	}
-
-	if (CreatedCount != REQUIRED_SLOTS)
-	{
-		UE_LOG(LogTemp, Error, TEXT("DefaultAbilitiesPanel: Failed to create all %d slots. Only %d created."),
-			REQUIRED_SLOTS, CreatedCount);
-	}
-}
-
 void UDefaultAbilitiesPanel::Clear()
 {
-	if (AttackSlot) AttackSlot->Clean();
-	if (MoveSlot) MoveSlot->Clean();
-	if (WaitSlot) WaitSlot->Clean();
-	if (DefendSlot) DefendSlot->Clean();
-	if (FleeSlot) FleeSlot->Clean();
+	AttackSlot->Clean();
+	MoveSlot->Clean();
+	WaitSlot->Clean();
+	DefendSlot->Clean();
+	FleeSlot->Clean();
 }
 
 void UDefaultAbilitiesPanel::SetUnit(AUnit* Unit)
@@ -125,30 +64,30 @@ void UDefaultAbilitiesPanel::SelectAbility(UUnitAbilityInstance* Ability)
 	}
 
 	// Deselect all first
-	if (AttackSlot) AttackSlot->Deselect();
-	if (MoveSlot) MoveSlot->Deselect();
-	if (WaitSlot) WaitSlot->Deselect();
-	if (DefendSlot) DefendSlot->Deselect();
-	if (FleeSlot) FleeSlot->Deselect();
+	AttackSlot->Deselect();
+	MoveSlot->Deselect();
+	WaitSlot->Deselect();
+	DefendSlot->Deselect();
+	FleeSlot->Deselect();
 
 	// Select matching slot
-	if (AttackSlot && AttackSlot->HasAbility(Ability))
+	if (AttackSlot->HasAbility(Ability))
 	{
 		AttackSlot->Select();
 	}
-	else if (MoveSlot && MoveSlot->HasAbility(Ability))
+	else if (MoveSlot->HasAbility(Ability))
 	{
 		MoveSlot->Select();
 	}
-	else if (WaitSlot && WaitSlot->HasAbility(Ability))
+	else if (WaitSlot->HasAbility(Ability))
 	{
 		WaitSlot->Select();
 	}
-	else if (DefendSlot && DefendSlot->HasAbility(Ability))
+	else if (DefendSlot->HasAbility(Ability))
 	{
 		DefendSlot->Select();
 	}
-	else if (FleeSlot && FleeSlot->HasAbility(Ability))
+	else if (FleeSlot->HasAbility(Ability))
 	{
 		FleeSlot->Select();
 	}

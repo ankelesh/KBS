@@ -5,9 +5,13 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "TurnStateMachine/TacTurnOrder.h"
+#include "TacCategoryLogger.h"
 #include "TacTurnSubsystem.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogKBSTurn, Log, All);
+
 class UTacGridSubsystem;
+class UTacAICombatService;
 class UBattleTeam;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStart, int32, Turn);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, Turn);
@@ -55,6 +59,7 @@ public:
 	void AbilityClicked(UUnitAbilityInstance* Ability);
 
 	int32 GetCurrentRound() const { return CurrentRound; }
+	UTacAICombatService* GetAICombatService() const { return AICombatService; }
 
 	// Turn order queries
 	AUnit* GetCurrentUnit() const;
@@ -62,7 +67,7 @@ public:
 	int32 GetUnitInitiative(AUnit* Unit) const;
 
 	UFUNCTION(BlueprintCallable)
-	void GridAvailable(UTacGridSubsystem* Grid);
+	void GridAvailable();
 	UFUNCTION(BlueprintCallable)
 	void OnPresentationComplete();
 
@@ -80,7 +85,11 @@ private:
 
 	TUniquePtr<FTacTurnOrder> TurnOrder;
 	TMap<ETurnState, TUniquePtr<FTacTurnState>> States;
+	TUniquePtr<FTacCategoryLogger> TurnLogger;
+	TUniquePtr<FTacCategoryLogger> AILogger;
 	FTacTurnState* CurrentState = nullptr;
 	int32 CurrentRound;
 	UTacGridSubsystem* GridSubsystem = nullptr;
+	UPROPERTY()
+	TObjectPtr<UTacAICombatService> AICombatService;
 };

@@ -6,6 +6,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+#include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 
 void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
@@ -33,6 +34,7 @@ ETargetReach UUnitAbilityInstance::GetTargeting() const
 	}
 	return ETargetReach::None;
 }
+
 bool UUnitAbilityInstance::IsPassive() const
 {
 	if (Config)
@@ -41,6 +43,7 @@ bool UUnitAbilityInstance::IsPassive() const
 	}
 	return false;
 }
+
 void UUnitAbilityInstance::ConsumeCharge()
 {
 	if (RemainingCharges > 0)
@@ -48,6 +51,7 @@ void UUnitAbilityInstance::ConsumeCharge()
 		RemainingCharges--;
 	}
 }
+
 void UUnitAbilityInstance::RestoreCharges()
 {
 	if (Config)
@@ -78,6 +82,7 @@ FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
 	DisplayData.Description = FString::Printf(TEXT("%s - %s"), *Config->AbilityName, *DisplayData.TargetingInfo);
 	return DisplayData;
 }
+
 UTacGridSubsystem* UUnitAbilityInstance::GetGridSubsystem() const
 {
 	if (!Owner) return nullptr;
@@ -120,3 +125,8 @@ UTacTurnSubsystem* UUnitAbilityInstance::GetTurnSubsystem() const
 	return World->GetSubsystem<UTacTurnSubsystem>();
 }
 
+bool UUnitAbilityInstance::IsOutsideFocus() const
+{
+	if (!Owner) return false;
+	return (Owner->GetStats().Status.IsFocused() && !Owner->GetAbilityInventory()->IsFocusedOn(this));
+}

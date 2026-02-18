@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/HorizontalBox.h"
 #include "TurnQueuePanel.generated.h"
 
 class AUnit;
@@ -32,7 +33,7 @@ protected:
 
 	// UI Components - Queue Section
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
-	UVerticalBox* QueueContainer;
+	UHorizontalBox* QueueContainer;
 
 	// Widget class for turn queue slots
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")

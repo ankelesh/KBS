@@ -133,6 +133,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 		Unit->SetActorLocation(Coords.ToWorldLocation(GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight()));
 	}
 
+	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, IsFlankCell(Coords));
 	return true;
 }
 
@@ -202,6 +203,7 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 
 	UnitFlankStates.Remove(Unit->GetUnitID());
 	UnitOriginalRotations.Remove(Unit->GetUnitID());
+	Unit->GridMetadata = FUnitGridMetadata(Unit->GridMetadata.Coords, Unit->GridMetadata.Team, false, false);
 	return true;
 }
 

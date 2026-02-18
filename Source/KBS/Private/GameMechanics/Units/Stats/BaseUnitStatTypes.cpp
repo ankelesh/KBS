@@ -2,7 +2,7 @@
 
 // FUnitStatPercent implementations
 FUnitStatPercent::FUnitStatPercent(int32 InBase)
-	: Base(FMath::Clamp(InBase, 0, 100)), Modified(Base), bIsDirty(false)
+	: Base(FMath::Clamp(InBase, 0, 100)), Modified(Base), bIsDirty(true)
 {
 }
 
@@ -81,12 +81,12 @@ void FUnitStatPercent::InitFromBase(int32 InBase)
 	Modified = Base;
 	FlatModifiers.Empty();
 	StatMultipliers.Empty();
-	bIsDirty = false;
+	bIsDirty = true;
 }
 
 // FUnitStatPositive implementations
 FUnitStatPositive::FUnitStatPositive(int32 InBase)
-	: Base(FMath::Max(InBase, 0)), Modified(Base), bIsDirty(false)
+	: Base(FMath::Max(InBase, 0)), Modified(Base), bIsDirty(true)
 {
 }
 
@@ -170,7 +170,7 @@ void FUnitStatPositive::InitFromBase(int32 InBase)
 
 // FDamageSourceSetStat implementations
 FDamageSourceSetStat::FDamageSourceSetStat(const TSet<EDamageSource>& InBase)
-	: Base(InBase), Modified(InBase), bIsDirty(false)
+	: Base(InBase), Modified(InBase), bIsDirty(true)
 {
 }
 
@@ -222,5 +222,5 @@ void FDamageSourceSetStat::InitFromBase(const TSet<EDamageSource>& InBase)
 	Base = InBase;
 	Modified = InBase;
 	Modifiers.Empty();
-	bIsDirty = false;
+	bIsDirty = true;
 }

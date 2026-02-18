@@ -11,6 +11,9 @@
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 #include "GameplayTypes/AbilityTypes.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAICombatService.h"
+#include "GameMechanics/Tactical/Grid/BattleTeam.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 
 void FActionsProcessingState::Enter()
 {
@@ -71,10 +74,14 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 	UUnitAbilityInstance* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
 
+	UE_LOG(LogKBSAI, Log, TEXT("ExecuteAbilityOnTarget: unit=%s ability=%s cell=[%d,%d]"),
+		*CurrentUnit->GetName(), *Ability->GetAbilityDisplayData().AbilityName, TargetCell.Row, TargetCell.Col);
+
 	FAbilityResult Result = ExecutorService->CheckAndExecute(Ability, TargetCell);
 
 	if (Result.bInvalidInput)
 	{
+		UE_LOG(LogKBSAI, Warning, TEXT("  -> bInvalidInput — ability rejected target cell, turn may end silently"));
 		return;
 	}
 
@@ -91,11 +98,37 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 
 	if (Result.bPresentationRunning)
 	{
+		UE_LOG(LogKBSAI, Log, TEXT("  -> bPresentationRunning — awaiting presentation"));
 		TurnProcessing = ETurnProcessingSubstate::EAwaitingPresentationState;
 	}
 	else
 	{
+		UE_LOG(LogKBSAI, Log, TEXT("  -> no presentation, continuing turn"));
 		CheckAbilitiesAndSetupTurn();
+	}
+}
+
+bool FActionsProcessingState::IsAIUnit(AUnit* Unit) const
+{
+	UTacGridSubsystem* GridSubsystem = Unit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
+	return !GridSubsystem->GetPlayerTeam()->ContainsUnit(Unit);
+}
+
+void FActionsProcessingState::HandleAITurn(AUnit* Unit)
+{
+	UE_LOG(LogKBSTurn, Log, TEXT("AI turn for: %s"), *Unit->GetName());
+	UTacAICombatService* AIService = ParentTurnSubsystem->GetAICombatService();
+	FAiDecision Decision = AIService->ThinkOverNextAction(Unit);
+
+	if (Decision.bHasDecision)
+	{
+		Unit->GetAbilityInventory()->EquipAbility(Decision.AbilityToUse);
+		ExecuteAbilityOnTarget(Decision.TargetCell);
+	}
+	else
+	{
+		UE_LOG(LogKBSTurn, Warning, TEXT("AI has no decision for %s — ending turn"), *Unit->GetName());
+		TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	}
 }
 
@@ -106,9 +139,17 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 	UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
 
 	GridSubsystem->ClearAllHighlights();
+	Inventory->RecheckContents();
 
-	if (Inventory->HasAnyAbilityAvailable())
+	if (IsAIUnit(CurrentUnit))
 	{
+		HandleAITurn(CurrentUnit);
+		return;
+	}
+
+	if (bool res = Inventory->HasAnyAbilityAvailable())
+	{
+		
 		Inventory->EnsureValidAbility();
 		UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
 

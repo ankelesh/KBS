@@ -21,7 +21,7 @@ protected:
 
 private:
 	UFUNCTION()
-	void OnGridSubsystemReady(UTacGridSubsystem* Subsystem);
+	void OnSubsystemInitComplete();
 
 	UPROPERTY()
 	TObjectPtr<UTacticalHUD> TacticalHUD;

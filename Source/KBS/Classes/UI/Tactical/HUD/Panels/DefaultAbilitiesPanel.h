@@ -42,31 +42,23 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
 	TObjectPtr<UHorizontalBox> SlotsContainer;
 
-	// Widget class for ability slots
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
-	TSubclassOf<UActiveAbilitySlot> ActiveAbilitySlotClass;
+	// Ability slots bound from Blueprint (5 slots for Attack, Move, Wait, Defend, Flee)
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UActiveAbilitySlot> AttackSlot;
+
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UActiveAbilitySlot> MoveSlot;
+
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UActiveAbilitySlot> WaitSlot;
+
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UActiveAbilitySlot> DefendSlot;
+
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
+	TObjectPtr<UActiveAbilitySlot> FleeSlot;
 
 private:
 	UFUNCTION()
 	void OnChildAbilitySelected(UUnitAbilityInstance* Ability);
-
-	void CreateSlots();
-
-	// Cached slots (5 slots for Attack, Move, Wait, Defend, Flee)
-	UPROPERTY()
-	TObjectPtr<UActiveAbilitySlot> AttackSlot;
-
-	UPROPERTY()
-	TObjectPtr<UActiveAbilitySlot> MoveSlot;
-
-	UPROPERTY()
-	TObjectPtr<UActiveAbilitySlot> WaitSlot;
-
-	UPROPERTY()
-	TObjectPtr<UActiveAbilitySlot> DefendSlot;
-
-	UPROPERTY()
-	TObjectPtr<UActiveAbilitySlot> FleeSlot;
-
-	static constexpr int32 REQUIRED_SLOTS = 5;
 };

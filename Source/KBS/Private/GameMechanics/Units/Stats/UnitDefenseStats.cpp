@@ -2,12 +2,12 @@
 
 // FUnitImmunities implementations
 FUnitImmunities::FUnitImmunities()
-	: BaseImmunities(), ModifiedImmunities(), ModifyingEffects(), bIsDirty(false)
+	: BaseImmunities(), ModifiedImmunities(), ModifyingEffects(), bIsDirty(true)
 {
 }
 
 FUnitImmunities::FUnitImmunities(TSet<EDamageSource> Immunities)
-	: BaseImmunities(Immunities), ModifiedImmunities(Immunities), ModifyingEffects(), bIsDirty(false)
+	: BaseImmunities(Immunities), ModifiedImmunities(Immunities), ModifyingEffects(), bIsDirty(true)
 {
 }
 
@@ -66,7 +66,7 @@ void FUnitImmunities::InitFromBase(const FUnitImmunities& Template)
 	BaseImmunities = Template.BaseImmunities;
 	ModifiedImmunities = BaseImmunities;
 	ModifyingEffects.Empty();
-	bIsDirty = false;
+	bIsDirty = true;
 }
 
 // FUnitWards implementations
@@ -110,12 +110,14 @@ void FUnitWards::InitFromBase(const FUnitWards& Template)
 
 // FUnitArmour implementations
 FUnitArmour::FUnitArmour()
-	: BaseArmour(InitArmourMap()), ModifiedArmour(InitArmourMap()), FlatModifiers(), MultiplierModifiers(), OverridingModifiers(), bIsDirty(false)
+	: BaseArmour(InitArmourMap()), ModifiedArmour(InitArmourMap()), FlatModifiers(), MultiplierModifiers(),
+	  OverridingModifiers(), bIsDirty(true)
 {
 }
 
 FUnitArmour::FUnitArmour(TMap<EDamageSource, int32> Base)
-	: BaseArmour(Base), ModifiedArmour(Base), FlatModifiers(), MultiplierModifiers(), OverridingModifiers(), bIsDirty(false)
+	: BaseArmour(Base), ModifiedArmour(Base), FlatModifiers(), MultiplierModifiers(), OverridingModifiers(),
+	  bIsDirty(true)
 {
 }
 
@@ -260,7 +262,7 @@ void FUnitArmour::InitFromBase(const FUnitArmour& Template)
 	FlatModifiers.Empty();
 	MultiplierModifiers.Empty();
 	OverridingModifiers.Empty();
-	bIsDirty = false;
+	bIsDirty = true;
 }
 
 // FUnitDefenseStats implementations

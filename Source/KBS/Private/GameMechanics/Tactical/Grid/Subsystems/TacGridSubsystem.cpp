@@ -4,7 +4,7 @@
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
-
+#include "GameMechanics/Tactical/Grid/Subsystems/TacSubsystemControl.h"
 
 void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 {
@@ -36,7 +36,9 @@ void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 	GridTargetingService = NewObject<UTacGridTargetingService>(this);
 	GridTargetingService->Initialize(InDataManager);
 	UE_LOG(LogTemp, Log, TEXT("TacGridSubsystem: Registered successfully with Grid and HighlightComponent"));
-	Ready.Broadcast(this);
+	UTacSubsystemControl* Control = GetWorld()->GetSubsystem<UTacSubsystemControl>();
+	checkf(Control, TEXT("TacGridSubsystem: TacSubsystemControl is nullptr"));
+	Control->NotifyGridReady();
 }
 
 TArray<AUnit*> UTacGridSubsystem::GetActiveUnits()

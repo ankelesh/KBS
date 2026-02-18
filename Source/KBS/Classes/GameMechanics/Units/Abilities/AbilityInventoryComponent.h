@@ -65,7 +65,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
 	void ActivateSpellbookSpell(UUnitAbilityInstance* Spell);
 
+	bool IsFocusedOn(const UUnitAbilityInstance* Ability) const;
 
+	void RecheckContents();
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
 	TObjectPtr<UUnitAbilityInstance> CurrentActiveAbility;

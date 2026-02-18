@@ -1,4 +1,4 @@
-#include "UI/Tactical/Tables/TeamTable.h"
+#include "UI/Tactical/HUD/Tables/TeamTable.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Unit.h"
 #include "UI/Tactical/HUD/Slots/UnitTeamSlot.h"
@@ -27,10 +27,10 @@ void UTeamTable::SetTeam(UBattleTeam* InTeam)
 	const TArray<TObjectPtr<AUnit>>& Units = BoundTeam->GetUnits();
 	for (int32 i = 0; i < Units.Num(); ++i)
 	{
-		UUnitTeamSlot* Slot = CreateWidget<UUnitTeamSlot>(this, SlotClass);
-		Slot->SetupUnit(Units[i]);
-		EmplaceSlot(Slot, i);
-		Slots.Add(Slot);
+		UUnitTeamSlot* UtSlot = CreateWidget<UUnitTeamSlot>(this, SlotClass);
+		UtSlot->SetupUnit(Units[i]);
+		EmplaceSlot(UtSlot, i);
+		Slots.Add(UtSlot);
 	}
 }
 
@@ -41,9 +41,9 @@ void UTeamTable::Clear()
 	BoundTeam = nullptr;
 }
 
-void UTeamTable::EmplaceSlot(UUnitTeamSlot* Slot, int32 Index)
+void UTeamTable::EmplaceSlot(UUnitTeamSlot* UtSlot, int32 Index)
 {
-	UUniformGridSlot* GridSlot = UnitGrid->AddChildToUniformGrid(Slot);
+	UUniformGridSlot* GridSlot = UnitGrid->AddChildToUniformGrid(UtSlot);
 	GridSlot->SetRow(Index / ColumnsPerRow);
 	GridSlot->SetColumn(Index % ColumnsPerRow);
 }

@@ -5,7 +5,6 @@
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TacGridInputRouter.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/CombatTypes.h"
 
@@ -62,9 +61,6 @@ void ATacBattleGrid::BeginPlay()
 	UTacGridSubsystem* GridSubsystem = World->GetSubsystem<UTacGridSubsystem>();
 	checkf(GridSubsystem, TEXT("TacBattleGrid: Failed to get TacGridSubsystem"));
 
-	GridSubsystem->RegisterManager(DataManager);
-	UE_LOG(LogTemp, Log, TEXT("TacBattleGrid: Registered with TacGridSubsystem"));
-
 	// TODO: Move to subsystems
 #if WITH_EDITOR
 	if (EditorInitializer)
@@ -74,12 +70,10 @@ void ATacBattleGrid::BeginPlay()
 	}
 #endif
 
-	// Start battle after units are spawned
-	UTacTurnSubsystem* TurnSubsystem = World->GetSubsystem<UTacTurnSubsystem>();
-	checkf(TurnSubsystem, TEXT("TacBattleGrid: Failed to get TacTurnSubsystem"));
+	// RegisterManager triggers the global init sequence - units must be on grid first
+	GridSubsystem->RegisterManager(DataManager);
+	UE_LOG(LogTemp, Log, TEXT("TacBattleGrid: Registered with TacGridSubsystem"));
 
-	TurnSubsystem->StartBattle();
-	UE_LOG(LogTemp, Log, TEXT("TacBattleGrid: Battle started"));
 }
 void ATacBattleGrid::HandleUnitClicked(AUnit* Unit, FKey ButtonPressed)
 {

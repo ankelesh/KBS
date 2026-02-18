@@ -14,41 +14,40 @@ void UActiveAbilitySlot::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// Create root SizeBox
-	SizeBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-	WidgetTree->RootWidget = SizeBox;
+	// Only build hierarchy programmatically if Blueprint didn't bind widgets via BindWidget.
+	// If Super already resolved SizeBox from the Blueprint designer, use those widgets as-is.
+	if (!SizeBox)
+	{
+		SizeBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		WidgetTree->RootWidget = SizeBox;
 
-	// Create SlotRoot overlay
-	SlotRoot = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
-	SizeBox->AddChild(SlotRoot);
+		SlotRoot = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		SizeBox->AddChild(SlotRoot);
 
-	// Create visual layers overlay
-	UOverlay* VisualOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
-	SlotRoot->AddChildToOverlay(VisualOverlay);
+		UOverlay* VisualOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		SlotRoot->AddChildToOverlay(VisualOverlay);
 
-	// Create SelectionBorder
-	SelectionBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-	VisualOverlay->AddChildToOverlay(SelectionBorder);
+		SelectionBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+		VisualOverlay->AddChildToOverlay(SelectionBorder);
 
-	// Create icon + charges overlay
-	UOverlay* IconOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
-	VisualOverlay->AddChildToOverlay(IconOverlay);
+		UOverlay* IconOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		VisualOverlay->AddChildToOverlay(IconOverlay);
 
-	// Create AbilityIcon image
-	AbilityIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-	IconOverlay->AddChildToOverlay(AbilityIcon);
+		AbilityIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+		IconOverlay->AddChildToOverlay(AbilityIcon);
 
-	// Create Charges text
-	Charges = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	Charges->SetText(FText::FromString(TEXT("0")));
-	IconOverlay->AddChildToOverlay(Charges);
+		Charges = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Charges->SetText(FText::FromString(TEXT("0")));
+		IconOverlay->AddChildToOverlay(Charges);
 
-	// Create SlotButton
-	SlotButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-	SlotRoot->AddChildToOverlay(SlotButton);
+		SlotButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		SlotRoot->AddChildToOverlay(SlotButton);
+	}
 
-	// Bind button click
 	SlotButton->OnClicked.AddDynamic(this, &UActiveAbilitySlot::OnSlotButtonClicked);
+
+	// Sync visuals with initial logical state (Hidden)
+	ApplyHiddenVisuals();
 }
 
 void UActiveAbilitySlot::NativeDestruct()

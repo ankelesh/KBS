@@ -24,9 +24,6 @@ void UTurnQueuePanel::NativeConstruct()
 	OwningHUD = TacticalController->GetTacticalHUD();
 	checkf(OwningHUD, TEXT("USpellbookSlot::OnSpellbookButtonClicked - TacticalHUD is null"));
 
-	// Bind to turn start event
-	TurnSubsystem->OnTurnStart.AddDynamic(this, &UTurnQueuePanel::OnTurnStart);
-
 	// Pre-allocate current unit slot
 	CurrentUnitSlot = CreateWidget<UUnitTurnQueueSlot>(this, UnitTurnQueueSlotClass);
 	CurrentUnitContainer->AddChild(CurrentUnitSlot);
@@ -42,6 +39,13 @@ void UTurnQueuePanel::NativeConstruct()
 		UtqSlot->OnDetailsRequested.AddDynamic(this, &UTurnQueuePanel::OnUnitDetailsRequested);
 		UtqSlot->SetVisibility(ESlateVisibility::Collapsed);
 		QueueSlots.Add(UtqSlot);
+	}
+
+	// Bind to turn start event and sync initial state after slots are ready
+	TurnSubsystem->OnTurnStart.AddDynamic(this, &UTurnQueuePanel::OnTurnStart);
+	if (TurnSubsystem->GetCurrentUnit())
+	{
+		UpdatePanel();
 	}
 }
 

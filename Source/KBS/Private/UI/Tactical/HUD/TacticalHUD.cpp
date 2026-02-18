@@ -11,6 +11,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "Components/Overlay.h"
+#include "Components/CanvasPanel.h"
 
 void UTacticalHUD::NativeConstruct()
 {
@@ -19,67 +20,14 @@ void UTacticalHUD::NativeConstruct()
 	TurnSubsystem = GetWorld()->GetSubsystem<UTacTurnSubsystem>();
 	checkf(TurnSubsystem, TEXT("UTacticalHUD::NativeConstruct - TacTurnSubsystem not found"));
 
-	// Add non-popup widgets to HUDLayout (they will have lower Z-order)
-	if (TurnCounterLabelClass && HUDLayout)
-	{
-		TurnCounterLabel = CreateWidget<UTurnCounterLabel>(this, TurnCounterLabelClass);
-		HUDLayout->AddChild(TurnCounterLabel);
-	}
+	AbilityPanel->OnAbilitySelected.AddDynamic(this, &UTacticalHUD::HandleAbilityPanelAbilitySelected);
 
-	if (TurnQueuePanelClass && HUDLayout)
-	{
-		TurnQueuePanel = CreateWidget<UTurnQueuePanel>(this, TurnQueuePanelClass);
-		HUDLayout->AddChild(TurnQueuePanel);
-	}
+	UnitDetailsPopup->OnCloseRequired.AddDynamic(this, &UTacticalHUD::OnUnitDetailsPopupCloseRequested);
+	UnitDetailsPopup->SetVisibility(ESlateVisibility::Collapsed);
 
-	if (TeamPanelClass && HUDLayout)
-	{
-		TeamPanel = CreateWidget<UTeamPanel>(this, TeamPanelClass);
-		HUDLayout->AddChild(TeamPanel);
-	}
-
-	if (CurrentUnitPanelClass && HUDLayout)
-	{
-		CurrentUnitPanel = CreateWidget<UCurrentUnitPanel>(this, CurrentUnitPanelClass);
-		HUDLayout->AddChild(CurrentUnitPanel);
-	}
-
-	if (HoveredUnitPanelClass && HUDLayout)
-	{
-		HoveredUnitPanel = CreateWidget<UHoveredUnitPanel>(this, HoveredUnitPanelClass);
-		HUDLayout->AddChild(HoveredUnitPanel);
-	}
-
-	if (AbilityPanelClass && HUDLayout)
-	{
-		AbilityPanel = CreateWidget<UAbilityPanel>(this, AbilityPanelClass);
-		HUDLayout->AddChild(AbilityPanel);
-		AbilityPanel->OnAbilitySelected.AddDynamic(this, &UTacticalHUD::HandleAbilityPanelAbilitySelected);
-	}
-
-	// Create and cache popup instances (added last = highest Z-order)
-	if (UnitDetailsPopupClass && HUDLayout)
-	{
-		UnitDetailsPopup = CreateWidget<UUnitDetailsPopup>(this, UnitDetailsPopupClass);
-		if (UnitDetailsPopup)
-		{
-			HUDLayout->AddChild(UnitDetailsPopup);
-			UnitDetailsPopup->OnCloseRequired.AddDynamic(this, &UTacticalHUD::OnUnitDetailsPopupCloseRequested);
-			UnitDetailsPopup->SetVisibility(ESlateVisibility::Collapsed);
-		}
-	}
-
-	if (SpellbookPopupClass && HUDLayout)
-	{
-		SpellbookPopup = CreateWidget<UUnitSpellbookPopup>(this, SpellbookPopupClass);
-		if (SpellbookPopup)
-		{
-			HUDLayout->AddChild(SpellbookPopup);
-			SpellbookPopup->OnCloseRequired.AddDynamic(this, &UTacticalHUD::OnSpellbookPopupCloseRequested);
-			SpellbookPopup->OnAbilitySelected.AddDynamic(this, &UTacticalHUD::HandleSpellbookAbilitySelected);
-			SpellbookPopup->SetVisibility(ESlateVisibility::Collapsed);
-		}
-	}
+	SpellbookPopup->OnCloseRequired.AddDynamic(this, &UTacticalHUD::OnSpellbookPopupCloseRequested);
+	SpellbookPopup->OnAbilitySelected.AddDynamic(this, &UTacticalHUD::HandleSpellbookAbilitySelected);
+	SpellbookPopup->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UTacticalHUD::ShowUnitDetailsPopup(AUnit* Unit)

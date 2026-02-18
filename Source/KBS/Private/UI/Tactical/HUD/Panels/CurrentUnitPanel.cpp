@@ -26,6 +26,10 @@ void UCurrentUnitPanel::NativeConstruct()
 		if (TurnSubsystem)
 		{
 			TurnSubsystem->OnTurnStart.AddDynamic(this, &UCurrentUnitPanel::OnTurnStarted);
+			if (AUnit* Unit = TurnSubsystem->GetCurrentUnit())
+			{
+				RefreshPanel(Unit);
+			}
 		}
 	}
 

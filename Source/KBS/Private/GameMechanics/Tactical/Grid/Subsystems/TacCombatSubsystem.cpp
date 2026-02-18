@@ -159,16 +159,7 @@ void UTacCombatSubsystem::ExecuteDamageApplyPhase(FAttackContext& Context, FHitI
 	}
 	else
 	{
-		// Don't damage corpses
-		if (!Hit.Target->GetStats().Health.IsDead())
-		{
-			// Consume ward if the calculation determined one would be spent
-			if (ToApply.DamageResult.WardSpent != EDamageSource::None)
-			{
-				Hit.Target->GetStats().Defense.Wards.UseWard(ToApply.DamageResult.WardSpent);
-			}
-			Hit.Target->GetStats().Health.TakeDamage(ToApply.DamageResult.Damage);
-		}
+		Hit.Target->TakeHit(ToApply.DamageResult);
 	}
 }
 
