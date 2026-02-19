@@ -9,7 +9,7 @@ void FTurnEndState::Enter()
 	if (!GetTurnOrder()->Empty())
 	{
 		AUnit* Unit = GetTurnOrder()->GetCurrentUnit();
-		UE_LOG(LogKBSTurn, Log, TEXT("Turn end:   %s"), *UnitLogName(Unit));
+		UE_LOG(LogKBSTurn, Log, TEXT("Turn end:   %s"), *Unit->GetLogName());
 		Unit->HandleTurnEnd();
 	}
 	else

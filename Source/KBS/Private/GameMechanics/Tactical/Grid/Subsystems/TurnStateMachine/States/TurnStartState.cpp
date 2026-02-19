@@ -10,7 +10,7 @@ void FTurnStartState::Enter()
 	if (!GetTurnOrder()->Empty())
 	{
 		AUnit* Unit = GetTurnOrder()->GetCurrentUnit();
-		UE_LOG(LogKBSTurn, Log, TEXT("Turn start: %s"), *UnitLogName(Unit));
+		UE_LOG(LogKBSTurn, Log, TEXT("Turn start: %s"), *Unit->GetLogName());
 		Unit->HandleTurnStart();
 	}
 	else

@@ -54,7 +54,7 @@ void FActionsProcessingState::UnitClicked(AUnit* Unit)
 			FTacCoordinates UnitCell;
 			if (GridSubsystem->GetUnitCoordinates(Unit, UnitCell))
 			{
-				UE_LOG(LogKBSTurn, Log, TEXT("[Input] UnitClicked: %s -> cell [%d,%d]"), *UnitLogName(Unit), UnitCell.Row, UnitCell.Col);
+				UE_LOG(LogKBSTurn, Log, TEXT("[Input] UnitClicked: %s -> cell [%d,%d]"), *Unit->GetLogName(), UnitCell.Row, UnitCell.Col);
 				ExecuteAbilityOnTarget(UnitCell);
 			}
 			else
@@ -132,7 +132,7 @@ bool FActionsProcessingState::IsAIUnit(AUnit* Unit) const
 
 void FActionsProcessingState::HandleAITurn(AUnit* Unit)
 {
-	UE_LOG(LogKBSTurn, Log, TEXT("AI turn for: %s"), *UnitLogName(Unit));
+	UE_LOG(LogKBSTurn, Log, TEXT("AI turn for: %s"), *Unit->GetLogName());
 	UTacAICombatService* AIService = ParentTurnSubsystem->GetAICombatService();
 	FAiDecision Decision = AIService->ThinkOverNextAction(Unit);
 
@@ -143,7 +143,7 @@ void FActionsProcessingState::HandleAITurn(AUnit* Unit)
 	}
 	else
 	{
-		UE_LOG(LogKBSTurn, Warning, TEXT("AI has no decision for %s — ending turn"), *UnitLogName(Unit));
+		UE_LOG(LogKBSTurn, Warning, TEXT("AI has no decision for %s — ending turn"), *Unit->GetLogName());
 		TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	}
 }
@@ -169,7 +169,7 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 		UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
 
 		UE_LOG(LogKBSTurn, Log, TEXT("Awaiting player input: %s | ability: %s"),
-			*UnitLogName(CurrentUnit), *CurrentAbility->GetAbilityDisplayData().AbilityName);
+			*CurrentUnit->GetLogName(), *CurrentAbility->GetAbilityDisplayData().AbilityName);
 
 		UTacGridTargetingService* TargetingService = GridSubsystem->GetGridTargetingService();
 		ETargetReach AbilityTargeting = CurrentAbility->GetTargeting();
@@ -181,7 +181,7 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 	}
 	else
 	{
-		UE_LOG(LogKBSTurn, Log, TEXT("No abilities available for %s — turn ending"), *UnitLogName(CurrentUnit));
+		UE_LOG(LogKBSTurn, Log, TEXT("No abilities available for %s — turn ending"), *CurrentUnit->GetLogName());
 		TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	}
 }

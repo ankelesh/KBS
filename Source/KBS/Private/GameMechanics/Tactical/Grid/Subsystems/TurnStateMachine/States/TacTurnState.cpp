@@ -2,8 +2,6 @@
 
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
-#include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitDefinition.h"
 
 void FTacTurnState::Enter()
 {
@@ -64,13 +62,4 @@ void FTacTurnState::ReloadTurnOrder()
 {
 	if (!ParentTurnSubsystem) return;
 	ParentTurnSubsystem->ReloadTurnOrder();
-}
-
-FString FTacTurnState::UnitLogName(AUnit* Unit)
-{
-	if (!Unit) return TEXT("(null)");
-	FString ConfigName = Unit->GetUnitDefinition()
-		? Unit->GetUnitDefinition()->UnitName
-		: Unit->GetName();
-	return FString::Printf(TEXT("%s[%s]"), *ConfigName, *Unit->GetUnitID().ToString().Left(8));
 }

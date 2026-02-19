@@ -74,6 +74,7 @@ public:
 	bool ApplyEffect(UBattleEffect* Effect);
 
 	// --- Queries ---
+	FString GetLogName() const;
 	const FGuid& GetUnitID() const { return UnitID; }
 	FUnitCoreStats& GetStats() { return BaseStats; }
 	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
