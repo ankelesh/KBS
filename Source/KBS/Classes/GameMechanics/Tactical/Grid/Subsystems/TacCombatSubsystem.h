@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "TacCategoryLogger.h"
 #include "TacCombatSubsystem.generated.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogKBSCombat, Log, All);
 
 class UGridDataManager;
 class UTacAbilityExecutorService;
@@ -56,4 +59,5 @@ private:
 	UTacAbilityExecutorService* AbilityExecutorService;
 	UPROPERTY()
 	UTacCombatStatisticsService* CombatStatisticsService;
+	TUniquePtr<FTacCategoryLogger> CombatLogger;
 };

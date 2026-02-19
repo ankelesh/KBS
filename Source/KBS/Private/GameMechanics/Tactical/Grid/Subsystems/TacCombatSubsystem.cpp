@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
+DEFINE_LOG_CATEGORY(LogKBSCombat);
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacCombatStatisticsService.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAbilityExecutorService.h"
@@ -45,6 +45,12 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FAttackConte
 {
 	TArray<FCombatHitResult> Results;
 
+	TArray<FString> TargetNames;
+	for (const FHitInstance& Hit : Context.Hits) { TargetNames.Add(Hit.Target->GetName()); }
+	UE_LOG(LogKBSCombat, Log, TEXT("[ATTACK START] %s -> [%s] weapon=%s reaction=%d"),
+		*Context.Attacker->GetName(), *FString::Join(TargetNames, TEXT(", ")),
+		*Context.AttackerWeapon->GetName(), Context.bIsReactionHit ? 1 : 0);
+
 	if (!ExecutePreAttackPhase(Context))
 	{
 		for (const FHitInstance& Hit : Context.Hits)
@@ -70,6 +76,12 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FAttackConte
 		}
 		Results.Add(Result);
 	}
+
+	int32 HitCount = 0, TotalDamage = 0;
+	for (const FCombatHitResult& R : Results) { if (R.bHit) { ++HitCount; TotalDamage += R.DamageResult.Damage; } }
+	UE_LOG(LogKBSCombat, Log, TEXT("[ATTACK END] %s: %d/%d hit, total_dmg=%d"),
+		*Context.Attacker->GetName(), HitCount, Results.Num(), TotalDamage);
+
 	return Results;
 }
 
@@ -79,6 +91,7 @@ bool UTacCombatSubsystem::ExecutePreAttackPhase(FAttackContext& Context)
 	Context.CheckCancellation();
 	if (Context.bIsAttackCancelled)
 	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[PRE-ATTACK CANCELLED] %s's attack was cancelled"), *Context.Attacker->GetName());
 		return false;
 	}
 
@@ -98,6 +111,8 @@ void UTacCombatSubsystem::ExecuteCalculationPhase(FAttackContext& Context, FHitI
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[HIT CANCELLED] %s -> %s: cancelled in calculation phase"),
+			*Context.Attacker->GetName(), *Hit.Target->GetName());
 		OutResult = FCombatHitResult::Miss(Hit.Target);
 		return;
 	}
@@ -116,6 +131,13 @@ void UTacCombatSubsystem::ExecuteCalculationPhase(FAttackContext& Context, FHitI
 	if (OutResult.bHit)
 	{
 		OutResult.DamageResult = FDamageCalculation::CalculateDamage(Context.Attacker, Context.AttackerWeapon, Hit.Target);
+		UE_LOG(LogKBSCombat, Log, TEXT("[HIT] %s -> %s: dmg=%d blocked=%d"),
+			*Context.Attacker->GetName(), *Hit.Target->GetName(),
+			OutResult.DamageResult.Damage, OutResult.DamageResult.DamageBlocked);
+	}
+	else
+	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[MISS] %s -> %s"), *Context.Attacker->GetName(), *Hit.Target->GetName());
 	}
 }
 
@@ -125,6 +147,8 @@ void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FAttackContext& Context,
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[EFFECTS CANCELLED] %s -> %s: effect phase cancelled"),
+			*Context.Attacker->GetName(), *Hit.Target->GetName());
 		return;
 	}
 
@@ -145,6 +169,11 @@ void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FAttackContext& Context,
 			++Result.EffectsApplied;
 		}
 	}
+
+	if (Result.EffectsApplied > 0)
+	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[EFFECTS] %d effects applied to %s"), Result.EffectsApplied, *Hit.Target->GetName());
+	}
 }
 
 void UTacCombatSubsystem::ExecuteDamageApplyPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply)
@@ -153,6 +182,8 @@ void UTacCombatSubsystem::ExecuteDamageApplyPhase(FAttackContext& Context, FHitI
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[DAMAGE BLOCKED] %s -> %s: hit cancelled at damage phase"),
+			*Context.Attacker->GetName(), *Hit.Target->GetName());
 		ToApply.bHit = false;
 		ToApply.DamageResult.DamageBlocked += ToApply.DamageResult.Damage;
 		ToApply.DamageResult.Damage = 0;
@@ -168,4 +199,5 @@ void UTacCombatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 	AbilityExecutorService = NewObject<UTacAbilityExecutorService>(this);
 	CombatStatisticsService = NewObject<UTacCombatStatisticsService>(this);
+	CombatLogger = MakeUnique<FTacCategoryLogger>(FName("LogKBSCombat"), TEXT("Combat"));
 }
