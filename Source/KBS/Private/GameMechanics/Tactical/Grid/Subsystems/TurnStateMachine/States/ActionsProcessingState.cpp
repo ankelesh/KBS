@@ -41,7 +41,8 @@ void FActionsProcessingState::CellClicked(FTacCoordinates Cell)
 	}
 	else
 	{
-		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] CellClicked [%d,%d] ignored (substate=%d)"), Cell.Row, Cell.Col, static_cast<int32>(TurnProcessing));
+		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] CellClicked [%d,%d] ignored (substate=%d)"), Cell.Row, Cell.Col,
+		       static_cast<int32>(TurnProcessing));
 	}
 }
 
@@ -54,7 +55,8 @@ void FActionsProcessingState::UnitClicked(AUnit* Unit)
 			FTacCoordinates UnitCell;
 			if (GridSubsystem->GetUnitCoordinates(Unit, UnitCell))
 			{
-				UE_LOG(LogKBSTurn, Log, TEXT("[Input] UnitClicked: %s -> cell [%d,%d]"), *Unit->GetLogName(), UnitCell.Row, UnitCell.Col);
+				UE_LOG(LogKBSTurn, Log, TEXT("[Input] UnitClicked: %s -> cell [%d,%d]"), *Unit->GetLogName(),
+				       UnitCell.Row, UnitCell.Col);
 				ExecuteAbilityOnTarget(UnitCell);
 			}
 			else
@@ -65,7 +67,8 @@ void FActionsProcessingState::UnitClicked(AUnit* Unit)
 	}
 	else
 	{
-		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] UnitClicked ignored (substate=%d)"), static_cast<int32>(TurnProcessing));
+		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] UnitClicked ignored (substate=%d)"),
+		       static_cast<int32>(TurnProcessing));
 	}
 }
 
@@ -80,7 +83,8 @@ void FActionsProcessingState::AbilityClicked(UUnitAbilityInstance* Ability)
 	}
 	else
 	{
-		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] AbilityClicked ignored (substate=%d)"), static_cast<int32>(TurnProcessing));
+		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] AbilityClicked ignored (substate=%d)"),
+		       static_cast<int32>(TurnProcessing));
 	}
 }
 
@@ -92,7 +96,7 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 	UUnitAbilityInstance* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
 
 	UE_LOG(LogKBSTurn, Log, TEXT("[Input] Ability '%s' -> cell [%d,%d]"),
-		*Ability->GetAbilityDisplayData().AbilityName, TargetCell.Row, TargetCell.Col);
+	       *Ability->GetAbilityDisplayData().AbilityName, TargetCell.Row, TargetCell.Col);
 
 	FAbilityResult Result = ExecutorService->CheckAndExecute(Ability, TargetCell);
 
@@ -150,6 +154,9 @@ void FActionsProcessingState::HandleAITurn(AUnit* Unit)
 
 void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 {
+	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingPresentationState || TurnProcessing ==
+		ETurnProcessingSubstate::EAwaitingInputState)
+		return;
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 	UAbilityInventoryComponent* Inventory = CurrentUnit->GetAbilityInventory();
 	UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
@@ -169,7 +176,7 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 		UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
 
 		UE_LOG(LogKBSTurn, Log, TEXT("Awaiting player input: %s | ability: %s"),
-			*CurrentUnit->GetLogName(), *CurrentAbility->GetAbilityDisplayData().AbilityName);
+		       *CurrentUnit->GetLogName(), *CurrentAbility->GetAbilityDisplayData().AbilityName);
 
 		UTacGridTargetingService* TargetingService = GridSubsystem->GetGridTargetingService();
 		ETargetReach AbilityTargeting = CurrentAbility->GetTargeting();

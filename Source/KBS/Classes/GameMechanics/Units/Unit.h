@@ -24,7 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStart, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnEnd, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitMoved, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitHealthChanged, AUnit*, Unit, int32, NewHealth);
-UCLASS()
+UCLASS(meta=(ScriptName="TacUnit"))
 class KBS_API AUnit : public APawn
 {
 	GENERATED_BODY()

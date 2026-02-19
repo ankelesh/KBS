@@ -15,7 +15,7 @@ struct FAreaShape
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Area")
 	TArray<FIntPoint> RelativeCells;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Area")
-	EShapeLayering ShapeLayering;
+	EShapeLayering ShapeLayering = EShapeLayering::BothLayerArea;
 };
 USTRUCT(BlueprintType)
 struct FWeaponStats

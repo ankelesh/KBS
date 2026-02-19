@@ -21,7 +21,7 @@ UUnitVisualsComponent::UUnitVisualsComponent()
 }
 void UUnitVisualsComponent::ClearAllMeshComponents()
 {
-	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::ClearAllMeshComponents - Clearing %d components"), SpawnedMeshComponents.Num());
+	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::ClearAllMeshComponents - Clearing %d components"), SpawnedMeshComponents.Num());
 	for (int32 i = SpawnedMeshComponents.Num() - 1; i >= 0; --i)
 	{
 		if (SpawnedMeshComponents[i])
@@ -54,11 +54,11 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 			VisualsRoot->RegisterComponent();
 		}
 	}
-	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Owner=%s, VisualsRoot=%s, This IsRegistered=%s, MeshComponents Count=%d"),
-		GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"),
-		VisualsRoot ? TEXT("Valid") : TEXT("NULL"),
-		IsRegistered() ? TEXT("YES") : TEXT("NO"),
-		Definition->MeshComponents.Num());
+	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Owner=%s, VisualsRoot=%s, This IsRegistered=%s, MeshComponents Count=%d"),
+	//	GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"),
+	//	VisualsRoot ? TEXT("Valid") : TEXT("NULL"),
+	//	IsRegistered() ? TEXT("YES") : TEXT("NO"),
+	//	Definition->MeshComponents.Num());
 	for (const FUnitMeshDescriptor& MeshDesc : Definition->MeshComponents)
 	{
 		if (MeshDesc.MeshType == EUnitMeshType::Skeletal)
@@ -68,22 +68,22 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 	}
 	if (PrimarySkeletalMesh && Definition->AnimationClass)
 	{
-		UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Setting animation class on primary skeletal mesh"));
+		//UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Setting animation class on primary skeletal mesh"));
 		PrimarySkeletalMesh->SetAnimInstanceClass(Definition->AnimationClass);
 		PrimarySkeletalMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 		PrimarySkeletalMesh->InitAnim(true);
-		UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Animation initialized, AnimInstance: %s"),
-			PrimarySkeletalMesh->GetAnimInstance() ? TEXT("Valid") : TEXT("NULL"));
+		//UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Animation initialized, AnimInstance: %s"),
+		//	PrimarySkeletalMesh->GetAnimInstance() ? TEXT("Valid") : TEXT("NULL"));
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Cannot init animation - PrimaryMesh: %s, AnimClass: %s"),
-			PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"),
-			Definition->AnimationClass ? TEXT("Valid") : TEXT("NULL"));
-	}
-	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::InitializeFromDefinition COMPLETE - SpawnedMeshComponents: %d, PrimarySkeletalMesh: %s"),
-		SpawnedMeshComponents.Num(),
-		PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"));
+	//else
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Cannot init animation - PrimaryMesh: %s, AnimClass: %s"),
+	//		PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"),
+	//		Definition->AnimationClass ? TEXT("Valid") : TEXT("NULL"));
+	//}
+	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::InitializeFromDefinition COMPLETE - SpawnedMeshComponents: %d, PrimarySkeletalMesh: %s"),
+	//	SpawnedMeshComponents.Num(),
+	//	PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"));
 	if (PrimarySkeletalMesh)
 	{
 		for (USceneComponent* Component : SpawnedMeshComponents)
@@ -112,9 +112,9 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	UPrimitiveComponent* PrimitiveComp = nullptr;
 	if (Descriptor.MeshType == EUnitMeshType::Skeletal)
 	{
-		UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Processing skeletal mesh, bIsPrimaryMesh=%s, IsNull=%s"),
-			Descriptor.bIsPrimaryMesh ? TEXT("TRUE") : TEXT("FALSE"),
-			Descriptor.SkeletalMesh.IsNull() ? TEXT("TRUE") : TEXT("FALSE"));
+		//UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Processing skeletal mesh, bIsPrimaryMesh=%s, IsNull=%s"),
+		//	Descriptor.bIsPrimaryMesh ? TEXT("TRUE") : TEXT("FALSE"),
+		//	Descriptor.SkeletalMesh.IsNull() ? TEXT("TRUE") : TEXT("FALSE"));
 		if (!Descriptor.SkeletalMesh.IsNull())
 		{
 			USkeletalMeshComponent* SkelMeshComp = NewObject<USkeletalMeshComponent>(
@@ -127,7 +127,7 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 				USkeletalMesh* LoadedMesh = Descriptor.SkeletalMesh.LoadSynchronous();
 				if (LoadedMesh)
 				{
-					UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Skeletal mesh loaded: %s"), *LoadedMesh->GetName());
+					//UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Skeletal mesh loaded: %s"), *LoadedMesh->GetName());
 					SkelMeshComp->SetSkeletalMesh(LoadedMesh);
 					SkelMeshComp->SetComponentTickEnabled(true);
 					SkelMeshComp->PrimaryComponentTick.bCanEverTick = true;
@@ -140,7 +140,7 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 					if (Descriptor.bIsPrimaryMesh && !PrimarySkeletalMesh)
 					{
 						PrimarySkeletalMesh = SkelMeshComp;
-						UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Primary skeletal mesh set"));
+					//	UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Primary skeletal mesh set"));
 					}
 				}
 			}
@@ -190,10 +190,10 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	}
 	NewMeshComponent->RegisterComponent();
 	SpawnedMeshComponents.Add(NewMeshComponent);
-	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Registered %s, AttachParent=%s, IsRegistered=%s"),
-		*NewMeshComponent->GetName(),
-		NewMeshComponent->GetAttachParent() ? *NewMeshComponent->GetAttachParent()->GetName() : TEXT("NULL"),
-		NewMeshComponent->IsRegistered() ? TEXT("YES") : TEXT("NO"));
+	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Registered %s, AttachParent=%s, IsRegistered=%s"),
+	//	*NewMeshComponent->GetName(),
+	//	NewMeshComponent->GetAttachParent() ? *NewMeshComponent->GetAttachParent()->GetName() : TEXT("NULL"),
+	//	NewMeshComponent->IsRegistered() ? TEXT("YES") : TEXT("NO"));
 	if (PrimitiveComp)
 	{
 		SetupCollisionForMesh(PrimitiveComp);

@@ -47,17 +47,17 @@ struct FAttackContext
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	AUnit* Attacker;
+	AUnit* Attacker = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FHitInstance> Hits;
+	TArray<FHitInstance> Hits = TArray<FHitInstance>();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UWeapon* AttackerWeapon;
+	UWeapon* AttackerWeapon = nullptr;
 	UPROPERTY()
-	TArray<UUnitAbilityInstance*> InterferingAbilities;
+	TArray<UUnitAbilityInstance*> InterferingAbilities = TArray<UUnitAbilityInstance*>();
 	UPROPERTY()
-	bool bIsAttackCancelled;
+	bool bIsAttackCancelled = false;
 	UPROPERTY()
-	bool bIsReactionHit;
+	bool bIsReactionHit = false;
 	
 	void Reset();
 	FAttackContext() = default;

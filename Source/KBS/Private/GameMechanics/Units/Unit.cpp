@@ -48,7 +48,7 @@ void AUnit::BeginPlay()
 
 	if (!UnitDefinition)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Unit has no UnitDefinition assigned!"));
+		//UE_LOG(LogTemp, Warning, TEXT("Unit has no UnitDefinition assigned!"));
 		return;
 	}
 	if (VisualsComponent)
@@ -132,7 +132,7 @@ void AUnit::BeginPlay()
 			UUnitAbilityInstance* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, this);
 			if (!NewAbility)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Failed to create ability from definition '%s'"), *AbilityDef->GetName());
+				//UE_LOG(LogTemp, Warning, TEXT("Failed to create ability from definition '%s'"), *AbilityDef->GetName());
 				continue;
 			}
 			if (NewAbility->IsPassive())
@@ -153,23 +153,23 @@ void AUnit::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 #if WITH_EDITOR
-	UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Actor: %s, WorldType: %d"),
-		*GetName(),
-		GetWorld() ? (int32)GetWorld()->WorldType : -1);
+	//UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Actor: %s, WorldType: %d"),
+	//	*GetName(),
+//		GetWorld() ? (int32)GetWorld()->WorldType : -1);
 	if (GetWorld() && GetWorld()->WorldType == EWorldType::Editor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Editor world, initializing visuals"));
+		//UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Editor world, initializing visuals"));
 		if (UnitDefinition && VisualsComponent)
 		{
 			VisualsComponent->ClearAllMeshComponents();
 			VisualsComponent->InitializeFromDefinition(UnitDefinition);
 		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - NOT Editor world (WorldType=%d), skipping visual init"),
-			GetWorld() ? (int32)GetWorld()->WorldType : -1);
-	}
+	//else
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - NOT Editor world (WorldType=%d), skipping visual init"),
+	//		GetWorld() ? (int32)GetWorld()->WorldType : -1);
+	//}
 #endif
 }
 void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
@@ -206,7 +206,7 @@ FUnitDisplayData AUnit::GetDisplayData() const
 void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	Super::NotifyActorOnClicked(ButtonPressed);
-	UE_LOG(LogTemp, Warning, TEXT("[EVENT] Unit '%s' clicked with button '%s'"), *GetName(), *ButtonPressed.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("[EVENT] Unit '%s' clicked with button '%s'"), *GetName(), *ButtonPressed.ToString());
 	OnUnitClicked.Broadcast(this, ButtonPressed);
 }
 float AUnit::GetMovementSpeed() const
@@ -231,7 +231,7 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 		{
 			VisualsComponent->PlayDeathMontage(UnitDefinition->DeathMontage);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[EVENT] Broadcasting OnUnitDied for unit '%s'"), *GetName());
+		//UE_LOG(LogTemp, Warning, TEXT("[EVENT] Broadcasting OnUnitDied for unit '%s'"), *GetName());
 		OnUnitDied.Broadcast(this);
 	}
 	else
@@ -246,24 +246,24 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 }
 bool AUnit::ApplyEffect(UBattleEffect* Effect)
 {
-	UE_LOG(LogTemp, Log, TEXT("AUnit::ApplyEffect - Called on %s with effect %s, EffectManager = %s"),
-		*GetName(),
-		Effect ? *Effect->GetClass()->GetName() : TEXT("NULL"),
-		EffectManager ? TEXT("Valid") : TEXT("NULL"));
+	//UE_LOG(LogTemp, Log, TEXT("AUnit::ApplyEffect - Called on %s with effect %s, EffectManager = %s"),
+	//	*GetName(),
+	//	Effect ? *Effect->GetClass()->GetName() : TEXT("NULL"),
+	//	EffectManager ? TEXT("Valid") : TEXT("NULL"));
 	if (EffectManager && Effect)
 	{
 		return EffectManager->AddEffect(Effect);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("AUnit::ApplyEffect - Cannot apply effect (EffectManager or Effect is NULL)"));
+		//UE_LOG(LogTemp, Error, TEXT("AUnit::ApplyEffect - Cannot apply effect (EffectManager or Effect is NULL)"));
 		return false;
 	}
 }
 void AUnit::HandleTurnStart()
 {
 	if (BaseStats.Health.IsDead()) return;
-	UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
+	//UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
 	BaseStats.Status.ClearStatus(EUnitStatus::Defending);
 	if (AbilityInventory)
 	{
@@ -278,7 +278,7 @@ void AUnit::HandleTurnStart()
 void AUnit::HandleTurnEnd()
 {
 	if (BaseStats.Health.IsDead()) return;
-	UE_LOG(LogTemp, Log, TEXT("%s: Turn ended"), *GetName());
+	//UE_LOG(LogTemp, Log, TEXT("%s: Turn ended"), *GetName());
 	if (EffectManager)
 	{
 		EffectManager->BroadcastTurnEnd();

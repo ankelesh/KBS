@@ -10,8 +10,6 @@
 void UTeamPanel::NativeConstruct()
 {
 	Super::NativeConstruct();
-	UE_LOG(LogTemp, Error, TEXT("TeamPanel NativeConstruct: Class=%s, Outer=%s"),
-		*GetClass()->GetName(), *GetOuter()->GetName());
 	checkf(TeamTableClass, TEXT("TeamTableClass not set in TeamPanel"));
 
 	GridSubsystem = GetWorld()->GetSubsystem<UTacGridSubsystem>();

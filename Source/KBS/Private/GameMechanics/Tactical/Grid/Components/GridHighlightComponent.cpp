@@ -52,7 +52,6 @@ void UGridHighlightComponent::CreateHighlightPool()
 		Instance.Niagara = NewObject<UNiagaraComponent>(Grid);
 		Instance.Niagara->RegisterComponent();
 		Instance.Niagara->AttachToComponent(Root, FAttachmentTransformRules::KeepRelativeTransform);
-		Instance.Niagara->SetAutoActivate(false);
 		Instance.Niagara->Deactivate();
 
 		Instance.bInUse = false;
