@@ -57,6 +57,7 @@ protected:
 	void BroadcastBattleEnd();
 	UTacAICombatService* GetAIService();
 	bool CheckWinCondition() const;
+	static FString UnitLogName(AUnit* Unit);
 	ETurnProcessingSubstate TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	UTacTurnSubsystem* ParentTurnSubsystem;
 };

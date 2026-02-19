@@ -35,7 +35,14 @@ void FActionsProcessingState::Exit()
 void FActionsProcessingState::CellClicked(FTacCoordinates Cell)
 {
 	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingInputState)
+	{
+		UE_LOG(LogKBSTurn, Log, TEXT("[Input] CellClicked [%d,%d]"), Cell.Row, Cell.Col);
 		ExecuteAbilityOnTarget(Cell);
+	}
+	else
+	{
+		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] CellClicked [%d,%d] ignored (substate=%d)"), Cell.Row, Cell.Col, static_cast<int32>(TurnProcessing));
+	}
 }
 
 void FActionsProcessingState::UnitClicked(AUnit* Unit)
@@ -47,6 +54,7 @@ void FActionsProcessingState::UnitClicked(AUnit* Unit)
 			FTacCoordinates UnitCell;
 			if (GridSubsystem->GetUnitCoordinates(Unit, UnitCell))
 			{
+				UE_LOG(LogKBSTurn, Log, TEXT("[Input] UnitClicked: %s -> cell [%d,%d]"), *UnitLogName(Unit), UnitCell.Row, UnitCell.Col);
 				ExecuteAbilityOnTarget(UnitCell);
 			}
 			else
@@ -55,15 +63,24 @@ void FActionsProcessingState::UnitClicked(AUnit* Unit)
 			}
 		}
 	}
+	else
+	{
+		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] UnitClicked ignored (substate=%d)"), static_cast<int32>(TurnProcessing));
+	}
 }
 
 void FActionsProcessingState::AbilityClicked(UUnitAbilityInstance* Ability)
 {
 	if (Ability && TurnProcessing == ETurnProcessingSubstate::EAwaitingInputState)
 	{
+		UE_LOG(LogKBSTurn, Log, TEXT("[Input] AbilitySwitch -> %s"), *Ability->GetAbilityDisplayData().AbilityName);
 		AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 		CurrentUnit->GetAbilityInventory()->EquipAbility(Ability);
 		CheckAbilitiesAndSetupTurn();
+	}
+	else
+	{
+		UE_LOG(LogKBSTurn, Verbose, TEXT("[Input] AbilityClicked ignored (substate=%d)"), static_cast<int32>(TurnProcessing));
 	}
 }
 
@@ -74,14 +91,14 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 	UUnitAbilityInstance* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
 
-	UE_LOG(LogKBSAI, Log, TEXT("ExecuteAbilityOnTarget: unit=%s ability=%s cell=[%d,%d]"),
-		*CurrentUnit->GetName(), *Ability->GetAbilityDisplayData().AbilityName, TargetCell.Row, TargetCell.Col);
+	UE_LOG(LogKBSTurn, Log, TEXT("[Input] Ability '%s' -> cell [%d,%d]"),
+		*Ability->GetAbilityDisplayData().AbilityName, TargetCell.Row, TargetCell.Col);
 
 	FAbilityResult Result = ExecutorService->CheckAndExecute(Ability, TargetCell);
 
 	if (Result.bInvalidInput)
 	{
-		UE_LOG(LogKBSAI, Warning, TEXT("  -> bInvalidInput — ability rejected target cell, turn may end silently"));
+		UE_LOG(LogKBSTurn, Warning, TEXT("[Input] Ability rejected target cell (bInvalidInput)"));
 		return;
 	}
 
@@ -98,12 +115,11 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 
 	if (Result.bPresentationRunning)
 	{
-		UE_LOG(LogKBSAI, Log, TEXT("  -> bPresentationRunning — awaiting presentation"));
+		UE_LOG(LogKBSTurn, Log, TEXT("Awaiting presentation"));
 		TurnProcessing = ETurnProcessingSubstate::EAwaitingPresentationState;
 	}
 	else
 	{
-		UE_LOG(LogKBSAI, Log, TEXT("  -> no presentation, continuing turn"));
 		CheckAbilitiesAndSetupTurn();
 	}
 }
@@ -116,7 +132,7 @@ bool FActionsProcessingState::IsAIUnit(AUnit* Unit) const
 
 void FActionsProcessingState::HandleAITurn(AUnit* Unit)
 {
-	UE_LOG(LogKBSTurn, Log, TEXT("AI turn for: %s"), *Unit->GetName());
+	UE_LOG(LogKBSTurn, Log, TEXT("AI turn for: %s"), *UnitLogName(Unit));
 	UTacAICombatService* AIService = ParentTurnSubsystem->GetAICombatService();
 	FAiDecision Decision = AIService->ThinkOverNextAction(Unit);
 
@@ -127,7 +143,7 @@ void FActionsProcessingState::HandleAITurn(AUnit* Unit)
 	}
 	else
 	{
-		UE_LOG(LogKBSTurn, Warning, TEXT("AI has no decision for %s — ending turn"), *Unit->GetName());
+		UE_LOG(LogKBSTurn, Warning, TEXT("AI has no decision for %s — ending turn"), *UnitLogName(Unit));
 		TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	}
 }
@@ -149,9 +165,11 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 
 	if (bool res = Inventory->HasAnyAbilityAvailable())
 	{
-		
 		Inventory->EnsureValidAbility();
 		UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
+
+		UE_LOG(LogKBSTurn, Log, TEXT("Awaiting player input: %s | ability: %s"),
+			*UnitLogName(CurrentUnit), *CurrentAbility->GetAbilityDisplayData().AbilityName);
 
 		UTacGridTargetingService* TargetingService = GridSubsystem->GetGridTargetingService();
 		ETargetReach AbilityTargeting = CurrentAbility->GetTargeting();
@@ -163,6 +181,7 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 	}
 	else
 	{
+		UE_LOG(LogKBSTurn, Log, TEXT("No abilities available for %s — turn ending"), *UnitLogName(CurrentUnit));
 		TurnProcessing = ETurnProcessingSubstate::EFreeState;
 	}
 }
@@ -171,6 +190,7 @@ void FActionsProcessingState::OnPresentationComplete()
 {
 	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingPresentationState)
 	{
+		UE_LOG(LogKBSTurn, Log, TEXT("Presentation complete, rechecking abilities"));
 		CheckAbilitiesAndSetupTurn();
 	}
 }
