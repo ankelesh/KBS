@@ -6,6 +6,7 @@
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
 
 
@@ -54,6 +55,11 @@ bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	// Select weapon for primary target
 	UWeapon* Weapon = TargetingService->SelectWeapon(Owner, ResolvedTargets.ClickedTarget);
 	if (!Weapon) return false;
+
+	UPresentationSubsystem::FScopedBatch AttackBatch(
+		UPresentationSubsystem::Get(Owner),
+		FString::Printf(TEXT("Attack_%s"), *Owner->GetName())
+	);
 
 	// Play attack visuals
 	if (Owner->VisualsComponent)
@@ -121,24 +127,4 @@ ETargetReach UUnitAutoAttackAbility::GetTargeting() const
 	return ETargetReach::None;
 }
 
-void UUnitAutoAttackAbility::Subscribe()
-{
-	if (Owner)
-	{
-		Owner->OnUnitTurnEnd.AddDynamic(this, &UUnitAutoAttackAbility::HandleTurnEnd);
-	}
-}
-
-void UUnitAutoAttackAbility::Unsubscribe()
-{
-	if (Owner)
-	{
-		Owner->OnUnitTurnEnd.RemoveDynamic(this, &UUnitAutoAttackAbility::HandleTurnEnd);
-	}
-}
-
-void UUnitAutoAttackAbility::HandleTurnEnd(AUnit* Self)
-{
-	RestoreCharges();
-}
 

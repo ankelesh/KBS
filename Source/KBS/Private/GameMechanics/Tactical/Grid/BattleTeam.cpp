@@ -31,7 +31,7 @@ bool UBattleTeam::IsAnyUnitAlive() const
 	{
 		if (!Unit)
 			continue;
-		if (!Unit->GetStats().Health.IsDead())
+		if (!Unit->IsDead())
 			return true;
 	}
 	return false;

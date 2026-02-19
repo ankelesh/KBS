@@ -72,9 +72,13 @@ public:
 	void OnPresentationComplete();
 
 private:
+	UFUNCTION()
+	void HandleUnitDied(AUnit* Unit);
+
 	void InitializeStates();
 	void TransitionToState(ETurnState NextState);
 	void AttemptTransition();
+	void AttemptTransition(int32 Depth);
 
 	void ReloadTurnOrder();
 	void BroadcastRoundStart();

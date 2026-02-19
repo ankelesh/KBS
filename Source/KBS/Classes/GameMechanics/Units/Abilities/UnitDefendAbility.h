@@ -13,11 +13,5 @@ public:
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
 
-	virtual void Subscribe() override;
-	virtual void Unsubscribe() override;
-
-private:
-	UFUNCTION()
-	void HandleTurnEnd(AUnit* Self);
 };
 

@@ -14,14 +14,8 @@ public:
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
 
-	virtual void Subscribe() override;
-	virtual void Unsubscribe() override;
-
 private:
 	GENERATED_BODY()
-
-	UFUNCTION()
-	void HandleTurnEnd(AUnit* Self);
 
 public:
 	virtual ETargetReach GetTargeting() const override;

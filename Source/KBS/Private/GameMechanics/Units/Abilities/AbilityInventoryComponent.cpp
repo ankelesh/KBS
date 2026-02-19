@@ -39,10 +39,7 @@ TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetPassiveAbilities() 
 }
 void UAbilityInventoryComponent::EquipAbility(UUnitAbilityInstance* Ability)
 {
-	if (!Ability)
-	{
-		return;
-	}
+	check(Ability);
 	CurrentActiveAbility = Ability;
 }
 void UAbilityInventoryComponent::EquipDefaultAbility()
@@ -60,10 +57,8 @@ void UAbilityInventoryComponent::EquipDefaultAbility()
 }
 void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
 {
-	if (!Ability || Ability->IsPassive())
-	{
-		return;
-	}
+	check(Ability);
+	checkf(!Ability->IsPassive(), TEXT("AbilityInventory: passive ability passed to AddActiveAbility"));
 
 	// Check if this is a spellbook ability
 	if (Ability->GetConfig() && Ability->GetConfig()->bIsSpellbookAbility)
@@ -96,55 +91,38 @@ void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
 	{
 		AvailableActiveAbilities.Add(Ability);
 	}
+
+	Ability->Subscribe();
 }
 void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability)
 {
-	if (!Ability || !Ability->IsPassive())
-	{
-		return;
-	}
+	check(Ability);
+	checkf(Ability->IsPassive(), TEXT("AbilityInventory: non-passive ability passed to AddPassiveAbility"));
 	PassiveAbilities.Add(Ability);
 	UWorld* World = GetWorld();
-	if (World)
-	{
-		UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
-		if (AbilitySubsystem)
-		{
-			Ability->Subscribe();
-			AbilitySubsystem->RegisterAbility(Ability);
-		}
-	}
+	checkf(World, TEXT("AbilityInventory: no world when adding passive ability"));
+	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
+	checkf(AbilitySubsystem, TEXT("AbilityInventory: TacAbilityEventSubsystem not found"));
+	Ability->Subscribe();
+	AbilitySubsystem->RegisterAbility(Ability);
 }
 void UAbilityInventoryComponent::RemovePassiveAbility(UUnitAbilityInstance* Ability)
 {
-	if (!Ability)
-	{
-		return;
-	}
+	check(Ability);
 	UWorld* World = GetWorld();
-	if (World)
-	{
-		UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
-		if (AbilitySubsystem)
-		{
-			Ability->Unsubscribe();
-			AbilitySubsystem->UnregisterAbility(Ability);
-		}
-	}
+	checkf(World, TEXT("AbilityInventory: no world when removing passive ability"));
+	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
+	checkf(AbilitySubsystem, TEXT("AbilityInventory: TacAbilityEventSubsystem not found"));
+	Ability->Unsubscribe();
+	AbilitySubsystem->UnregisterAbility(Ability);
 	PassiveAbilities.Remove(Ability);
 }
 void UAbilityInventoryComponent::RegisterPassives()
 {
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+	checkf(World, TEXT("AbilityInventory: no world in RegisterPassives"));
 	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
-	if (!AbilitySubsystem)
-	{
-		return;
-	}
+	checkf(AbilitySubsystem, TEXT("AbilityInventory: TacAbilityEventSubsystem not found"));
 	for (UUnitAbilityInstance* Ability : PassiveAbilities)
 	{
 		if (Ability)
@@ -154,18 +132,30 @@ void UAbilityInventoryComponent::RegisterPassives()
 		}
 	}
 }
+void UAbilityInventoryComponent::HandleTurnEnd()
+{
+	auto Notify = [](UUnitAbilityInstance* Ability) { if (Ability) Ability->HandleTurnEnd(); };
+
+	Notify(DefaultAttackAbility);
+	Notify(DefaultMoveAbility);
+	Notify(DefaultWaitAbility);
+	Notify(DefaultDefendAbility);
+	Notify(DefaultFleeAbility);
+
+	for (UUnitAbilityInstance* Ability : AvailableActiveAbilities)
+		Notify(Ability);
+	for (UUnitAbilityInstance* Ability : SpellbookAbilities)
+		Notify(Ability);
+	for (UUnitAbilityInstance* Ability : PassiveAbilities)
+		Notify(Ability);
+}
+
 void UAbilityInventoryComponent::UnregisterPassives()
 {
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+	checkf(World, TEXT("AbilityInventory: no world in UnregisterPassives"));
 	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
-	if (!AbilitySubsystem)
-	{
-		return;
-	}
+	checkf(AbilitySubsystem, TEXT("AbilityInventory: TacAbilityEventSubsystem not found"));
 	for (UUnitAbilityInstance* Ability : PassiveAbilities)
 	{
 		if (Ability)
@@ -305,14 +295,6 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 		return;
 	}
 
-	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
-	if (!OwnerUnit)
-	{
-		EquipDefaultAbility();
-		checkf(CurrentActiveAbility, TEXT("AbilityInventory: No valid ability after EquipDefaultAbility()"));
-		return;
-	}
-
 	if (!CurrentActiveAbility->CanExecute())
 	{
 		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Current ability '%s' not available, falling back to default attack"),
@@ -330,10 +312,6 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 bool UAbilityInventoryComponent::HasAnyAbilityAvailable() const
 {
 	const FUnitStatusContainer* Status = GetOwnerStatus();
-	if (!Status)
-	{
-		return false;
-	}
 
 	// Quick early-out: if TurnBlocked or Fleeing, no abilities available
 	if (!Status->CanAct() || Status->IsFleeing())
@@ -422,16 +400,14 @@ bool UAbilityInventoryComponent::IsSpellbookAvailable() const
 
 void UAbilityInventoryComponent::AddSpellbookAbility(UUnitAbilityInstance* Ability)
 {
-	if (!Ability)
-	{
-		return;
-	}
+	check(Ability);
 	SpellbookAbilities.Add(Ability);
+	Ability->Subscribe();
 }
 
 void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Spell)
 {
-	checkf(!Spell, TEXT("AbilityInventory: Attempted to activate null spell"));
+	checkf(Spell, TEXT("AbilityInventory: Attempted to activate null spell"));
 	if (Spell->CanExecute())
 		EquipAbility(Spell);
 }
@@ -457,10 +433,7 @@ void UAbilityInventoryComponent::RecheckContents()
 const FUnitStatusContainer* UAbilityInventoryComponent::GetOwnerStatus() const
 {
 	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
-	if (!OwnerUnit)
-	{
-		return nullptr;
-	}
+	checkf(OwnerUnit, TEXT("AbilityInventory: owner is not AUnit"));
 	return &OwnerUnit->GetStats().Status;
 }
 
@@ -485,10 +458,6 @@ bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbilityInstance* Abilit
 	}
 
 	const FUnitStatusContainer* Status = GetOwnerStatus();
-	if (!Status)
-	{
-		return false;
-	}
 
 	// TurnBlocked or Fleeing blocks all abilities
 	if (!Status->CanAct() || Status->IsFleeing())

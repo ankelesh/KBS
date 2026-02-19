@@ -22,6 +22,7 @@ public:
 	void RemovePassiveAbility(UUnitAbilityInstance* Ability);
 	void RegisterPassives();
 	void UnregisterPassives();
+	void HandleTurnEnd();
 	UFUNCTION(BlueprintPure, Category = "Abilities")
 	UUnitAbilityInstance* GetCurrentActiveAbility() const;
 	UFUNCTION(BlueprintPure, Category = "Abilities")

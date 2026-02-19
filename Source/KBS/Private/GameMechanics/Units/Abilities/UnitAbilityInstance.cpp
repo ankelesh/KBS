@@ -44,6 +44,11 @@ bool UUnitAbilityInstance::IsPassive() const
 	return false;
 }
 
+void UUnitAbilityInstance::HandleTurnEnd()
+{
+	RestoreCharges();
+}
+
 void UUnitAbilityInstance::ConsumeCharge()
 {
 	if (RemainingCharges > 0)

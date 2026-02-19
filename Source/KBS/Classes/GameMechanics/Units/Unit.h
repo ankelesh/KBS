@@ -72,6 +72,8 @@ public:
 	// --- Combat ---
 	void TakeHit(const FDamageResult& DamageResult);
 	bool ApplyEffect(UBattleEffect* Effect);
+	void Die();
+	void HandleDeath();
 
 	// --- Queries ---
 	FString GetLogName() const;
@@ -92,6 +94,8 @@ public:
 	FUnitGridMetadata GetGridMetadataCopy() const { return GridMetadata; }
 	UFUNCTION(BlueprintPure, Category = "Unit")
 	UUnitDefinition* GetUnitDefinition() const { return UnitDefinition; }
+	bool IsDead() const {return BaseStats.Status.IsDead();}
+	bool CanAct() const { return BaseStats.Status.CanAct(); }
 
 	// --- Components ---
 	UFUNCTION(BlueprintPure, Category = "Components")

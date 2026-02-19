@@ -119,6 +119,12 @@ void UTacTurnSubsystem::TransitionToState(ETurnState NextState)
 
 void UTacTurnSubsystem::AttemptTransition()
 {
+	AttemptTransition(0);
+}
+
+void UTacTurnSubsystem::AttemptTransition(int32 Depth)
+{
+	checkf(Depth < 100, TEXT("TacTurnSubsystem: AttemptTransition exceeded 100 automatic transitions - likely infinite loop in state machine"));
 	check(CurrentState);
 
 	// Check win condition - if battle ended, force to battle end state
@@ -142,7 +148,7 @@ void UTacTurnSubsystem::AttemptTransition()
 
 	// Recursively attempt one more transition
 	// (allows rapid transitions through multiple "instant" states without waiting for next event)
-	AttemptTransition();
+	AttemptTransition(Depth + 1);
 }
 
 void UTacTurnSubsystem::UnitClicked(AUnit* Unit)
@@ -197,9 +203,20 @@ int32 UTacTurnSubsystem::GetUnitInitiative(AUnit* Unit) const
 	return TurnOrder ? TurnOrder->GetUnitInitiative(Unit) : 0;
 }
 
+void UTacTurnSubsystem::HandleUnitDied(AUnit* Unit)
+{
+	TurnOrder->RemoveUnit(Unit);
+}
+
 void UTacTurnSubsystem::ReloadTurnOrder()
 {
-	TurnOrder->Repopulate(GridSubsystem->GetActiveUnits(), GridSubsystem->GetAttackerTeam());
+	TArray<AUnit*> Units = GridSubsystem->GetActiveUnits();
+	TurnOrder->Repopulate(Units, GridSubsystem->GetAttackerTeam());
+	for (AUnit* Unit : Units)
+	{
+		Unit->OnUnitDied.RemoveDynamic(this, &UTacTurnSubsystem::HandleUnitDied);
+		Unit->OnUnitDied.AddDynamic(this, &UTacTurnSubsystem::HandleUnitDied);
+	}
 }
 
 void UTacTurnSubsystem::BroadcastRoundStart()

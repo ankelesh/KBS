@@ -12,6 +12,7 @@
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/AbilityTypes.h"
+
 FString AUnit::GetLogName() const
 {
 	const UUnitDefinition* Def = GetUnitDefinition();
@@ -32,6 +33,7 @@ AUnit::AUnit()
 	EffectManager = CreateDefaultSubobject<UBattleEffectComponent>(TEXT("EffectManager"));
 	AbilityInventory = CreateDefaultSubobject<UAbilityInventoryComponent>(TEXT("AbilityInventory"));
 }
+
 void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
@@ -74,7 +76,8 @@ void AUnit::BeginPlay()
 		// Initialize default slot abilities
 		if (UnitDefinition->DefaultAttackAbility)
 		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultAttackAbility, this);
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
+				UnitDefinition->DefaultAttackAbility, this);
 			if (Ability)
 			{
 				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Attack, Ability);
@@ -84,7 +87,8 @@ void AUnit::BeginPlay()
 
 		if (UnitDefinition->DefaultMoveAbility)
 		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultMoveAbility, this);
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
+				UnitDefinition->DefaultMoveAbility, this);
 			if (Ability)
 			{
 				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Move, Ability);
@@ -94,7 +98,8 @@ void AUnit::BeginPlay()
 
 		if (UnitDefinition->DefaultWaitAbility)
 		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultWaitAbility, this);
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
+				UnitDefinition->DefaultWaitAbility, this);
 			if (Ability)
 			{
 				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Wait, Ability);
@@ -104,7 +109,8 @@ void AUnit::BeginPlay()
 
 		if (UnitDefinition->DefaultDefendAbility)
 		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultDefendAbility, this);
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
+				UnitDefinition->DefaultDefendAbility, this);
 			if (Ability)
 			{
 				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Defend, Ability);
@@ -114,7 +120,8 @@ void AUnit::BeginPlay()
 
 		if (UnitDefinition->DefaultFleeAbility)
 		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(UnitDefinition->DefaultFleeAbility, this);
+			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
+				UnitDefinition->DefaultFleeAbility, this);
 			if (Ability)
 			{
 				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Flee, Ability);
@@ -149,13 +156,14 @@ void AUnit::BeginPlay()
 		AbilityInventory->RegisterPassives();
 	}
 }
+
 void AUnit::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 #if WITH_EDITOR
 	//UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Actor: %s, WorldType: %d"),
 	//	*GetName(),
-//		GetWorld() ? (int32)GetWorld()->WorldType : -1);
+	//		GetWorld() ? (int32)GetWorld()->WorldType : -1);
 	if (GetWorld() && GetWorld()->WorldType == EWorldType::Editor)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Editor world, initializing visuals"));
@@ -172,6 +180,7 @@ void AUnit::OnConstruction(const FTransform& Transform)
 	//}
 #endif
 }
+
 void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 {
 	UnitDefinition = InDefinition;
@@ -196,21 +205,50 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 		}
 	}
 }
+
 FUnitDisplayData AUnit::GetDisplayData() const
 {
 	const FString Name = UnitDefinition ? UnitDefinition->UnitName : TEXT("Unknown");
 	UTexture2D* Portrait = UnitDefinition ? UnitDefinition->Portrait : nullptr;
-	const TArray<TObjectPtr<UBattleEffect>> Effects = EffectManager ? EffectManager->GetActiveEffects() : TArray<TObjectPtr<UBattleEffect>>();
-	return BuildUnitDisplayData(Name, BaseStats.Health.GetCurrent(), BaseStats, Portrait, Effects, Weapons, GridMetadata.Team);
+	const TArray<TObjectPtr<UBattleEffect>> Effects = EffectManager
+		                                                  ? EffectManager->GetActiveEffects()
+		                                                  : TArray<TObjectPtr<UBattleEffect>>();
+	return BuildUnitDisplayData(Name, BaseStats.Health.GetCurrent(), BaseStats, Portrait, Effects, Weapons,
+	                            GridMetadata.Team);
 }
+
 void AUnit::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	Super::NotifyActorOnClicked(ButtonPressed);
 	//UE_LOG(LogTemp, Warning, TEXT("[EVENT] Unit '%s' clicked with button '%s'"), *GetName(), *ButtonPressed.ToString());
 	OnUnitClicked.Broadcast(this, ButtonPressed);
 }
+
 float AUnit::GetMovementSpeed() const
-	{ return UnitDefinition->MovementSpeed; }
+{
+	return UnitDefinition->MovementSpeed;
+}
+
+void AUnit::Die()
+{
+	BaseStats.Status.SetDead();
+}
+
+void AUnit::HandleDeath()
+{
+	Die();
+	if (EffectManager)
+	{
+		EffectManager->BroadcastDied();
+		EffectManager->ClearAllEffects();
+	}
+	if (VisualsComponent && UnitDefinition && UnitDefinition->DeathMontage)
+	{
+		VisualsComponent->PlayDeathMontage(UnitDefinition->DeathMontage);
+	}
+	OnUnitDied.Broadcast(this);
+}
+
 void AUnit::TakeHit(const FDamageResult& DamageResult)
 {
 	BaseStats.Health.TakeDamage(DamageResult.Damage);
@@ -221,22 +259,10 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 	}
 	if (BaseStats.Health.IsDead())
 	{
-		if (EffectManager)
-		{
-			EffectManager->BroadcastDied();
-			// Clear all effects immediately on death to prevent dead units from ticking effects
-			EffectManager->ClearAllEffects();
-		}
-		if (VisualsComponent && UnitDefinition && UnitDefinition->DeathMontage)
-		{
-			VisualsComponent->PlayDeathMontage(UnitDefinition->DeathMontage);
-		}
-		//UE_LOG(LogTemp, Warning, TEXT("[EVENT] Broadcasting OnUnitDied for unit '%s'"), *GetName());
-		OnUnitDied.Broadcast(this);
+		HandleDeath();
 	}
 	else
 	{
-		// Only play hit reaction for actual damage (not buffs/heals)
 		if (DamageResult.Damage > 0.0f && VisualsComponent && UnitDefinition && UnitDefinition->HitReactionMontage)
 		{
 			VisualsComponent->RegisterMontageOperation();
@@ -244,6 +270,7 @@ void AUnit::TakeHit(const FDamageResult& DamageResult)
 		}
 	}
 }
+
 bool AUnit::ApplyEffect(UBattleEffect* Effect)
 {
 	//UE_LOG(LogTemp, Log, TEXT("AUnit::ApplyEffect - Called on %s with effect %s, EffectManager = %s"),
@@ -260,9 +287,10 @@ bool AUnit::ApplyEffect(UBattleEffect* Effect)
 		return false;
 	}
 }
+
 void AUnit::HandleTurnStart()
 {
-	if (BaseStats.Health.IsDead()) return;
+	if (IsDead()) return;
 	//UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
 	BaseStats.Status.ClearStatus(EUnitStatus::Defending);
 	if (AbilityInventory)
@@ -275,19 +303,22 @@ void AUnit::HandleTurnStart()
 	}
 	OnUnitTurnStart.Broadcast(this);
 }
+
 void AUnit::HandleTurnEnd()
 {
-	if (BaseStats.Health.IsDead()) return;
+	if (IsDead()) return;
 	//UE_LOG(LogTemp, Log, TEXT("%s: Turn ended"), *GetName());
+	AbilityInventory->HandleTurnEnd();
 	if (EffectManager)
 	{
 		EffectManager->BroadcastTurnEnd();
 	}
 	OnUnitTurnEnd.Broadcast(this);
 }
+
 void AUnit::HandleAttacked(AUnit* Attacker)
 {
-	if (BaseStats.Health.IsDead()) return;
+	if (IsDead()) return;
 	if (Attacker == this) return; // cycle guard
 	if (EffectManager)
 	{
@@ -295,9 +326,10 @@ void AUnit::HandleAttacked(AUnit* Attacker)
 	}
 	OnUnitAttacked.Broadcast(this, Attacker);
 }
+
 void AUnit::HandleAttacks(AUnit* Target)
 {
-	if (BaseStats.Health.IsDead()) return;
+	if (IsDead()) return;
 	if (Target == this) return; // cycle guard
 	if (EffectManager)
 	{
@@ -305,9 +337,10 @@ void AUnit::HandleAttacks(AUnit* Target)
 	}
 	OnUnitAttacks.Broadcast(this, Target);
 }
+
 void AUnit::HandleMoved()
 {
-	if (BaseStats.Health.IsDead()) return;
+	if (IsDead()) return;
 	if (EffectManager)
 	{
 		EffectManager->BroadcastMoved();

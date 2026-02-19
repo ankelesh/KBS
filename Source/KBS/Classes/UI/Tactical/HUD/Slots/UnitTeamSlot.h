@@ -62,7 +62,7 @@ protected:
 private:
 	// Event handlers
 	UFUNCTION()
-	void OnUnitDamaged(AUnit* Victim, AUnit* Attacker);
+	void OnUnitHealthChange(AUnit* Owner, int32 NewHealth);
 
 	UFUNCTION()
 	void OnUnitDied(AUnit* Unit);

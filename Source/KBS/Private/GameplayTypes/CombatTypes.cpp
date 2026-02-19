@@ -26,7 +26,7 @@ void FHitInstance::Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled)
 
 void FHitInstance::CheckCancellation()
 {
-	bIsHitCancelled |= Target->GetStats().Health.IsDead() || Attacker->GetStats().Health.IsDead();
+	bIsHitCancelled |= Target->IsDead() || Attacker->IsDead();
 }
 
 FHitInstance::~FHitInstance()
@@ -71,5 +71,5 @@ FAttackContext::~FAttackContext()
 
 void FAttackContext::CheckCancellation()
 {
-	bIsAttackCancelled |= Attacker->GetStats().Health.IsDead();
+	bIsAttackCancelled |= Attacker->IsDead();
 }

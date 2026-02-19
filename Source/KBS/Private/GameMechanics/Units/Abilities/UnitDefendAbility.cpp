@@ -26,23 +26,3 @@ bool UUnitDefendAbility::CanExecute() const
 	return Owner && RemainingCharges > 0;
 }
 
-void UUnitDefendAbility::Subscribe()
-{
-	if (Owner)
-	{
-		Owner->OnUnitTurnEnd.AddDynamic(this, &UUnitDefendAbility::HandleTurnEnd);
-	}
-}
-
-void UUnitDefendAbility::Unsubscribe()
-{
-	if (Owner)
-	{
-		Owner->OnUnitTurnEnd.RemoveDynamic(this, &UUnitDefendAbility::HandleTurnEnd);
-	}
-}
-
-void UUnitDefendAbility::HandleTurnEnd(AUnit* Self)
-{
-	RestoreCharges();
-}

@@ -23,14 +23,14 @@ void UUnitTeamSlot::SetupUnit(AUnit* InUnit)
 	// Unbind from previous unit if any
 	if (AUnit* PreviousUnit = BoundUnit.Get())
 	{
-		PreviousUnit->OnUnitDamaged.RemoveDynamic(this, &UUnitTeamSlot::OnUnitDamaged);
+		PreviousUnit->OnHealthChanged.RemoveDynamic(this, &UUnitTeamSlot::OnUnitHealthChange);
 		PreviousUnit->OnUnitDied.RemoveDynamic(this, &UUnitTeamSlot::OnUnitDied);
 	}
 
 	BoundUnit = InUnit;
 
 	// Bind to unit events
-	InUnit->OnUnitDamaged.AddDynamic(this, &UUnitTeamSlot::OnUnitDamaged);
+	InUnit->OnHealthChanged.AddDynamic(this, &UUnitTeamSlot::OnUnitHealthChange);
 	InUnit->OnUnitDied.AddDynamic(this, &UUnitTeamSlot::OnUnitDied);
 
 	// Refresh display with current unit data
@@ -42,7 +42,7 @@ void UUnitTeamSlot::Clear()
 {
 	if (AUnit* Unit = BoundUnit.Get())
 	{
-		Unit->OnUnitDamaged.RemoveDynamic(this, &UUnitTeamSlot::OnUnitDamaged);
+		Unit->OnHealthChanged.RemoveDynamic(this, &UUnitTeamSlot::OnUnitHealthChange);
 		Unit->OnUnitDied.RemoveDynamic(this, &UUnitTeamSlot::OnUnitDied);
 	}
 	BoundUnit = nullptr;
@@ -66,7 +66,7 @@ FReply UUnitTeamSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
-void UUnitTeamSlot::OnUnitDamaged(AUnit* Victim, AUnit* Attacker)
+void UUnitTeamSlot::OnUnitHealthChange(AUnit* Owner, int32 NewHp)
 {
 	UpdateHPOverlay();
 	BP_OnUnitDamaged();

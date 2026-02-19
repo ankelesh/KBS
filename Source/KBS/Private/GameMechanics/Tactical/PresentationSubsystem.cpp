@@ -143,10 +143,14 @@ void UPresentationSubsystem::UnregisterOperation(FOperationHandle Handle)
 	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Unregistered operation '%s' [%s] (Remaining ops: %d)"),
 		*DebugLabel, *Handle.ID.ToString(), PendingOperations.Num());
 
-	// Check if batch is now complete
+	// Check if batch is now complete, or check global idle for persistent batches that never end
 	if (Batch && Batch->IsComplete())
 	{
 		OnBatchCompleted(BatchHandle);
+	}
+	else
+	{
+		CheckAndBroadcastIdle();
 	}
 }
 

@@ -46,24 +46,4 @@ bool UUnitMovementAbility::CanExecute() const
 	return ValidCells.Num() > 0;
 }
 
-void UUnitMovementAbility::Subscribe()
-{
-	if (Owner)
-	{
-		Owner->OnUnitTurnEnd.AddDynamic(this, &UUnitMovementAbility::HandleTurnEnd);
-	}
-}
-
-void UUnitMovementAbility::Unsubscribe()
-{
-	if (Owner)
-	{
-		Owner->OnUnitTurnEnd.RemoveDynamic(this, &UUnitMovementAbility::HandleTurnEnd);
-	}
-}
-
-void UUnitMovementAbility::HandleTurnEnd(AUnit* Self)
-{
-	RestoreCharges();
-}
 

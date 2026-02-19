@@ -197,6 +197,7 @@ void FActionsProcessingState::OnPresentationComplete()
 {
 	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingPresentationState)
 	{
+		TurnProcessing = ETurnProcessingSubstate::EProcessingEndState;
 		UE_LOG(LogKBSTurn, Log, TEXT("Presentation complete, rechecking abilities"));
 		CheckAbilitiesAndSetupTurn();
 	}

@@ -40,6 +40,8 @@ public:
 	virtual bool IsPassive() const;
 	virtual bool HasExplicitCharges() const { return false; }
 	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const {return {};};
+	// Default: RestoreCharges(). Override to change or suppress (e.g. abilities that restore on round end).
+	virtual void HandleTurnEnd();
 	virtual void Subscribe() {};
 	virtual void Unsubscribe() {};
 	virtual void AttackTriggerCleanup(FAttackContext& Context) {};

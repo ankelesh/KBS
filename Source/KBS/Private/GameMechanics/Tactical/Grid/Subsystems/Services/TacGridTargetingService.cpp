@@ -106,7 +106,7 @@ TArray<AUnit*> UTacGridTargetingService::GetValidTargetUnits(AUnit* Unit, ETarge
 		AUnit* TargetUnit = DataManager->GetUnit(Cell);
 		if (TargetUnit)
 		{
-			if (!bIncludeDeadUnits && TargetUnit->GetStats().Health.IsDead())
+			if (!bIncludeDeadUnits && TargetUnit->IsDead())
 			{
 				continue;
 			}
@@ -217,8 +217,7 @@ void UTacGridTargetingService::GetClosestEnemyCells(AUnit* Unit, TArray<FTacCoor
 		AUnit* TargetUnit = DataManager->GetUnit(TargetCoords);
 		if ( TargetUnit )
 		{
-			bool res = Metadata.IsEnemy(TargetUnit->GetGridMetadata());
-			if (res)
+			if (Metadata.IsEnemy(TargetUnit->GetGridMetadata()) && !TargetUnit->IsDead())
 				AddUnitCellUnique(TargetUnit, OutCells);
 		}
 	}
@@ -244,7 +243,7 @@ void UTacGridTargetingService::GetFlankTargetCells(AUnit* Unit, TArray<FTacCoord
 		{
 			FTacCoordinates TargetCoords(Row, Col, Metadata.Coords.Layer);
 
-			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCoords); TargetUnit && Metadata.IsEnemy(TargetUnit->GetGridMetadata()))
+			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCoords); TargetUnit && !TargetUnit->IsDead() && Metadata.IsEnemy(TargetUnit->GetGridMetadata()))
 			{
 				AddUnitCellUnique(TargetUnit, AllFlankTargets);
 			}
@@ -288,7 +287,7 @@ void UTacGridTargetingService::GetUnitCellsByAffiliation(AUnit* SourceUnit, EAff
 		{
 			for (AUnit* Unit : FriendlyTeam->GetUnits())
 			{
-				if (Unit && Unit != SourceUnit)
+				if (Unit && Unit != SourceUnit && !Unit->IsDead())
 				{
 					AddUnitCell(Unit, OutCells);
 				}
@@ -302,7 +301,7 @@ void UTacGridTargetingService::GetUnitCellsByAffiliation(AUnit* SourceUnit, EAff
 		{
 			for (AUnit* Unit : EnemyTeam->GetUnits())
 			{
-				if (Unit)
+				if (Unit && !Unit->IsDead())
 				{
 					AddUnitCell(Unit, OutCells);
 				}
@@ -687,7 +686,7 @@ TArray<AUnit*> UTacGridTargetingService::GetUnitsInArea(FTacCoordinates CenterCe
 	TArray<AUnit*> UnitsAtLayer = DataManager->GetUnitsInCells(TargetCells, CenterCell.Layer);
 	for (AUnit* Unit : UnitsAtLayer)
 	{
-		if (Unit && !Unit->GetStats().Health.IsDead())
+		if (Unit && !Unit->IsDead())
 		{
 			UnitsInArea.Add(Unit);
 		}
@@ -699,7 +698,7 @@ TArray<AUnit*> UTacGridTargetingService::GetUnitsInArea(FTacCoordinates CenterCe
 		TArray<AUnit*> UnitsAtOtherLayer = DataManager->GetUnitsInCells(TargetCells, OtherLayer);
 		for (AUnit* Unit : UnitsAtOtherLayer)
 		{
-			if (Unit && !Unit->GetStats().Health.IsDead())
+			if (Unit && !Unit->IsDead())
 			{
 				UnitsInArea.Add(Unit);
 			}
@@ -819,7 +818,7 @@ bool UTacGridTargetingService::HasValidTargetAtCell(AUnit* Source, FTacCoordinat
 			}
 			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell))
 			{
-				return Metadata.IsEnemy(TargetUnit->GetGridMetadata());
+				return !TargetUnit->IsDead() && Metadata.IsEnemy(TargetUnit->GetGridMetadata());
 			}
 			return false;
 		}
@@ -830,7 +829,7 @@ bool UTacGridTargetingService::HasValidTargetAtCell(AUnit* Source, FTacCoordinat
 		{
 			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell))
 			{
-				return Metadata.IsEnemy(TargetUnit->GetGridMetadata());
+				return !TargetUnit->IsDead() && Metadata.IsEnemy(TargetUnit->GetGridMetadata());
 			}
 			return false;
 		}
@@ -838,7 +837,7 @@ bool UTacGridTargetingService::HasValidTargetAtCell(AUnit* Source, FTacCoordinat
 		case ETargetReach::AnyFriendly:
 		case ETargetReach::AllFriendlies:
 		{
-			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell); TargetUnit && TargetUnit != Source)
+			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell); TargetUnit && TargetUnit != Source && !TargetUnit->IsDead())
 			{
 				return Metadata.IsAlly(TargetUnit->GetGridMetadata());
 			}

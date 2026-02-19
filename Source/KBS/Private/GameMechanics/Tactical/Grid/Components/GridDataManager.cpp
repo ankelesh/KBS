@@ -533,7 +533,7 @@ TArray<AUnit*> UGridDataManager::GetAllAliveUnits() const
 	{
 		for (const TObjectPtr<AUnit>& Unit : Row.Cells)
 		{
-			if (Unit)
+			if (Unit && !Unit->GetStats().Status.IsDead())
 			{
 				UniqueUnits.Add(Unit->GetUnitID(), Unit);
 			}
@@ -544,7 +544,7 @@ TArray<AUnit*> UGridDataManager::GetAllAliveUnits() const
 	{
 		for (const TObjectPtr<AUnit>& Unit : Row.Cells)
 		{
-			if (Unit)
+			if (Unit && !Unit->GetStats().Status.IsDead())
 			{
 				UniqueUnits.Add(Unit->GetUnitID(), Unit);
 			}
