@@ -69,6 +69,15 @@ struct FAttackContext
 
 
 
+UENUM(BlueprintType)
+enum class EHitOutcome : uint8
+{
+	Hit,
+	Miss,
+	Immune,
+	Warded
+};
+
 USTRUCT(BlueprintType)
 struct FCombatHitResult
 {
@@ -81,12 +90,39 @@ struct FCombatHitResult
 	TObjectPtr<AUnit> TargetUnit = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bHit = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bProcessingSucceeded = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EHitOutcome HitOutcome = EHitOutcome::Miss;
 
-	static FCombatHitResult NoHitHappened(AUnit* Target)
+	static FCombatHitResult ProcessingError()
 	{
 		FCombatHitResult Res;
-		Res.bHit = false;
+		Res.bProcessingSucceeded = false;
+		return Res;
+	}
+
+	static FCombatHitResult Miss(AUnit* Target)
+	{
+		FCombatHitResult Res;
 		Res.TargetUnit = Target;
+		Res.HitOutcome = EHitOutcome::Miss;
+		return Res;
+	}
+
+	static FCombatHitResult Immune(AUnit* Target)
+	{
+		FCombatHitResult Res;
+		Res.TargetUnit = Target;
+		Res.HitOutcome = EHitOutcome::Immune;
+		return Res;
+	}
+
+	static FCombatHitResult Warded(AUnit* Target)
+	{
+		FCombatHitResult Res;
+		Res.TargetUnit = Target;
+		Res.HitOutcome = EHitOutcome::Warded;
 		return Res;
 	}
 };

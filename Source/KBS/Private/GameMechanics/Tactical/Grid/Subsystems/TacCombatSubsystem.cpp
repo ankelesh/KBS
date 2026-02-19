@@ -49,7 +49,7 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FAttackConte
 	{
 		for (const FHitInstance& Hit : Context.Hits)
 		{
-			Results.Add(FCombatHitResult::NoHitHappened(Hit.Target));
+			Results.Add(FCombatHitResult::Miss(Hit.Target));
 		}
 		return Results;
 	}
@@ -98,7 +98,7 @@ void UTacCombatSubsystem::ExecuteCalculationPhase(FAttackContext& Context, FHitI
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
-		OutResult = FCombatHitResult::NoHitHappened(Hit.Target);
+		OutResult = FCombatHitResult::Miss(Hit.Target);
 		return;
 	}
 

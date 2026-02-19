@@ -65,21 +65,24 @@ bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon);
 
-	// Check if attack was successful
-	bool bSuccess = false;
+	bool bProcessingSucceeded = true;
+	bool bAnyHitLanded = false;
 	for (const FCombatHitResult& HitResult : HitResults)
 	{
-		if (HitResult.bHit)
+		if (!HitResult.bProcessingSucceeded)
 		{
-			bSuccess = true;
-			break;
+			bProcessingSucceeded = false;
+		}
+		if (HitResult.HitOutcome == EHitOutcome::Hit)
+		{
+			bAnyHitLanded = true;
 		}
 	}
 
 	Owner->GetStats().Status.SetFocus();
 	ConsumeCharge();
 
-	return bSuccess;
+	return bProcessingSucceeded;
 }
 
 bool UUnitAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
