@@ -5,6 +5,8 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "TacGridSubsystem.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogTacGrid, Log, All);
+
 
 class UGridDataManager;
 class UTacGridMovementService;

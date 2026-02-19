@@ -1,4 +1,6 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+
+DEFINE_LOG_CATEGORY(LogTacGrid);
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
@@ -10,21 +12,21 @@ void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 {
 	if (!InDataManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("TacGridSubsystem: Cannot register null DataManager"));
+		UE_LOG(LogTacGrid, Error, TEXT("TacGridSubsystem: Cannot register null DataManager"));
 		return;
 	}
 
 	ATacBattleGrid* Grid = InDataManager->GetGrid();
 	if (!Grid)
 	{
-		UE_LOG(LogTemp, Error, TEXT("TacGridSubsystem: DataManager has no Grid reference"));
+		UE_LOG(LogTacGrid, Error, TEXT("TacGridSubsystem: DataManager has no Grid reference"));
 		return;
 	}
 
 	UGridHighlightComponent* Highlight = Grid->GetHighlightComponent();
 	if (!Highlight)
 	{
-		UE_LOG(LogTemp, Error, TEXT("TacGridSubsystem: Grid has no HighlightComponent"));
+		UE_LOG(LogTacGrid, Error, TEXT("TacGridSubsystem: Grid has no HighlightComponent"));
 		return;
 	}
 
@@ -35,7 +37,7 @@ void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 	GridMovementService->Initialize(InDataManager);
 	GridTargetingService = NewObject<UTacGridTargetingService>(this);
 	GridTargetingService->Initialize(InDataManager);
-	UE_LOG(LogTemp, Log, TEXT("TacGridSubsystem: Registered successfully with Grid and HighlightComponent"));
+	UE_LOG(LogTacGrid, Log, TEXT("RegisterManager: grid '%s' ready"), *Grid->GetName());
 	UTacSubsystemControl* Control = GetWorld()->GetSubsystem<UTacSubsystemControl>();
 	checkf(Control, TEXT("TacGridSubsystem: TacSubsystemControl is nullptr"));
 	Control->NotifyGridReady();
