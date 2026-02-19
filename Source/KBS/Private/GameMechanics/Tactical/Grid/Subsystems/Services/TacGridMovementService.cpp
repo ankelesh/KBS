@@ -3,9 +3,19 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/FlankCellDefinitions.h"
 #include "GameplayTypes/TacticalMovementConstants.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+
+static FString UnitStr(const AUnit* Unit)
+{
+	if (!Unit) return TEXT("null");
+	const UUnitDefinition* Def = Unit->GetUnitDefinition();
+	const FString& Name = Def ? Def->UnitName : TEXT("?");
+	return FString::Printf(TEXT("%s [%s]"), *Name, *Unit->GetUnitID().ToString().Left(8));
+}
 
 
 UTacGridMovementService::UTacGridMovementService()
@@ -25,13 +35,13 @@ bool UTacGridMovementService::ValidateMovementParameters(AUnit* Unit, FTacCoordi
 {
 	if (!Unit || !DataManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Invalid Unit or DataManager"));
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Invalid Unit or DataManager"));
 		return false;
 	}
 
 	if (!DataManager->IsValidCell(Where))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Invalid target cell [%d,%d]"), Where.Row, Where.Col);
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Invalid target cell [%d,%d]"), Where.Row, Where.Col);
 		return false;
 	}
 
@@ -43,7 +53,7 @@ bool UTacGridMovementService::GetUnitCurrentPosition(AUnit* Unit, FTacCoordinate
 	ETacGridLayer Layer;
 	if (!DataManager->GetUnitPosition(Unit, OutPos, Layer))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Could not find unit position"));
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Could not find unit position"));
 		return false;
 	}
 	OutPos.Layer = Layer;
@@ -63,19 +73,19 @@ bool UTacGridMovementService::ExecuteDataMove(AUnit* Unit, FTacCoordinates From,
 {
 	if (!DataManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: DataManager null in ExecuteDataMove"));
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: DataManager null in ExecuteDataMove"));
 		return false;
 	}
 
 	if (!DataManager->RemoveUnit(From))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to remove unit from [%d,%d]"), From.Row, From.Col);
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to remove unit from [%d,%d]"), From.Row, From.Col);
 		return false;
 	}
 
 	if (!DataManager->PlaceUnit(Unit, To))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to place unit at [%d,%d]"), To.Row, To.Col);
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to place unit at [%d,%d]"), To.Row, To.Col);
 		return false;
 	}
 
@@ -86,20 +96,20 @@ bool UTacGridMovementService::ExecuteSwapMove(AUnit* Unit1, FTacCoordinates Pos1
 {
 	if (!DataManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: DataManager null in ExecuteSwapMove"));
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: DataManager null in ExecuteSwapMove"));
 		return false;
 	}
 
 	// Remove both units first
 	if (!DataManager->RemoveUnit(Pos1))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to remove unit from [%d,%d]"), Pos1.Row, Pos1.Col);
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to remove unit from [%d,%d]"), Pos1.Row, Pos1.Col);
 		return false;
 	}
 
 	if (!DataManager->RemoveUnit(Pos2))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to remove unit from [%d,%d]"), Pos2.Row, Pos2.Col);
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to remove unit from [%d,%d]"), Pos2.Row, Pos2.Col);
 		// Restore Unit1 to maintain consistency
 		DataManager->PlaceUnit(Unit1, Pos1);
 		return false;
@@ -108,7 +118,7 @@ bool UTacGridMovementService::ExecuteSwapMove(AUnit* Unit1, FTacCoordinates Pos1
 	// Place both units in swapped positions
 	if (!DataManager->PlaceUnit(Unit1, Pos2))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to place unit at [%d,%d]"), Pos2.Row, Pos2.Col);
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to place unit at [%d,%d]"), Pos2.Row, Pos2.Col);
 		// Restore both units
 		DataManager->PlaceUnit(Unit1, Pos1);
 		DataManager->PlaceUnit(Unit2, Pos2);
@@ -117,7 +127,7 @@ bool UTacGridMovementService::ExecuteSwapMove(AUnit* Unit1, FTacCoordinates Pos1
 
 	if (!DataManager->PlaceUnit(Unit2, Pos1))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to place unit at [%d,%d]"), Pos1.Row, Pos1.Col);
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to place unit at [%d,%d]"), Pos1.Row, Pos1.Col);
 		// Restore both units
 		DataManager->RemoveUnit(Pos2);
 		DataManager->PlaceUnit(Unit1, Pos1);
@@ -250,10 +260,11 @@ bool UTacGridMovementService::PushUnitToCell(AUnit* UnitToMove, FTacCoordinates 
 	// Low-level grid data manipulation - no game logic, VFX, or side effects
 	if (!ExecuteDataMove(UnitToMove, CurrentPos, Where))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to push unit to cell"));
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to push unit to cell"));
 		return false;
 	}
 
+	UE_LOG(LogTacGrid, Log, TEXT("PushUnitToCell: %s [%d,%d]->[%d,%d]"), *UnitStr(UnitToMove), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
 	return true;
 }
 
@@ -268,10 +279,11 @@ bool UTacGridMovementService::TeleportUnit(AUnit* UnitToMove, FTacCoordinates Wh
 	// Game mechanic teleport - future: add VFX, sound, ability triggers
 	if (!ExecuteDataMove(UnitToMove, CurrentPos, Where))
 	{
-		UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to execute teleport"));
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute teleport"));
 		return false;
 	}
 
+	UE_LOG(LogTacGrid, Log, TEXT("TeleportUnit: %s [%d,%d]->[%d,%d]"), *UnitStr(UnitToMove), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
 	return true;
 }
 
@@ -289,13 +301,13 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacM
 	// Check multi-cell restrictions
 	if (Unit->IsMultiCell() && TargetOccupant)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UTacGridMovementService: Multi-cell units cannot swap positions"));
+		UE_LOG(LogTacGrid, Warning, TEXT("UTacGridMovementService: Multi-cell units cannot swap positions"));
 		return false;
 	}
 
 	if (TargetOccupant && TargetOccupant->IsMultiCell())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UTacGridMovementService: Cannot swap with multi-cell unit"));
+		UE_LOG(LogTacGrid, Warning, TEXT("UTacGridMovementService: Cannot swap with multi-cell unit"));
 		return false;
 	}
 
@@ -323,7 +335,7 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacM
 	{
 		if (!ExecuteSwapMove(Unit, CurrentPos, TargetOccupant, Where))
 		{
-			UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to execute swap move"));
+			UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute swap move"));
 			return false;
 		}
 	}
@@ -331,10 +343,20 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacM
 	{
 		if (!ExecuteDataMove(Unit, CurrentPos, Where))
 		{
-			UE_LOG(LogTemp, Error, TEXT("UTacGridMovementService: Failed to execute data move"));
+			UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute data move"));
 			return false;
 		}
 	}
 
+	if (bIsSwap)
+	{
+		UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d] (swap with %s)"),
+			*UnitStr(Unit), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col, *UnitStr(TargetOccupant));
+	}
+	else
+	{
+		UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d]"),
+			*UnitStr(Unit), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
+	}
 	return true;
 }
