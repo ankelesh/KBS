@@ -12,6 +12,13 @@
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/AbilityTypes.h"
+FString AUnit::GetLogName() const
+{
+	const UUnitDefinition* Def = GetUnitDefinition();
+	const FString& Name = Def ? Def->UnitName : TEXT("?");
+	return FString::Printf(TEXT("%s [%s]"), *Name, *UnitID.ToString().Left(8));
+}
+
 AUnit::AUnit()
 {
 	UnitID = FGuid::NewGuid();

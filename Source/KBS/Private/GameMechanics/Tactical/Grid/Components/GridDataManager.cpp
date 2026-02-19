@@ -4,16 +4,7 @@
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/LargeUnit.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-
-static FString UnitStr(const AUnit* Unit)
-{
-	if (!Unit) return TEXT("null");
-	const UUnitDefinition* Def = Unit->GetUnitDefinition();
-	const FString& Name = Def ? Def->UnitName : TEXT("?");
-	return FString::Printf(TEXT("%s [%s]"), *Name, *Unit->GetUnitID().ToString().Left(8));
-}
 
 void FCorpseStack::Push(AUnit* Unit, const FVector& WorldLocation)
 {
@@ -144,7 +135,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 	}
 
 	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, IsFlankCell(Coords));
-	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *UnitStr(Unit), Coords.Row, Coords.Col);
+	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
 
@@ -215,7 +206,7 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 	UnitFlankStates.Remove(Unit->GetUnitID());
 	UnitOriginalRotations.Remove(Unit->GetUnitID());
 	Unit->GridMetadata = FUnitGridMetadata(Unit->GridMetadata.Coords, Unit->GridMetadata.Team, false, false);
-	UE_LOG(LogTacGrid, Log, TEXT("RemoveUnit: %s from [%d,%d]"), *UnitStr(Unit), Coords.Row, Coords.Col);
+	UE_LOG(LogTacGrid, Log, TEXT("RemoveUnit: %s from [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
 
@@ -299,7 +290,7 @@ void UGridDataManager::SetUnitFlankState(AUnit* Unit, bool bOnFlank)
 	{
 		UnitFlankStates.Remove(Unit->GetUnitID());
 	}
-	UE_LOG(LogTacGrid, Log, TEXT("SetUnitFlankState: %s -> %s"), *UnitStr(Unit), bOnFlank ? TEXT("Flank") : TEXT("Center"));
+	UE_LOG(LogTacGrid, Log, TEXT("SetUnitFlankState: %s -> %s"), *Unit->GetLogName(), bOnFlank ? TEXT("Flank") : TEXT("Center"));
 }
 FRotator UGridDataManager::GetUnitOriginalRotation(const AUnit* Unit) const
 {
@@ -440,7 +431,7 @@ void UGridDataManager::PushCorpse(AUnit* Unit, FTacCoordinates Coords)
 	}
 	FVector WorldLocation = FTacCoordinates::CellToWorldLocation(Coords.Row, Coords.Col, ETacGridLayer::Ground, GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight());
 	GroundLayer[Coords.Row].CorpseStacks[Coords.Col].Push(Unit, WorldLocation);
-	UE_LOG(LogTacGrid, Log, TEXT("PushCorpse: %s -> [%d,%d]"), *UnitStr(Unit), Coords.Row, Coords.Col);
+	UE_LOG(LogTacGrid, Log, TEXT("PushCorpse: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 }
 AUnit* UGridDataManager::GetTopCorpse(FTacCoordinates Coords) const
 {
@@ -465,7 +456,7 @@ AUnit* UGridDataManager::PopCorpse(FTacCoordinates Coords)
 		return nullptr;
 	}
 	AUnit* Corpse = GroundLayer[Coords.Row].CorpseStacks[Coords.Col].Pop();
-	UE_LOG(LogTacGrid, Log, TEXT("PopCorpse: %s from [%d,%d]"), *UnitStr(Corpse), Coords.Row, Coords.Col);
+	UE_LOG(LogTacGrid, Log, TEXT("PopCorpse: %s from [%d,%d]"), *Corpse->GetLogName(), Coords.Row, Coords.Col);
 	return Corpse;
 }
 bool UGridDataManager::HasCorpses(FTacCoordinates Coords) const

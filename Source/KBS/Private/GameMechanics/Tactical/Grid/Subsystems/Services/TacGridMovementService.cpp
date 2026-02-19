@@ -3,19 +3,10 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/FlankCellDefinitions.h"
 #include "GameplayTypes/TacticalMovementConstants.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-
-static FString UnitStr(const AUnit* Unit)
-{
-	if (!Unit) return TEXT("null");
-	const UUnitDefinition* Def = Unit->GetUnitDefinition();
-	const FString& Name = Def ? Def->UnitName : TEXT("?");
-	return FString::Printf(TEXT("%s [%s]"), *Name, *Unit->GetUnitID().ToString().Left(8));
-}
 
 
 UTacGridMovementService::UTacGridMovementService()
@@ -264,7 +255,7 @@ bool UTacGridMovementService::PushUnitToCell(AUnit* UnitToMove, FTacCoordinates 
 		return false;
 	}
 
-	UE_LOG(LogTacGrid, Log, TEXT("PushUnitToCell: %s [%d,%d]->[%d,%d]"), *UnitStr(UnitToMove), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
+	UE_LOG(LogTacGrid, Log, TEXT("PushUnitToCell: %s [%d,%d]->[%d,%d]"), *UnitToMove->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
 	return true;
 }
 
@@ -283,7 +274,7 @@ bool UTacGridMovementService::TeleportUnit(AUnit* UnitToMove, FTacCoordinates Wh
 		return false;
 	}
 
-	UE_LOG(LogTacGrid, Log, TEXT("TeleportUnit: %s [%d,%d]->[%d,%d]"), *UnitStr(UnitToMove), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
+	UE_LOG(LogTacGrid, Log, TEXT("TeleportUnit: %s [%d,%d]->[%d,%d]"), *UnitToMove->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
 	return true;
 }
 
@@ -351,12 +342,12 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacM
 	if (bIsSwap)
 	{
 		UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d] (swap with %s)"),
-			*UnitStr(Unit), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col, *UnitStr(TargetOccupant));
+			*Unit->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col, *TargetOccupant->GetLogName());
 	}
 	else
 	{
 		UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d]"),
-			*UnitStr(Unit), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
+			*Unit->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
 	}
 	return true;
 }

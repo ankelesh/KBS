@@ -91,6 +91,7 @@ void UTacTurnSubsystem::InitializeStates()
 void UTacTurnSubsystem::StartBattle()
 {
 	checkf(States.Num() > 0, TEXT("TacTurnSubsystem: States not initialized"));
+	UE_LOG(LogKBSTurn, Log, TEXT("Battle started"));
 
 	CurrentState = States[ETurnState::EBattleInitializationState].Get();
 	CurrentState->Enter();
@@ -176,6 +177,7 @@ void UTacTurnSubsystem::Wait()
 {
 	if (TurnOrder)
 	{
+		UE_LOG(LogKBSTurn, Log, TEXT("Wait() called"));
 		TurnOrder->Wait();
 	}
 }

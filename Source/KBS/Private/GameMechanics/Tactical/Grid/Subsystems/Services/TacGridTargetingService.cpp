@@ -3,16 +3,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-
-static FString UnitStr(const AUnit* Unit)
-{
-	if (!Unit) return TEXT("null");
-	const UUnitDefinition* Def = Unit->GetUnitDefinition();
-	const FString& Name = Def ? Def->UnitName : TEXT("?");
-	return FString::Printf(TEXT("%s [%s]"), *Name, *Unit->GetUnitID().ToString().Left(8));
-}
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameplayTypes/GridCoordinates.h"
@@ -42,7 +33,7 @@ TArray<FTacCoordinates> UTacGridTargetingService::GetValidTargetCells(AUnit* Uni
 	if (bUseFlankTargeting && Reach == ETargetReach::ClosestEnemies)
 	{
 		GetFlankTargetCells(Unit, TargetCells);
-		UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetCells: %s Flank -> %d cells"), *UnitStr(Unit), TargetCells.Num());
+		UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetCells: %s Flank -> %d cells"), *Unit->GetLogName(), TargetCells.Num());
 		return TargetCells;
 	}
 
@@ -100,7 +91,7 @@ TArray<FTacCoordinates> UTacGridTargetingService::GetValidTargetCells(AUnit* Uni
 			GetCorpseCells(Unit, ECorpseFilter::EnemyNonBlocked, TargetCells);
 			break;
 	}
-	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetCells: %s Reach=%d -> %d cells"), *UnitStr(Unit), (int32)Reach, TargetCells.Num());
+	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetCells: %s Reach=%d -> %d cells"), *Unit->GetLogName(), (int32)Reach, TargetCells.Num());
 	return TargetCells;
 }
 
@@ -122,7 +113,7 @@ TArray<AUnit*> UTacGridTargetingService::GetValidTargetUnits(AUnit* Unit, ETarge
 			TargetUnits.Add(TargetUnit);
 		}
 	}
-	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetUnits: %s Reach=%d -> %d units"), *UnitStr(Unit), (int32)Reach, TargetUnits.Num());
+	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetUnits: %s Reach=%d -> %d units"), *Unit->GetLogName(), (int32)Reach, TargetUnits.Num());
 	return TargetUnits;
 }
 
@@ -196,7 +187,7 @@ FResolvedTargets UTacGridTargetingService::ResolveTargetsFromClick(AUnit* Source
 		}
 	}
 	UE_LOG(LogTacGrid, Log, TEXT("ResolveTargets: %s clicked [%d,%d] -> primary=%s secondary=%d"),
-		*UnitStr(SourceUnit), ClickedCell.Row, ClickedCell.Col, *UnitStr(Result.ClickedTarget), Result.SecondaryTargets.Num());
+		*SourceUnit->GetLogName(), ClickedCell.Row, ClickedCell.Col, *Result.ClickedTarget->GetLogName(), Result.SecondaryTargets.Num());
 	return Result;
 }
 

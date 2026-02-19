@@ -1,7 +1,9 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/BattleEndState.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 
 void FBattleEndState::Enter()
 {
+	UE_LOG(LogKBSTurn, Log, TEXT("Battle ended"));
 	BroadcastBattleEnd();
 }
 
