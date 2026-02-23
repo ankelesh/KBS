@@ -189,7 +189,7 @@ void UGridHighlightComponent::ShowHighlights(const TArray<FTacCoordinates>& Cell
 		if (NiagaraSystem)
 		{
 			Instance.Niagara->SetAsset(NiagaraSystem);
-			Instance.Niagara->SetWorldLocation(CellLocation);
+			Instance.Niagara->SetWorldLocation(CellLocation + NIAGARA_CELL_OFFSET);
 			Instance.Niagara->Activate(true);
 		}
 		else

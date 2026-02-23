@@ -57,7 +57,7 @@ FString TargetReachToString(ETargetReach Reach)
 		default: return TEXT("Unknown");
 	}
 }
-FWeaponDisplayData ConvertWeapon(const UWeapon* Weapon)
+FWeaponDisplayData ConvertWeapon(UWeapon* Weapon)
 {
 	FWeaponDisplayData DisplayData;
 	if (!Weapon)
@@ -124,12 +124,9 @@ FUnitDisplayData BuildUnitDisplayData(
 	DisplayData.BelongsToAttackerTeam = (TeamSide == ETeamSide::Attacker);
 	TArray<FString> EffectArray = ConvertActiveEffects(ActiveEffects);
 	DisplayData.ActiveEffectNames = FString::Join(EffectArray, TEXT(", "));
-	for (const TObjectPtr<UWeapon>& Weapon : Weapons)
+	for (auto Weapon : Weapons)
 	{
-		if (Weapon)
-		{
-			DisplayData.Weapons.Add(ConvertWeapon(Weapon));
-		}
+		DisplayData.Weapons.Add(ConvertWeapon(Weapon));
 	}
 	TArray<FString> ImmunitiesArray = ConvertImmunityMap(Stats.Defense.Immunities);
 	DisplayData.Immunities = FString::Join(ImmunitiesArray, TEXT(", "));

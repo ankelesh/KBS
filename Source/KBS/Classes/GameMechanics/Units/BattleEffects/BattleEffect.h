@@ -5,7 +5,6 @@
 #include "BattleEffectDataAsset.h"
 #include "BattleEffect.generated.h"
 class AUnit;
-class UNiagaraComponent;
 
 typedef TArray<TObjectPtr<UBattleEffect>> BattleEffectArray;
 
@@ -52,7 +51,7 @@ public:
 protected:
 	void DecrementDuration() { if (Duration > 0) Duration--; BroadcastDurationChange(); }
 	void BroadcastDurationChange() const { OnDurationChange.Broadcast(Duration);}
-	virtual void SpawnEffectVFX();
+	virtual void NotifyOnTriggered();
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
 	TObjectPtr<UBattleEffectDataAsset> Config;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")

@@ -50,6 +50,7 @@ public:
 protected:
 	FTacTurnOrder* GetTurnOrder();
 	void ReloadTurnOrder();
+	void IncrementRound();
 	void BroadcastRoundStart();
 	void BroadcastRoundEnd();
 	void BroadcastTurnEnd();

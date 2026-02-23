@@ -208,6 +208,13 @@ void UTacTurnSubsystem::HandleUnitDied(AUnit* Unit)
 	TurnOrder->RemoveUnit(Unit);
 }
 
+void UTacTurnSubsystem::RegisterSummonedUnit(AUnit* Unit)
+{
+	checkf(Unit, TEXT("RegisterSummonedUnit: null unit"));
+	Unit->OnUnitDied.AddDynamic(this, &UTacTurnSubsystem::HandleUnitDied);
+	TurnOrder->InsertUnit(Unit);
+}
+
 void UTacTurnSubsystem::ReloadTurnOrder()
 {
 	TArray<AUnit*> Units = GridSubsystem->GetActiveUnits();

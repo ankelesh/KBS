@@ -29,6 +29,9 @@ struct KBS_API FTacCoordinates
 	FTacCoordinates(int32 Row, int32 Col) : Row(Row), Col(Col), Layer(ETacGridLayer::Ground) {}
 	FTacCoordinates(int32 Row, int32 Col, ETacGridLayer Layer) : Row(Row), Col(Col), Layer(Layer) {}
 
+	static FTacCoordinates Invalid() { return FTacCoordinates(-1, -1); }
+	bool IsValid() const { return Row >= 0 && Col >= 0; }
+
 	bool operator==(const FTacCoordinates& Other) const
 	{
 		return Row == Other.Row && Col == Other.Col && Layer == Other.Layer;

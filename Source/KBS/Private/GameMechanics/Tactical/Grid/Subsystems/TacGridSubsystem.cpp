@@ -3,6 +3,8 @@
 DEFINE_LOG_CATEGORY(LogTacGrid);
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
+#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
@@ -33,6 +35,11 @@ void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 	DataManager = InDataManager;
 	HighlightComponent = Highlight;
 
+	for (AUnit* Unit : DataManager->GetUnits(EUnitQuerySource::OnField))
+	{
+		Unit->OnUnitDied.AddDynamic(this, &UTacGridSubsystem::HandleUnitDied);
+	}
+
 	GridMovementService = NewObject<UTacGridMovementService>(this);
 	GridMovementService->Initialize(InDataManager);
 	GridTargetingService = NewObject<UTacGridTargetingService>(this);
@@ -46,19 +53,25 @@ void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 TArray<AUnit*> UTacGridSubsystem::GetActiveUnits()
 {
 	if (!DataManager) return TArray<AUnit*>();
-	return DataManager->GetAllAliveUnits();
+	return DataManager->GetUnits(EUnitQuerySource::OnField);
+}
+
+TArray<AUnit*> UTacGridSubsystem::GetAllAliveUnits()
+{
+	if (!DataManager) return TArray<AUnit*>();
+	return DataManager->GetUnits(EUnitQuerySource::OnField | EUnitQuerySource::OffField);
 }
 
 TArray<AUnit*> UTacGridSubsystem::GetAllUnits()
 {
 	if (!DataManager) return TArray<AUnit*>();
-	return DataManager->GetAllUnits();
+	return DataManager->GetUnits(EUnitQuerySource::OnField | EUnitQuerySource::OffField | EUnitQuerySource::Corpses);
 }
 
 TArray<AUnit*> UTacGridSubsystem::GetDeadUnits()
 {
 	if (!DataManager) return TArray<AUnit*>();
-	return DataManager->GetAllDeadUnits();
+	return DataManager->GetUnits(EUnitQuerySource::Corpses);
 }
 
 UBattleTeam* UTacGridSubsystem::GetAttackerTeam()
@@ -81,7 +94,7 @@ UBattleTeam* UTacGridSubsystem::GetPlayerTeam()
 bool UTacGridSubsystem::IsBothTeamsAnyUnitAlive()
 {
 	if (!DataManager) return false;
-	return DataManager->IsBothTeamsAnyUnitAlive();
+	return DataManager->GetAttackerTeam()->IsAnyUnitAlive() && DataManager->GetDefenderTeam()->IsAnyUnitAlive();
 }
 
 UBattleTeam* UTacGridSubsystem::GetWinnerTeam()
@@ -132,4 +145,43 @@ bool UTacGridSubsystem::GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& O
 
 	ETacGridLayer OutLayer;
 	return DataManager->GetUnitPosition(Unit, OutCoordinates, OutLayer);
+}
+
+TArray<AUnit*> UTacGridSubsystem::GetOffFieldUnits() const
+{
+	if (!DataManager) return TArray<AUnit*>();
+	return DataManager->GetOffFieldUnits();
+}
+
+bool UTacGridSubsystem::IsUnitOffField(const AUnit* Unit) const
+{
+	if (!DataManager) return false;
+	return DataManager->IsUnitOffField(Unit);
+}
+
+void UTacGridSubsystem::HandleUnitDied(AUnit* Unit)
+{
+	FTacCoordinates UnitCoords;
+	ETacGridLayer Layer;
+	if (!DataManager->GetUnitPosition(Unit, UnitCoords, Layer))
+	{
+		return;
+	}
+	DataManager->RemoveUnit(UnitCoords);
+	DataManager->PushCorpse(Unit, UnitCoords);
+}
+
+AUnit* UTacGridSubsystem::SpawnSummonedUnit(TSubclassOf<AUnit> UnitClass, UUnitDefinition* Definition,
+                                             FTacCoordinates Cell, UBattleTeam* Team)
+{
+	AUnit* NewUnit = DataManager->SpawnUnit(UnitClass, Definition, Cell, Team);
+	if (!NewUnit) return nullptr;
+
+	NewUnit->OnUnitDied.AddDynamic(this, &UTacGridSubsystem::HandleUnitDied);
+
+	UTacTurnSubsystem* TurnSub = GetWorld()->GetSubsystem<UTacTurnSubsystem>();
+	checkf(TurnSub, TEXT("SpawnSummonedUnit: TurnSubsystem missing"));
+	TurnSub->RegisterSummonedUnit(NewUnit);
+
+	return NewUnit;
 }

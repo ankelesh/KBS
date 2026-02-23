@@ -45,8 +45,8 @@ void UPassiveAbilitySlot::SetupFromAbility(UUnitAbilityInstance* Ability, bool b
 	if (AbilityIcon && DisplayData.Icon)
 	{
 		AbilityIcon->SetBrushFromTexture(DisplayData.Icon);
-		AbilityIcon->SetVisibility(ESlateVisibility::Visible);
 	}
+	SetVisibility(ESlateVisibility::Visible);
 }
 
 void UPassiveAbilitySlot::Clear()
@@ -60,11 +60,7 @@ void UPassiveAbilitySlot::Clear()
 	BoundAbility = nullptr;
 	bIsListeningToEvents = false;
 
-	// Clear icon
-	if (AbilityIcon)
-	{
-		AbilityIcon->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UPassiveAbilitySlot::OnAbilityTriggered(int32 ChargesLeft, bool bAvailable)

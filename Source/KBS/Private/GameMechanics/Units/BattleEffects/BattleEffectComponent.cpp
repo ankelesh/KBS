@@ -5,6 +5,19 @@ UBattleEffectComponent::UBattleEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
+
+void UBattleEffectComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
+	checkf(OwnerUnit, TEXT("BattleEffectComponent must be owned by AUnit"));
+	OwnerUnit->OnUnitTurnStart.AddDynamic(this, &UBattleEffectComponent::OnOwnerTurnStart);
+	OwnerUnit->OnUnitTurnEnd.AddDynamic(this, &UBattleEffectComponent::OnOwnerTurnEnd);
+	OwnerUnit->OnUnitAttacked.AddDynamic(this, &UBattleEffectComponent::OnOwnerAttacked);
+	OwnerUnit->OnUnitAttacks.AddDynamic(this, &UBattleEffectComponent::OnOwnerAttacks);
+	OwnerUnit->OnUnitMoved.AddDynamic(this, &UBattleEffectComponent::OnOwnerMoved);
+	OwnerUnit->OnUnitDied.AddDynamic(this, &UBattleEffectComponent::OnOwnerDied);
+}
 bool UBattleEffectComponent::AddEffect(UBattleEffect* Effect)
 {
 	if (!Effect)
@@ -57,89 +70,76 @@ void UBattleEffectComponent::ClearAllEffects()
 	}
 	ActiveEffects.Empty();
 }
-void UBattleEffectComponent::BroadcastTurnStart()
+void UBattleEffectComponent::OnOwnerTurnStart(AUnit* Unit)
 {
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
 			Effect->OnTurnStart();
-			if (Effect->IsExpired())
-			{
-				RemoveEffect(Effect);
-			}
+			if (Effect->IsExpired()) RemoveEffect(Effect);
 		}
 	}
 }
-void UBattleEffectComponent::BroadcastTurnEnd()
+
+void UBattleEffectComponent::OnOwnerTurnEnd(AUnit* Unit)
 {
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
 			Effect->OnTurnEnd();
-			if (Effect->IsExpired())
-			{
-				RemoveEffect(Effect);
-			}
+			if (Effect->IsExpired()) RemoveEffect(Effect);
 		}
 	}
 }
-void UBattleEffectComponent::BroadcastAttacked(AUnit* Attacker)
+
+void UBattleEffectComponent::OnOwnerAttacked(AUnit* Victim, AUnit* Attacker)
 {
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
 			Effect->OnUnitAttacked(Attacker);
-			if (Effect->IsExpired())
-			{
-				RemoveEffect(Effect);
-			}
+			if (Effect->IsExpired()) RemoveEffect(Effect);
 		}
 	}
 }
-void UBattleEffectComponent::BroadcastAttacks(AUnit* Target)
+
+void UBattleEffectComponent::OnOwnerAttacks(AUnit* Attacker, AUnit* Target)
 {
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
 			Effect->OnUnitAttacks(Target);
-			if (Effect->IsExpired())
-			{
-				RemoveEffect(Effect);
-			}
+			if (Effect->IsExpired()) RemoveEffect(Effect);
 		}
 	}
 }
-void UBattleEffectComponent::BroadcastMoved()
+
+void UBattleEffectComponent::OnOwnerMoved(AUnit* Unit, const FTacMovementVisualData& MovementData)
 {
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
 			Effect->OnUnitMoved();
-			if (Effect->IsExpired())
-			{
-				RemoveEffect(Effect);
-			}
+			if (Effect->IsExpired()) RemoveEffect(Effect);
 		}
 	}
 }
-void UBattleEffectComponent::BroadcastDied()
+
+void UBattleEffectComponent::OnOwnerDied(AUnit* Unit)
 {
 	for (int32 i = ActiveEffects.Num() - 1; i >= 0; --i)
 	{
 		if (UBattleEffect* Effect = ActiveEffects[i])
 		{
 			Effect->OnUnitDied();
-			if (Effect->IsExpired())
-			{
-				RemoveEffect(Effect);
-			}
 		}
 	}
+	ClearAllEffects();
 }
 AUnit* UBattleEffectComponent::GetOwnerUnit() const
 {

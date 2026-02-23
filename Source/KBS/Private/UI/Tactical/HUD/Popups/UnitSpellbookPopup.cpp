@@ -5,7 +5,7 @@
 #include "UI/Tactical/HUD/Slots/ActiveAbilitySlot.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
+#include "Components/WrapBox.h"
 
 DEFINE_LOG_CATEGORY(LogKBSUI);
 
@@ -161,7 +161,7 @@ void UUnitSpellbookPopup::PopulateAbilities(AUnit* Unit)
 		{
 			// Bind to ability and display it
 			AbilitySlot->SetAbility(Ability);
-
+			AbilitySlot->SetVisibility(ESlateVisibility::Visible);
 			// Listen for ability selection
 			AbilitySlot->OnAbilitySelected.AddDynamic(this, &UUnitSpellbookPopup::OnAbilitySlotClicked);
 		}

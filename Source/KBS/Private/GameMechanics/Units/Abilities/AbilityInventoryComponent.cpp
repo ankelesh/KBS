@@ -1,16 +1,62 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
+#include "GameMechanics/Units/Abilities/AbilityFactory.h"
+#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacAbilityEventSubsystem.h"
-#include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
-#include "GameMechanics/Units/Abilities/UnitMovementAbility.h"
-#include "GameMechanics/Units/Abilities/UnitWaitAbility.h"
-#include "GameMechanics/Units/Abilities/UnitDefendAbility.h"
-#include "GameMechanics/Units/Abilities/UnitFleeAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitAutoAttackAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitMovementAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitWaitAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitDefendAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitFleeAbility.h"
 #include "GameMechanics/Units/Unit.h"
 UAbilityInventoryComponent::UAbilityInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UAbilityInventoryComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
+	checkf(OwnerUnit, TEXT("AbilityInventoryComponent must be owned by AUnit"));
+	OwnerUnit->OnUnitTurnStart.AddDynamic(this, &UAbilityInventoryComponent::OnOwnerTurnStart);
+	OwnerUnit->OnUnitTurnEnd.AddDynamic(this, &UAbilityInventoryComponent::OnOwnerTurnEnd);
+}
+void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition* Definition, AUnit* OwnerUnit)
+{
+	auto CreateAndRegister = [&](UUnitAbilityDefinition* AbilityDef, EDefaultAbilitySlot Slot)
+	{
+		if (!AbilityDef) return;
+		UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
+		if (!Ability) return;
+		SetDefaultAbility(Slot, Ability);
+		AddActiveAbility(Ability);
+	};
+	CreateAndRegister(Definition->DefaultAttackAbility, EDefaultAbilitySlot::Attack);
+	CreateAndRegister(Definition->DefaultMoveAbility,   EDefaultAbilitySlot::Move);
+	CreateAndRegister(Definition->DefaultWaitAbility,   EDefaultAbilitySlot::Wait);
+	CreateAndRegister(Definition->DefaultDefendAbility, EDefaultAbilitySlot::Defend);
+	CreateAndRegister(Definition->DefaultFleeAbility,   EDefaultAbilitySlot::Flee);
+
+	for (UUnitAbilityDefinition* AbilityDef : Definition->AdditionalAbilities)
+	{
+		if (!AbilityDef) continue;
+		UUnitAbilityInstance* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
+		if (!NewAbility) continue;
+		if (NewAbility->IsPassive()) AddPassiveAbility(NewAbility);
+		else AddActiveAbility(NewAbility);
+	}
+	for (UUnitAbilityDefinition* AbilityDef : Definition->SpellbookAbilities)
+	{
+		if (!AbilityDef) continue;
+		UUnitAbilityInstance* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
+		if (!NewAbility) continue;
+		AddSpellbookAbility(NewAbility);
+	}
+	EquipDefaultAbility();
+	// Passives are already subscribed individually inside AddPassiveAbility().
+	// RegisterPassives() is reserved for re-registration after an explicit Unregister cycle.
 }
 UUnitAbilityInstance* UAbilityInventoryComponent::GetCurrentActiveAbility() const
 {
@@ -59,13 +105,6 @@ void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
 {
 	check(Ability);
 	checkf(!Ability->IsPassive(), TEXT("AbilityInventory: passive ability passed to AddActiveAbility"));
-
-	// Check if this is a spellbook ability
-	if (Ability->GetConfig() && Ability->GetConfig()->bIsSpellbookAbility)
-	{
-		SpellbookAbilities.Add(Ability);
-		return;
-	}
 
 	if (Ability->IsA<UUnitAutoAttackAbility>())
 	{
@@ -132,7 +171,13 @@ void UAbilityInventoryComponent::RegisterPassives()
 		}
 	}
 }
-void UAbilityInventoryComponent::HandleTurnEnd()
+void UAbilityInventoryComponent::OnOwnerTurnStart(AUnit* Unit)
+{
+	RecheckContents();
+	EnsureValidAbility();
+}
+
+void UAbilityInventoryComponent::OnOwnerTurnEnd(AUnit* Unit)
 {
 	auto Notify = [](UUnitAbilityInstance* Ability) { if (Ability) Ability->HandleTurnEnd(); };
 

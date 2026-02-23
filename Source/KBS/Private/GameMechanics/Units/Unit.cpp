@@ -6,12 +6,7 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
-#include "GameMechanics/Units/Abilities/AbilityFactory.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
-#include "GameplayTypes/AbilityTypes.h"
 
 FString AUnit::GetLogName() const
 {
@@ -38,16 +33,6 @@ void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Verify critical components exist
-	if (!EffectManager)
-	{
-		EffectManager = NewObject<UBattleEffectComponent>(this, TEXT("EffectManager"));
-		if (EffectManager)
-		{
-			EffectManager->RegisterComponent();
-		}
-	}
-
 	if (!UnitDefinition)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("Unit has no UnitDefinition assigned!"));
@@ -58,103 +43,8 @@ void AUnit::BeginPlay()
 		VisualsComponent->InitializeFromDefinition(UnitDefinition);
 	}
 	BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
-	for (UWeaponDataAsset* WeaponData : UnitDefinition->DefaultWeapons)
-	{
-		if (WeaponData)
-		{
-			UWeapon* NewWeapon = NewObject<UWeapon>(this, UWeapon::StaticClass());
-			if (NewWeapon)
-			{
-				NewWeapon->RegisterComponent();
-				NewWeapon->Initialize(VisualsComponent, WeaponData);
-				Weapons.Add(NewWeapon);
-			}
-		}
-	}
-	if (AbilityInventory && UnitDefinition)
-	{
-		// Initialize default slot abilities
-		if (UnitDefinition->DefaultAttackAbility)
-		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
-				UnitDefinition->DefaultAttackAbility, this);
-			if (Ability)
-			{
-				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Attack, Ability);
-				AbilityInventory->AddActiveAbility(Ability);
-			}
-		}
-
-		if (UnitDefinition->DefaultMoveAbility)
-		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
-				UnitDefinition->DefaultMoveAbility, this);
-			if (Ability)
-			{
-				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Move, Ability);
-				AbilityInventory->AddActiveAbility(Ability);
-			}
-		}
-
-		if (UnitDefinition->DefaultWaitAbility)
-		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
-				UnitDefinition->DefaultWaitAbility, this);
-			if (Ability)
-			{
-				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Wait, Ability);
-				AbilityInventory->AddActiveAbility(Ability);
-			}
-		}
-
-		if (UnitDefinition->DefaultDefendAbility)
-		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
-				UnitDefinition->DefaultDefendAbility, this);
-			if (Ability)
-			{
-				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Defend, Ability);
-				AbilityInventory->AddActiveAbility(Ability);
-			}
-		}
-
-		if (UnitDefinition->DefaultFleeAbility)
-		{
-			UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(
-				UnitDefinition->DefaultFleeAbility, this);
-			if (Ability)
-			{
-				AbilityInventory->SetDefaultAbility(EDefaultAbilitySlot::Flee, Ability);
-				AbilityInventory->AddActiveAbility(Ability);
-			}
-		}
-
-		// Initialize additional abilities
-		for (UUnitAbilityDefinition* AbilityDef : UnitDefinition->AdditionalAbilities)
-		{
-			if (!AbilityDef)
-			{
-				continue;
-			}
-			UUnitAbilityInstance* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, this);
-			if (!NewAbility)
-			{
-				//UE_LOG(LogTemp, Warning, TEXT("Failed to create ability from definition '%s'"), *AbilityDef->GetName());
-				continue;
-			}
-			if (NewAbility->IsPassive())
-			{
-				AbilityInventory->AddPassiveAbility(NewAbility);
-			}
-			else
-			{
-				AbilityInventory->AddActiveAbility(NewAbility);
-			}
-		}
-
-		AbilityInventory->EquipDefaultAbility();
-		AbilityInventory->RegisterPassives();
-	}
+	InitializeWeapons(UnitDefinition);
+	AbilityInventory->InitializeFromDefinition(UnitDefinition, this);
 }
 
 void AUnit::OnConstruction(const FTransform& Transform)
@@ -188,21 +78,23 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 	{
 		BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
 
-		// Recreate weapons from new definition
 		Weapons.Empty();
-		for (UWeaponDataAsset* WeaponData : UnitDefinition->DefaultWeapons)
+		InitializeWeapons(UnitDefinition);
+	}
+}
+
+void AUnit::InitializeWeapons(const UUnitDefinition* Definition)
+{
+	for (const FUnitWeaponEntry& Entry : Definition->DefaultWeapons)
+	{
+		if (!Entry.Weapon) continue;
+		TObjectPtr<UWeapon> NewWeapon = NewObject<UWeapon>();
+		NewWeapon->Initialize(this, Entry.Weapon);
+		if (Entry.BaseDamageOverride != NoWeaponDamageOverride)
 		{
-			if (WeaponData)
-			{
-				UWeapon* NewWeapon = NewObject<UWeapon>(this, UWeapon::StaticClass());
-				if (NewWeapon)
-				{
-					NewWeapon->RegisterComponent();
-					NewWeapon->Initialize(VisualsComponent, WeaponData);
-					Weapons.Add(NewWeapon);
-				}
-			}
+			NewWeapon->GetMutableStats().BaseDamage.SetBase(Entry.BaseDamageOverride);
 		}
+		Weapons.Add(NewWeapon);
 	}
 }
 
@@ -229,121 +121,80 @@ float AUnit::GetMovementSpeed() const
 	return UnitDefinition->MovementSpeed;
 }
 
-void AUnit::Die()
+void AUnit::HandleHit(const FDamageResult& Result, AUnit* Attacker, bool Emits)
+{
+	ChangeUnitHP(-Result.Damage);
+	if (Result.WardSpent != EDamageSource::None)
+		ConsumeWard(Result.WardSpent);
+	if (Emits && Result.Damage > 0 && Attacker)
+		OnUnitDamaged.Broadcast(this, Attacker);
+}
+
+void AUnit::HandleDeath(bool Emits)
 {
 	BaseStats.Status.SetDead();
+	if (Emits) OnUnitDied.Broadcast(this);
 }
 
-void AUnit::HandleDeath()
+void AUnit::ChangeUnitHP(int32 Delta, bool Emits)
 {
-	Die();
-	if (EffectManager)
-	{
-		EffectManager->BroadcastDied();
-		EffectManager->ClearAllEffects();
-	}
-	if (VisualsComponent && UnitDefinition && UnitDefinition->DeathMontage)
-	{
-		VisualsComponent->PlayDeathMontage(UnitDefinition->DeathMontage);
-	}
-	OnUnitDied.Broadcast(this);
+	BaseStats.Health.ApplyDelta(Delta);
+	if (Emits) OnHealthChanged.Broadcast(this, BaseStats.Health.GetCurrent());
+	if (BaseStats.Health.IsDead()) HandleDeath();
 }
 
-void AUnit::TakeHit(const FDamageResult& DamageResult)
+void AUnit::ConsumeWard(EDamageSource Source, bool Emits)
 {
-	BaseStats.Health.TakeDamage(DamageResult.Damage);
-	OnHealthChanged.Broadcast(this, BaseStats.Health.GetCurrent());
-	if (DamageResult.DamageBlocked > 0)
-	{
-		BaseStats.Defense.Wards.UseWard(DamageResult.DamageSource);
-	}
-	if (BaseStats.Health.IsDead())
-	{
-		HandleDeath();
-	}
-	else
-	{
-		if (DamageResult.Damage > 0.0f && VisualsComponent && UnitDefinition && UnitDefinition->HitReactionMontage)
-		{
-			VisualsComponent->RegisterMontageOperation();
-			VisualsComponent->PlayHitReactionMontage(UnitDefinition->HitReactionMontage);
-		}
-	}
+	BaseStats.Defense.Wards.UseWard(Source);
+	if (Emits) OnUnitStatsModified.Broadcast(this, BaseStats);
 }
 
-bool AUnit::ApplyEffect(UBattleEffect* Effect)
+bool AUnit::ApplyEffect(UBattleEffect* Effect, bool Emits)
 {
-	//UE_LOG(LogTemp, Log, TEXT("AUnit::ApplyEffect - Called on %s with effect %s, EffectManager = %s"),
-	//	*GetName(),
-	//	Effect ? *Effect->GetClass()->GetName() : TEXT("NULL"),
-	//	EffectManager ? TEXT("Valid") : TEXT("NULL"));
-	if (EffectManager && Effect)
-	{
-		return EffectManager->AddEffect(Effect);
-	}
-	else
-	{
-		//UE_LOG(LogTemp, Error, TEXT("AUnit::ApplyEffect - Cannot apply effect (EffectManager or Effect is NULL)"));
-		return false;
-	}
+	checkf(Effect, TEXT("ApplyEffect called with null Effect on %s"), *GetLogName());
+	checkf(EffectManager, TEXT("EffectManager is null on %s - component may have been GC'd"), *GetLogName());
+	if (IsDead()) return false;
+	const bool bApplied = EffectManager->AddEffect(Effect);
+	if (bApplied && Emits) OnUnitEffectApplied.Broadcast(this, Effect);
+	return bApplied;
 }
 
-void AUnit::HandleTurnStart()
+void AUnit::NotifyEffectTriggered(UBattleEffect* Effect)
 {
 	if (IsDead()) return;
-	//UE_LOG(LogTemp, Log, TEXT("%s: Turn started"), *GetName());
+	OnUnitEffectTriggered.Broadcast(this, Effect);
+}
+
+void AUnit::HandleTurnStart(bool Emits)
+{
+	if (IsDead()) return;
 	BaseStats.Status.ClearStatus(EUnitStatus::Defending);
-	if (AbilityInventory)
-	{
-		AbilityInventory->SelectAttackAbility();
-	}
-	if (EffectManager)
-	{
-		EffectManager->BroadcastTurnStart();
-	}
-	OnUnitTurnStart.Broadcast(this);
+	BaseStats.Status.ClearStatus(EUnitStatus::Focused);
+	if (Emits) OnUnitTurnStart.Broadcast(this);
 }
 
-void AUnit::HandleTurnEnd()
+void AUnit::HandleTurnEnd(bool Emits)
 {
 	if (IsDead()) return;
-	//UE_LOG(LogTemp, Log, TEXT("%s: Turn ended"), *GetName());
-	AbilityInventory->HandleTurnEnd();
-	if (EffectManager)
-	{
-		EffectManager->BroadcastTurnEnd();
-	}
-	OnUnitTurnEnd.Broadcast(this);
+	if (Emits) OnUnitTurnEnd.Broadcast(this);
 }
 
-void AUnit::HandleAttacked(AUnit* Attacker)
+void AUnit::HandleAttacked(AUnit* Attacker, bool Emits)
 {
 	if (IsDead()) return;
 	if (Attacker == this) return; // cycle guard
-	if (EffectManager)
-	{
-		EffectManager->BroadcastAttacked(Attacker);
-	}
-	OnUnitAttacked.Broadcast(this, Attacker);
+	if (Emits) OnUnitAttacked.Broadcast(this, Attacker);
 }
 
-void AUnit::HandleAttacks(AUnit* Target)
+void AUnit::HandleAttacks(AUnit* Target, bool Emits)
 {
 	if (IsDead()) return;
 	if (Target == this) return; // cycle guard
-	if (EffectManager)
-	{
-		EffectManager->BroadcastAttacks(Target);
-	}
-	OnUnitAttacks.Broadcast(this, Target);
+	if (Emits) OnUnitAttacks.Broadcast(this, Target);
 }
 
-void AUnit::HandleMoved()
+void AUnit::HandleMoved(const FTacMovementVisualData& MovementData)
 {
 	if (IsDead()) return;
-	if (EffectManager)
-	{
-		EffectManager->BroadcastMoved();
-	}
-	OnUnitMoved.Broadcast(this);
+	OnUnitMoved.Broadcast(this, MovementData);
 }

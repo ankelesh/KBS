@@ -384,12 +384,10 @@ void UUnitDetailsPopup::PopulateWeapons(AUnit* Unit)
 {
 	if (!Unit) return;
 
-	const TArray<TObjectPtr<UWeapon>>& Weapons = Unit->GetWeapons();
+	const TArray<TObjectPtr<FWeapon>>& Weapons = Unit->GetWeapons();
 
 	for (UWeapon* Weapon : Weapons)
 	{
-		if (!Weapon) continue;
-
 		UWeaponSlot* WeaponSlot = GetOrCreateWeaponSlot();
 		if (WeaponSlot)
 		{

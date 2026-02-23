@@ -105,6 +105,6 @@ void UTacticalHUD::HidePopup(UUserWidget* PopupWidget)
 	PopupWidget->SetVisibility(ESlateVisibility::Collapsed);
 
 	APlayerController* PC = GetOwningPlayer();
-	PC->SetInputMode(FInputModeGameOnly());
-	PC->bShowMouseCursor = false;
+	PC->SetInputMode(FInputModeGameAndUI());
+	PC->bShowMouseCursor = true;
 }

@@ -82,13 +82,13 @@ float FDamageCalculation::CalculateEffectApplication(AUnit* Attacker, UBattleEff
 	return FMath::Clamp(ApplicationChance, 0.0f, 100.0f);
 }
 
-UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit)
+UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit, bool bAutoAttackOnly)
 {
 	if (!Unit)
 	{
 		return nullptr;
 	}
-	const TArray<TObjectPtr<UWeapon>>& Weapons = Unit->GetWeapons();
+	auto Weapons = Unit->GetWeapons();
 	if (Weapons.Num() == 0)
 	{
 		return nullptr;
@@ -118,10 +118,7 @@ UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit)
 	int32 BestScore = -1;
 	for (UWeapon* Weapon : Weapons)
 	{
-		if (!Weapon)
-		{
-			continue;
-		}
+		if (bAutoAttackOnly && !Weapon->IsUsableForAutoAttack()) continue;
 		const FWeaponStats& Stats = Weapon->GetStats();
 		int32 Score = GetReachScore(Stats.TargetReach);
 		if (Score > BestScore)
@@ -131,6 +128,26 @@ UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit)
 		}
 	}
 	return BestWeapon;
+}
+
+UWeapon* FDamageCalculation::SelectSpellWeapon(AUnit* Unit)
+{
+	if (!Unit) return nullptr;
+	for (UWeapon* Weapon : Unit->GetWeapons())
+	{
+		if (Weapon && Weapon->IsUsableForSpells())
+		{
+			return Weapon;
+		}
+	}
+	return nullptr;
+}
+
+void FDamageCalculation::ApplySpellScaling(UWeapon* EmbeddedWeapon, UWeapon* SpellWeapon, float Multiplier, int32 FlatBonus)
+{
+	int32 SpellDamage = SpellWeapon->GetStats().BaseDamage.GetValue();
+	int32 NewBase = FMath::Max(0, FMath::RoundToInt(SpellDamage * Multiplier) + FlatBonus);
+	EmbeddedWeapon->GetMutableStats().BaseDamage.SetBase(NewBase);
 }
 
 FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)

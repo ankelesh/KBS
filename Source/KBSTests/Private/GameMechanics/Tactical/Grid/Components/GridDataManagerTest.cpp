@@ -2,7 +2,6 @@
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/LargeUnit.h"
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameplayTypes/GridCoordinates.h"
@@ -26,14 +25,12 @@ public:
 		return Definition;
 	}
 
-	static AUnit* CreateMockUnit(UWorld* World, ETeamSide TeamSide = ETeamSide::Attacker, bool bIsMultiCell = false)
+	static AUnit* CreateMockUnit(UWorld* World, ETeamSide TeamSide = ETeamSide::Attacker)
 	{
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		AUnit* Unit = bIsMultiCell ?
-			World->SpawnActor<ALargeUnit>(ALargeUnit::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams) :
-			World->SpawnActor<AUnit>(AUnit::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+		AUnit* Unit = World->SpawnActor<AUnit>(AUnit::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 
 		if (Unit)
 		{
@@ -96,12 +93,6 @@ bool FGridDataManagerGetLayerTest::RunTest(const FString& Parameters)
 	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 
-	const TArray<FGridRow>& GroundLayer = DataManager->GetLayer(ETacGridLayer::Ground);
-	const TArray<FGridRow>& AirLayer = DataManager->GetLayer(ETacGridLayer::Air);
-
-	TestEqual("Ground layer size", GroundLayer.Num(), FGridConstants::GridSize);
-	TestEqual("Air layer size", AirLayer.Num(), FGridConstants::GridSize);
-
 	Grid->Destroy();
 	return true;
 }
@@ -122,7 +113,7 @@ bool FGridDataManagerPlaceUnitValidTest::RunTest(const FString& Parameters)
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	bool bPlaced = DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground, Grid);
+	bool bPlaced = DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground);
 	TestTrue("Unit should be placed", bPlaced);
 
 	AUnit* RetrievedUnit = DataManager->GetUnit(2, 2, ETacGridLayer::Ground);
@@ -150,8 +141,8 @@ bool FGridDataManagerPlaceUnitOccupiedTest::RunTest(const FString& Parameters)
 	AUnit* Unit1 = FGridDataManagerTestHelper::CreateMockUnit(World);
 	AUnit* Unit2 = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	DataManager->PlaceUnit(Unit1, 2, 2, ETacGridLayer::Ground, Grid);
-	bool bPlaced = DataManager->PlaceUnit(Unit2, 2, 2, ETacGridLayer::Ground, Grid);
+	DataManager->PlaceUnit(Unit1, 2, 2, ETacGridLayer::Ground);
+	bool bPlaced = DataManager->PlaceUnit(Unit2, 2, 2, ETacGridLayer::Ground);
 
 	TestFalse("Placing on occupied cell should fail", bPlaced);
 
@@ -177,75 +168,13 @@ bool FGridDataManagerPlaceUnitInvalidTest::RunTest(const FString& Parameters)
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	TestFalse("Negative row should fail", DataManager->PlaceUnit(Unit, -1, 2, ETacGridLayer::Ground, Grid));
-	TestFalse("Out of bounds row should fail", DataManager->PlaceUnit(Unit, 10, 2, ETacGridLayer::Ground, Grid));
-	TestFalse("Out of bounds col should fail", DataManager->PlaceUnit(Unit, 2, 10, ETacGridLayer::Ground, Grid));
-	TestFalse("Restricted cell should fail", DataManager->PlaceUnit(Unit, 2, 0, ETacGridLayer::Ground, Grid));
+	TestFalse("Negative row should fail", DataManager->PlaceUnit(Unit, -1, 2, ETacGridLayer::Ground));
+	TestFalse("Out of bounds row should fail", DataManager->PlaceUnit(Unit, 10, 2, ETacGridLayer::Ground));
+	TestFalse("Out of bounds col should fail", DataManager->PlaceUnit(Unit, 2, 10, ETacGridLayer::Ground));
+	TestFalse("Restricted cell should fail", DataManager->PlaceUnit(Unit, 2, 0, ETacGridLayer::Ground));
 
 	Grid->Destroy();
 	Unit->Destroy();
-	return true;
-}
-
-// Test: PlaceUnit multi-cell occupies both cells
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerPlaceMultiCellTest,
-	"KBS.Grid.Components.DataManager.PlaceUnit_MultiCellUnit_BothCellsOccupied",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerPlaceMultiCellTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* MultiUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker, true);
-
-	bool bPlaced = DataManager->PlaceUnit(MultiUnit, 2, 2, ETacGridLayer::Ground, Grid);
-	TestTrue("Multi-cell unit should be placed", bPlaced);
-
-	TestTrue("Primary cell should be occupied", DataManager->IsCellOccupied(FTacCoordinates(2, 2, ETacGridLayer::Ground)));
-	TestTrue("Unit should be marked as multi-cell", DataManager->IsMultiCellUnit(MultiUnit));
-
-	const FMultiCellUnitData* MultiData = DataManager->GetMultiCellData(MultiUnit);
-	TestNotNull("Multi-cell data should exist", MultiData);
-	if (MultiData)
-	{
-		TestEqual("Should occupy 2 cells", MultiData->OccupiedCells.Num(), 2);
-	}
-
-	Grid->Destroy();
-	MultiUnit->Destroy();
-	return true;
-}
-
-// Test: PlaceUnit multi-cell fails if secondary occupied
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerPlaceMultiCellBlockedTest,
-	"KBS.Grid.Components.DataManager.PlaceUnit_MultiCellUnit_SecondaryOccupied_Fails",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerPlaceMultiCellBlockedTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* BlockingUnit = FGridDataManagerTestHelper::CreateMockUnit(World);
-	AUnit* MultiUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker, true);
-
-	DataManager->PlaceUnit(BlockingUnit, 1, 2, ETacGridLayer::Ground, Grid);
-
-	bool bPlaced = DataManager->PlaceUnit(MultiUnit, 0, 2, ETacGridLayer::Ground, Grid);
-	TestFalse("Multi-cell placement should fail when secondary cell occupied", bPlaced);
-
-	Grid->Destroy();
-	BlockingUnit->Destroy();
-	MultiUnit->Destroy();
 	return true;
 }
 
@@ -265,7 +194,7 @@ bool FGridDataManagerGetUnitValidTest::RunTest(const FString& Parameters)
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	DataManager->PlaceUnit(Unit, 1, 3, ETacGridLayer::Ground, Grid);
+	DataManager->PlaceUnit(Unit, 1, 3, ETacGridLayer::Ground);
 	AUnit* Retrieved = DataManager->GetUnit(1, 3, ETacGridLayer::Ground);
 
 	TestEqual("Retrieved unit should match", Retrieved, Unit);
@@ -335,8 +264,8 @@ bool FGridDataManagerRemoveUnitValidTest::RunTest(const FString& Parameters)
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground, Grid);
-	bool bRemoved = DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground, Grid);
+	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground);
+	bool bRemoved = DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground);
 
 	TestTrue("Remove should succeed", bRemoved);
 	TestNull("Cell should be empty after removal", DataManager->GetUnit(2, 2, ETacGridLayer::Ground));
@@ -361,47 +290,10 @@ bool FGridDataManagerRemoveUnitEmptyTest::RunTest(const FString& Parameters)
 	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 
-	bool bRemoved = DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground, Grid);
+	bool bRemoved = DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground);
 	TestFalse("Remove from empty cell should fail", bRemoved);
 
 	Grid->Destroy();
-	return true;
-}
-
-// Test: RemoveUnit multi-cell clears both cells
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerRemoveMultiCellTest,
-	"KBS.Grid.Components.DataManager.RemoveUnit_MultiCellUnit_BothCellsCleared",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerRemoveMultiCellTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* MultiUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker, true);
-
-	DataManager->PlaceUnit(MultiUnit, 2, 2, ETacGridLayer::Ground, Grid);
-	const FMultiCellUnitData* MultiData = DataManager->GetMultiCellData(MultiUnit);
-
-	bool bRemoved = DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground, Grid);
-	TestTrue("Remove should succeed", bRemoved);
-
-	if (MultiData && MultiData->OccupiedCells.Num() == 2)
-	{
-		for (const FTacCoordinates& Cell : MultiData->OccupiedCells)
-		{
-			TestNull("All occupied cells should be cleared", DataManager->GetUnit(Cell.Row, Cell.Col, Cell.Layer));
-		}
-	}
-
-	TestFalse("Unit should no longer be multi-cell tracked", DataManager->IsMultiCellUnit(MultiUnit));
-
-	Grid->Destroy();
-	MultiUnit->Destroy();
 	return true;
 }
 
@@ -421,11 +313,11 @@ bool FGridDataManagerRemoveUnitClearsDataTest::RunTest(const FString& Parameters
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground, Grid);
+	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground);
 	DataManager->SetUnitFlankState(Unit, true);
 	DataManager->SetUnitOriginalRotation(Unit, FRotator(0, 90, 0));
 
-	DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground, Grid);
+	DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground);
 
 	TestFalse("Flank state should be cleared", DataManager->IsUnitOnFlank(Unit));
 	TestEqual("Rotation should be cleared", DataManager->GetUnitOriginalRotation(Unit), FRotator::ZeroRotator);
@@ -451,7 +343,7 @@ bool FGridDataManagerGetUnitPositionSingleTest::RunTest(const FString& Parameter
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	DataManager->PlaceUnit(Unit, 3, 1, ETacGridLayer::Air, Grid);
+	DataManager->PlaceUnit(Unit, 3, 1, ETacGridLayer::Air);
 
 	FTacCoordinates OutPosition;
 	ETacGridLayer Layer;
@@ -464,37 +356,6 @@ bool FGridDataManagerGetUnitPositionSingleTest::RunTest(const FString& Parameter
 
 	Grid->Destroy();
 	Unit->Destroy();
-	return true;
-}
-
-// Test: GetUnitPosition for multi-cell unit returns primary
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetUnitPositionMultiTest,
-	"KBS.Grid.Components.DataManager.GetUnitPosition_MultiCellUnit_ReturnsPrimaryCell",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerGetUnitPositionMultiTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* MultiUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker, true);
-
-	DataManager->PlaceUnit(MultiUnit, 2, 2, ETacGridLayer::Ground, Grid);
-
-	FTacCoordinates OutPosition;
-	ETacGridLayer Layer;
-	bool bFound = DataManager->GetUnitPosition(MultiUnit, OutPosition, Layer);
-
-	TestTrue("Should find multi-cell unit position", bFound);
-	TestEqual("Row should be primary", OutPosition.Row, 2);
-	TestEqual("Col should be primary", OutPosition.Col, 2);
-
-	Grid->Destroy();
-	MultiUnit->Destroy();
 	return true;
 }
 
@@ -691,91 +552,36 @@ bool FGridDataManagerHasCorpsesTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-// Test: GetTeamForUnit returns correct team
+// Test: GetTeamBySide returns correct team object
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetTeamForUnitTest,
-	"KBS.Grid.Components.DataManager.GetTeamForUnit_ReturnsCorrectTeam",
+	FGridDataManagerGetTeamBySideTest,
+	"KBS.Grid.Components.DataManager.GetTeamBySide_ReturnsCorrectTeam",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
 )
 
-bool FGridDataManagerGetTeamForUnitTest::RunTest(const FString& Parameters)
+bool FGridDataManagerGetTeamBySideTest::RunTest(const FString& Parameters)
 {
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	if (!World) { AddError("Failed to get world"); return false; }
 
 	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* AttackerUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker);
-	AUnit* DefenderUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Defender);
 
-	DataManager->GetAttackerTeam()->AddUnit(AttackerUnit);
-	DataManager->GetDefenderTeam()->AddUnit(DefenderUnit);
-
-	TestEqual("Attacker unit returns attacker team", DataManager->GetTeamForUnit(AttackerUnit), DataManager->GetAttackerTeam());
-	TestEqual("Defender unit returns defender team", DataManager->GetTeamForUnit(DefenderUnit), DataManager->GetDefenderTeam());
+	TestEqual("Attacker side returns attacker team", DataManager->GetTeamBySide(ETeamSide::Attacker), DataManager->GetAttackerTeam());
+	TestEqual("Defender side returns defender team", DataManager->GetTeamBySide(ETeamSide::Defender), DataManager->GetDefenderTeam());
 
 	Grid->Destroy();
-	AttackerUnit->Destroy();
-	DefenderUnit->Destroy();
 	return true;
 }
 
-// Test: GetTeamForUnit unregistered returns null
+// Test: GetUnits(OnField) returns only on-field units
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetTeamForUnregisteredTest,
-	"KBS.Grid.Components.DataManager.GetTeamForUnit_UnregisteredUnit_ReturnsNull",
+	FGridDataManagerGetUnitsOnFieldTest,
+	"KBS.Grid.Components.DataManager.GetUnits_OnField_ReturnsOnFieldUnits",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
 )
 
-bool FGridDataManagerGetTeamForUnregisteredTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
-
-	TestNull("Unregistered unit should return null", DataManager->GetTeamForUnit(Unit));
-
-	Grid->Destroy();
-	Unit->Destroy();
-	return true;
-}
-
-// Test: GetEnemyTeam returns opposite team
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetEnemyTeamTest,
-	"KBS.Grid.Components.DataManager.GetEnemyTeam_ReturnsOppositeTeam",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerGetEnemyTeamTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* AttackerUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker);
-
-	DataManager->GetAttackerTeam()->AddUnit(AttackerUnit);
-
-	TestEqual("Attacker's enemy is defender", DataManager->GetEnemyTeam(AttackerUnit), DataManager->GetDefenderTeam());
-
-	Grid->Destroy();
-	AttackerUnit->Destroy();
-	return true;
-}
-
-// Test: GetUnitsFromTeam returns correct units
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetUnitsFromTeamTest,
-	"KBS.Grid.Components.DataManager.GetUnitsFromTeam_ReturnsCorrectUnits",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerGetUnitsFromTeamTest::RunTest(const FString& Parameters)
+bool FGridDataManagerGetUnitsOnFieldTest::RunTest(const FString& Parameters)
 {
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	if (!World) { AddError("Failed to get world"); return false; }
@@ -787,9 +593,11 @@ bool FGridDataManagerGetUnitsFromTeamTest::RunTest(const FString& Parameters)
 
 	DataManager->GetAttackerTeam()->AddUnit(Unit1);
 	DataManager->GetAttackerTeam()->AddUnit(Unit2);
+	DataManager->PlaceUnit(Unit1, FTacCoordinates(1, 1));
+	DataManager->PlaceUnit(Unit2, FTacCoordinates(2, 1));
 
-	TArray<AUnit*> AttackerUnits = DataManager->GetUnitsFromTeam(true);
-	TestEqual("Should return 2 attacker units", AttackerUnits.Num(), 2);
+	TArray<AUnit*> OnField = DataManager->GetUnits(EUnitQuerySource::OnField);
+	TestEqual("Should return 2 on-field units", OnField.Num(), 2);
 
 	Grid->Destroy();
 	Unit1->Destroy();
@@ -816,7 +624,7 @@ bool FGridDataManagerGetEmptyCellsTest::RunTest(const FString& Parameters)
 	TArray<FTacCoordinates> EmptyBefore = DataManager->GetEmptyCells(ETacGridLayer::Ground);
 	int32 EmptyCountBefore = EmptyBefore.Num();
 
-	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground, Grid);
+	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground);
 	TArray<FTacCoordinates> EmptyAfter = DataManager->GetEmptyCells(ETacGridLayer::Ground);
 
 	TestEqual("Empty cells should decrease by 1", EmptyAfter.Num(), EmptyCountBefore - 1);
@@ -846,8 +654,8 @@ bool FGridDataManagerGetOccupiedCellsTest::RunTest(const FString& Parameters)
 
 	DataManager->GetAttackerTeam()->AddUnit(AttackerUnit);
 	DataManager->GetDefenderTeam()->AddUnit(DefenderUnit);
-	DataManager->PlaceUnit(AttackerUnit, 1, 1, ETacGridLayer::Ground, Grid);
-	DataManager->PlaceUnit(DefenderUnit, 3, 3, ETacGridLayer::Ground, Grid);
+	DataManager->PlaceUnit(AttackerUnit, 1, 1, ETacGridLayer::Ground);
+	DataManager->PlaceUnit(DefenderUnit, 3, 3, ETacGridLayer::Ground);
 
 	TArray<FTacCoordinates> AttackerCells = DataManager->GetOccupiedCells(ETacGridLayer::Ground, DataManager->GetAttackerTeam());
 	TestEqual("Should have 1 attacker cell", AttackerCells.Num(), 1);
@@ -878,7 +686,7 @@ bool FGridDataManagerIsCellOccupiedTest::RunTest(const FString& Parameters)
 
 	TestFalse("Empty cell not occupied", DataManager->IsCellOccupied(FTacCoordinates(2, 2, ETacGridLayer::Ground)));
 
-	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground, Grid);
+	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground);
 	TestTrue("Occupied cell returns true", DataManager->IsCellOccupied(FTacCoordinates(2, 2, ETacGridLayer::Ground)));
 
 	Grid->Destroy();
@@ -910,64 +718,3 @@ bool FGridDataManagerGetValidPlacementCellsTest::RunTest(const FString& Paramete
 	return true;
 }
 
-// Test: IsMultiCellUnit returns correct value
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerIsMultiCellUnitTest,
-	"KBS.Grid.Components.DataManager.IsMultiCellUnit_ReturnsCorrectValue",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerIsMultiCellUnitTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* SingleUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker, false);
-	AUnit* MultiUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker, true);
-
-	DataManager->PlaceUnit(SingleUnit, 1, 1, ETacGridLayer::Ground, Grid);
-	DataManager->PlaceUnit(MultiUnit, 3, 3, ETacGridLayer::Ground, Grid);
-
-	TestFalse("Single-cell unit returns false", DataManager->IsMultiCellUnit(SingleUnit));
-	TestTrue("Multi-cell unit returns true", DataManager->IsMultiCellUnit(MultiUnit));
-
-	Grid->Destroy();
-	SingleUnit->Destroy();
-	MultiUnit->Destroy();
-	return true;
-}
-
-// Test: GetMultiCellData returns correct data
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetMultiCellDataTest,
-	"KBS.Grid.Components.DataManager.GetMultiCellData_ReturnsCorrectData",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerGetMultiCellDataTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* MultiUnit = FGridDataManagerTestHelper::CreateMockUnit(World, ETeamSide::Attacker, true);
-
-	DataManager->PlaceUnit(MultiUnit, 2, 2, ETacGridLayer::Ground, Grid);
-
-	const FMultiCellUnitData* MultiData = DataManager->GetMultiCellData(MultiUnit);
-	TestNotNull("Multi-cell data should exist", MultiData);
-
-	if (MultiData)
-	{
-		TestEqual("Should have 2 occupied cells", MultiData->OccupiedCells.Num(), 2);
-		TestEqual("Primary cell row", MultiData->PrimaryCell.Row, 2);
-		TestEqual("Primary cell col", MultiData->PrimaryCell.Col, 2);
-	}
-
-	Grid->Destroy();
-	MultiUnit->Destroy();
-	return true;
-}

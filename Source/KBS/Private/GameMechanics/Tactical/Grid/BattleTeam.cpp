@@ -36,3 +36,17 @@ bool UBattleTeam::IsAnyUnitAlive() const
 	}
 	return false;
 }
+
+ETeamSide UBattleTeam::ReverseTeamSide(ETeamSide Side)
+{
+	switch (Side)
+	{
+	case ETeamSide::Attacker:
+		return ETeamSide::Defender;
+	case ETeamSide::Defender:
+		return ETeamSide::Attacker;
+	default:
+		UE_LOG(LogTemp, Error, TEXT("UBattleTeam::ReverseTeamSide Unknown TeamSide when reversing"));
+		return ETeamSide::Defender;
+	}
+}

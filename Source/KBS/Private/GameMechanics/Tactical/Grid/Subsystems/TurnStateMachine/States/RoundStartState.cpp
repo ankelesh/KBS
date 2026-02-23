@@ -4,6 +4,7 @@
 
 void FRoundStartState::Enter()
 {
+	IncrementRound();
 	ReloadTurnOrder();
 	UE_LOG(LogKBSTurn, Log, TEXT("=== Round %d start === (%d units)"),
 		ParentTurnSubsystem->GetCurrentRound(), GetTurnOrder()->GetRemainingUnits().Num());

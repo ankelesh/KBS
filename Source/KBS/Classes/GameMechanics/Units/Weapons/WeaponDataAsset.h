@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Weapon.h"
+#include "GameplayTypes/WeaponTypes.h"
 #include "WeaponDataAsset.generated.h"
 class UBattleEffect;
 class UBattleEffectDataAsset;
@@ -28,6 +29,9 @@ public:
 	FWeaponStats BaseStats;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Effects")
 	TArray<FWeaponEffectConfig> Effects;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	EWeaponDesignation Designation = EWeaponDesignation::AllPurpose;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Animation")
 	TObjectPtr<UAnimMontage> AttackMontage;
 };

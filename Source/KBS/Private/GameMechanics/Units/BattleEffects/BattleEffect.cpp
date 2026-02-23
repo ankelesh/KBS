@@ -1,8 +1,6 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
-#include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 void UBattleEffect::Initialize(UBattleEffectDataAsset* InConfig)
 {
@@ -34,20 +32,10 @@ void UBattleEffect::OnRemoved()
 {
 	OnEffectRemoved.Broadcast(this);
 }
-void UBattleEffect::SpawnEffectVFX()
+void UBattleEffect::NotifyOnTriggered()
 {
-	if (!Owner || !Config || !Config->AppliedVFX.Get())
+	if (Owner)
 	{
-		return;
+		Owner->NotifyEffectTriggered(this);
 	}
-	UUnitVisualsComponent* VisualsComponent = Owner->GetVisualsComponent();
-	if (!VisualsComponent)
-	{
-		return;
-	}
-	VisualsComponent->SpawnNiagaraEffect(
-		Config->AppliedVFX.Get(),
-		Owner->GetActorLocation() + FVector(0, 0, Owner->GetSimpleCollisionHalfHeight()),
-		Config->VFXDuration
-	);
 }

@@ -2,13 +2,16 @@
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
+#include "GameplayTypes/TacMovementTypes.h"
 #include "UnitVisualsComponent.generated.h"
 class UUnitDefinition;
 class USkeletalMeshComponent;
+class UWeapon;
 class UStaticMesh;
 class UAnimMontage;
 class UNiagaraSystem;
 class UNiagaraComponent;
+class UBattleEffect;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageCompleted, UAnimMontage*, Montage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRotationCompleted);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMontageCompletedNative, UAnimMontage*);
@@ -19,6 +22,7 @@ class KBS_API UUnitVisualsComponent : public USceneComponent
 	GENERATED_BODY()
 public:
 	UUnitVisualsComponent();
+	virtual void BeginPlay() override;
 	void InitializeFromDefinition(UUnitDefinition* Definition);
 	void ClearAllMeshComponents();
 	void AttachWeaponMesh(UStaticMesh* WeaponMesh, FName SocketName);
@@ -34,13 +38,8 @@ public:
 	void RotateTowardTarget(FRotator TargetRotation, float Speed = 360.0f);
 	bool IsRotating() const { return bIsRotating; }
 	UNiagaraComponent* SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration);
-	void PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, class UWeapon* Weapon);
-
-	// Presentation operation management
-	void RegisterRotationOperation();
-	void RegisterMontageOperation();
-	void CompleteRotationOperation();
-	void CompleteMontageOperation();
+	FBatchHandle PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, UWeapon* Weapon);
+	void ShowBattleEffect(UBattleEffect* Effect);
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UPROPERTY(BlueprintAssignable, Category = "Animation")
 	FOnMontageCompleted OnMontageCompleted;
@@ -58,18 +57,37 @@ protected:
 private:
 	void CreateMeshComponent(const struct FUnitMeshDescriptor& Descriptor, UUnitDefinition* Definition);
 	void SetupCollisionForMesh(UPrimitiveComponent* MeshComponent);
-	void HandleMontageCompleted(UAnimMontage* Montage, bool bInterrupted);
+	void SetupAnimationDelegates();
+	UFUNCTION() void HandleMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+	UFUNCTION() void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	UFUNCTION() void OnOwnerDied(AUnit* Unit);
+	UFUNCTION() void OnOwnerDamaged(AUnit* Victim, AUnit* Attacker);
+	UFUNCTION() void OnOwnerEffectTriggered(AUnit* OwnerUnit, UBattleEffect* Effect);
+	UFUNCTION() void OnOwnerMoved(AUnit* Unit, const FTacMovementVisualData& MovementData);
+
+	// Attack/ability rotation
 	FRotator PendingRotation;
 	bool bIsRotating = false;
 	float CurrentRotationSpeed = 360.0f;
 
-	// Attack animation constants
 	static constexpr float AttackRotationSpeed = 540.0f;
 	static constexpr float MeshYawOffset = -90.0f;
 
 	// Presentation operation tracking
 	FOperationHandle CurrentRotationOperation;
-	TQueue<FOperationHandle> MontageOperationQueue;
+	TMap<TObjectPtr<UAnimMontage>, FOperationHandle> ActiveMontageOperations;
+
+	// Movement sequence state
+	FTacMovementVisualData ActiveMovement;
+	int32 MovementSegmentIndex = 0;
+	bool bIsTranslating = false;
+	bool bIsFinalRotating = false;
+	FOperationHandle CurrentMovementOperation;
+	void CompleteMovementOperation();
+
+	void RegisterRotationOperation(FBatchHandle BatchHandle = FBatchHandle());
+	void CompleteRotationOperation();
+	void RegisterMontageOperation(UAnimMontage* Montage, FBatchHandle BatchHandle = FBatchHandle());
 
 	struct FVFXTrackingData
 	{

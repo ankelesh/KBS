@@ -9,6 +9,9 @@
 
 class AUnit;
 class UGridDataManager;
+class UWeapon;
+enum class ETeamSide : uint8;
+
 enum class ETargetReach : uint8;
 enum class EAffiliationFilter : uint8
 {
@@ -39,7 +42,7 @@ public:
 	struct FResolvedTargets ResolveTargetsFromClick(AUnit* SourceUnit, FTacCoordinates ClickedCell, ETargetReach Reach, const struct FAreaShape* AreaShape = nullptr) const;
 	bool IsValidTargetCell(AUnit* Unit, const FTacCoordinates& Cell, ETargetReach Reach) const;
 	int32 CalculateDistance(AUnit* Unit1, AUnit* Unit2) const;
-	class UWeapon* SelectWeapon(AUnit* Attacker, AUnit* Target) const;
+	UWeapon* SelectWeapon(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly = false) const;
 	bool HasValidTargetAtCell(AUnit* Source, FTacCoordinates TargetCell, ETargetReach Reach) const;
 	bool HasAnyValidTargets(AUnit* Source, ETargetReach Reach) const;
 private:
@@ -54,15 +57,12 @@ private:
 	void GetAdjacentMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetFlankMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetAirMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
-	bool CanEnterFlankCell(const FTacCoordinates& UnitPos, const FTacCoordinates& FlankCell, class UBattleTeam* UnitTeam) const;
+	bool CanEnterFlankCell(const FTacCoordinates& UnitPos, const FTacCoordinates& FlankCell, ETeamSide UnitTeamSide) const;
 	bool IsAdjacentCell(const FTacCoordinates& CellA, const FTacCoordinates& CellB) const;
-	bool IsFlankCell(const FTacCoordinates& Cell) const;
-	bool IsValidMultiCellDestination(AUnit* Unit, const FTacCoordinates& TargetCoords, ETacGridLayer Layer) const;
 	bool IsValidMoveDestination(AUnit* MovingUnit, const FTacCoordinates& TargetCoords) const;
 	TArray<AUnit*> GetUnitsInArea(FTacCoordinates CenterCell, const struct FAreaShape& AreaShape) const;
 	bool TryGetPrimaryCellForUnit(AUnit* Unit, FTacCoordinates& OutCell) const;
 	void AddUnitCell(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void AddUnitCellUnique(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetEmptyCellsForLayer(ETacGridLayer Layer, TArray<FTacCoordinates>& OutCells) const;
-	void IterateGroundCells(TFunctionRef<bool(const FTacCoordinates&)> FilterPredicate, TArray<FTacCoordinates>& OutCells) const;
 };

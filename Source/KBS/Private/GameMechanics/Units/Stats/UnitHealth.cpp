@@ -63,22 +63,17 @@ void FUnitHealth::RemoveMaxMultiplier(const FGuid& EffectId, int32 Amount)
 	ClampCurrent();
 }
 
-void FUnitHealth::TakeDamage(int32 Amount)
-{
-	Current -= Amount;
-	if (Current < 0)
-		Current = 0;
-}
 
-void FUnitHealth::Heal(int32 Amount)
-{
-	Current += Amount;
-	ClampCurrent();
-}
 
 void FUnitHealth::SetCurrent(int32 NewCurrent)
 {
 	Current = NewCurrent;
+	ClampCurrent();
+}
+
+void FUnitHealth::ApplyDelta(int32 Amount)
+{
+	Current += Amount;
 	ClampCurrent();
 }
 

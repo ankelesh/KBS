@@ -1,4 +1,4 @@
-#include "GameMechanics/Units/Abilities/UnitMovementAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitMovementAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
@@ -11,9 +11,7 @@ bool UUnitMovementAbility::Execute(FTacCoordinates TargetCell)
 	UTacGridMovementService* MovementService = GetMovementService();
 	if (!MovementService) return false;
 
-	FTacMovementVisualData OutVisuals;
-	TOptional<FTacMovementVisualData> OutSwappedVisuals;
-	bool bMoveSuccess = MovementService->MoveUnit(Owner, TargetCell, OutVisuals, OutSwappedVisuals);
+	bool bMoveSuccess = MovementService->MoveUnit(Owner, TargetCell);
 
 	if (bMoveSuccess)
 	{

@@ -46,6 +46,8 @@ void FAttackContext::Reset()
 	InterferingAbilities.Empty();
 	bIsAttackCancelled = false;
 }
+
+
 FAttackContext::FAttackContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction)
 	:
 	  Attacker(AttackerUnit), Hits(), AttackerWeapon(Weapon), InterferingAbilities(), bIsAttackCancelled(false), bIsReactionHit(bIsReaction)

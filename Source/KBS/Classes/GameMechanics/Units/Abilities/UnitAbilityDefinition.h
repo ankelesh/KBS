@@ -24,6 +24,4 @@ public:
 	TArray<TSubclassOf<UBattleEffect>> BattleEffects;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	bool bIsPassive = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spellbook")
-	bool bIsSpellbookAbility = false;
 };

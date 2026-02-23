@@ -7,6 +7,7 @@ class AUnit;
 class UBattleEffect;
 class UUnitAbilityInstance;
 class UWeapon;
+
 USTRUCT(BlueprintType)
 struct FDamageResult
 {
@@ -33,7 +34,7 @@ struct FHitInstance
 	bool bIsHitCancelled = false;
 	UPROPERTY()
 	TArray<UUnitAbilityInstance*> InterferingAbilities;
-	
+
 	void Reset();
 	FHitInstance() = default;
 	explicit FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UWeapon* Weapon);
@@ -50,7 +51,6 @@ struct FAttackContext
 	AUnit* Attacker = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FHitInstance> Hits = TArray<FHitInstance>();
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UWeapon* AttackerWeapon = nullptr;
 	UPROPERTY()
 	TArray<UUnitAbilityInstance*> InterferingAbilities = TArray<UUnitAbilityInstance*>();

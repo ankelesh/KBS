@@ -6,7 +6,6 @@
 void FTurnStartState::Enter()
 {
 	GetTurnOrder()->Advance();
-	BroadcastTurnStart();
 	if (!GetTurnOrder()->Empty())
 	{
 		AUnit* Unit = GetTurnOrder()->GetCurrentUnit();
@@ -17,6 +16,7 @@ void FTurnStartState::Enter()
 	{
 		UE_LOG(LogTemp, Error, TEXT("Current unit was empty on start of turn!"));
 	}
+	BroadcastTurnStart();
 }
 
 ETurnState FTurnStartState::NextState()

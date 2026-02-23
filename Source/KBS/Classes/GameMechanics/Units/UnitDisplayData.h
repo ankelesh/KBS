@@ -58,7 +58,7 @@ struct KBS_API FUnitTurnQueueDisplay
 	UPROPERTY(BlueprintReadWrite)
 	bool BelongsToAttackerTeam = false;
 };
-class UWeapon;
+
 class UBattleEffect;
 enum class EDamageSource : uint8;
 enum class ETargetReach : uint8;
@@ -68,9 +68,10 @@ struct FUnitImmunities;
 struct FUnitWards;
 struct FUnitCoreStats;
 struct FDamageSourceSetStat;
+class UWeapon;
 FString DamageSourceToString(EDamageSource Source);
 FString TargetReachToString(ETargetReach Reach);
-FWeaponDisplayData ConvertWeapon(const UWeapon* Weapon);
+FWeaponDisplayData ConvertWeapon(UWeapon* Weapon);
 
 TArray<FString> ConvertActiveEffects(const TArray<TObjectPtr<UBattleEffect>>& Effects);
 FString ConvertArmourMap(const FUnitArmour& ArmourMap);

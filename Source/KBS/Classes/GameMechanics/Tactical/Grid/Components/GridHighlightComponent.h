@@ -71,6 +71,8 @@ private:
 	UPROPERTY()
 	TArray<FHighlightInstance> HighlightPool;
 
+	const FVector NIAGARA_CELL_OFFSET{0,0,10};
+	
 	// Tracking active highlights per type
 	TMap<EHighlightType, TArray<int32>> ActiveHighlightIndices;
 };

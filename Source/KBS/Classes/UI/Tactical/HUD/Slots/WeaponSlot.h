@@ -4,7 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "WeaponSlot.generated.h"
 
-class UWeapon;
+
 class UTextBlock;
 class UHorizontalBox;
 

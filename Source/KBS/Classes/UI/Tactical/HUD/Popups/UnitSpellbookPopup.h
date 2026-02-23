@@ -11,7 +11,7 @@ class UActiveAbilitySlot;
 class UUnitAbilityInstance;
 class UButton;
 class UTextBlock;
-class UVerticalBox;
+class UWrapBox;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilitySelected, UUnitAbilityInstance*, Ability);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSpellbookPopupOnCloseRequired);
@@ -48,7 +48,7 @@ protected:
 
 	// UI Components
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
-	UVerticalBox* AbilityListContainer;
+	UWrapBox* AbilityListContainer;
 
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
 	UTextBlock* TitleText;

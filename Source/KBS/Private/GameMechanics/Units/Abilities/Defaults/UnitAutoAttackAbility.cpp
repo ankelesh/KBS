@@ -1,4 +1,4 @@
-#include "GameMechanics/Units/Abilities/UnitAutoAttackAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitAutoAttackAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
@@ -26,7 +26,7 @@ TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(F
 	{
 		if (!Target) continue;
 
-		UWeapon* Weapon = TargetingService->SelectWeapon(Owner, Target);
+		UWeapon* Weapon = TargetingService->SelectWeapon(Owner, Target, true);
 		if (!Weapon) continue;
 
 		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, Weapon, Target);
@@ -53,7 +53,7 @@ bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	if (!ResolvedTargets.ClickedTarget) return false;
 
 	// Select weapon for primary target
-	UWeapon* Weapon = TargetingService->SelectWeapon(Owner, ResolvedTargets.ClickedTarget);
+	UWeapon* Weapon = TargetingService->SelectWeapon(Owner, ResolvedTargets.ClickedTarget, true);
 	if (!Weapon) return false;
 
 	UPresentationSubsystem::FScopedBatch AttackBatch(
@@ -119,7 +119,7 @@ ETargetReach UUnitAutoAttackAbility::GetTargeting() const
 	}
 	else
 	{
-		if (const UWeapon* Weapon = FDamageCalculation::SelectMaxReachWeapon(Owner))
+		if (UWeapon* Weapon = FDamageCalculation::SelectMaxReachWeapon(Owner, true))
 		{
 			return Weapon->GetReach();
 		}

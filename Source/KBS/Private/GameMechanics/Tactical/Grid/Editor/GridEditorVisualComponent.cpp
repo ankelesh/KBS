@@ -3,7 +3,6 @@
 #if WITH_EDITOR
 
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
-#include "GameMechanics/Units/LargeUnit.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "DrawDebugHelpers.h"
 
@@ -48,32 +47,7 @@ void UGridEditorVisualComponent::DrawUnitPlacements()
 			FVector PrimaryCellCenter = FTacCoordinates::CellToWorldLocation(Placement.Row, Placement.Col, Placement.Layer, GridOrigin, CellSize, AirLayerHeight);
 			PrimaryCellCenter.Z += 50;
 			FColor TeamColor = Placement.bIsAttacker ? FColor::Red : FColor::Green;
-
-			const bool bIsLargeUnit = Placement.UnitClass->IsChildOf(ALargeUnit::StaticClass());
-
-			if (bIsLargeUnit)
-			{
-				bool bIsFlank = FTacCoordinates::IsFlankCell(Placement.Row, Placement.Col);
-				ETeamSide TeamSide = Placement.bIsAttacker ? ETeamSide::Attacker : ETeamSide::Defender;
-				FIntPoint SecondaryCell = ALargeUnit::GetSecondaryCell(Placement.Row, Placement.Col, bIsFlank, TeamSide);
-
-				if (FTacCoordinates::IsValidCell(SecondaryCell.X, SecondaryCell.Y))
-				{
-					FVector SecondaryCellCenter = FTacCoordinates::CellToWorldLocation(SecondaryCell.X, SecondaryCell.Y, Placement.Layer, GridOrigin, CellSize, AirLayerHeight);
-					SecondaryCellCenter.Z += 50;
-
-					DrawDebugBox(GetWorld(), PrimaryCellCenter, FVector(40.f, 40.f, 40.f), TeamColor, true, -1.f, 0, 5.f);
-					DrawDebugBox(GetWorld(), SecondaryCellCenter, FVector(40.f, 40.f, 40.f), TeamColor.WithAlpha(180), true, -1.f, 0, 5.f);
-					DrawDebugLine(GetWorld(), PrimaryCellCenter, SecondaryCellCenter, TeamColor, true, -1.f, 0, 8.f);
-
-					FVector MidPoint = (PrimaryCellCenter + SecondaryCellCenter) * 0.5f;
-					DrawDebugString(GetWorld(), MidPoint + FVector(0, 0, 30), TEXT("2-CELL"), nullptr, FColor::Yellow, -1.f, true, 1.2f);
-				}
-			}
-			else
-			{
-				DrawDebugSphere(GetWorld(), PrimaryCellCenter, 50.f, 8, TeamColor, true, -1.f, 0, 5.f);
-			}
+			DrawDebugSphere(GetWorld(), PrimaryCellCenter, 50.f, 8, TeamColor, true, -1.f, 0, 5.f);
 		}
 	}
 }

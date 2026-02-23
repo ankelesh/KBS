@@ -7,6 +7,7 @@ DEFINE_LOG_CATEGORY(LogKBSCombat);
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAbilityExecutorService.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 
 TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon* Weapon)
@@ -47,9 +48,10 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FAttackConte
 
 	TArray<FString> TargetNames;
 	for (const FHitInstance& Hit : Context.Hits) { TargetNames.Add(Hit.Target->GetName()); }
+	const UWeaponDataAsset* WeaponConfig = Context.AttackerWeapon ? Context.AttackerWeapon->GetConfig() : nullptr;
 	UE_LOG(LogKBSCombat, Log, TEXT("[ATTACK START] %s -> [%s] weapon=%s reaction=%d"),
 		*Context.Attacker->GetName(), *FString::Join(TargetNames, TEXT(", ")),
-		*Context.AttackerWeapon->GetName(), Context.bIsReactionHit ? 1 : 0);
+		WeaponConfig ? *WeaponConfig->GetName() : TEXT("none"), Context.bIsReactionHit ? 1 : 0);
 
 	if (!ExecutePreAttackPhase(Context))
 	{
@@ -95,10 +97,12 @@ bool UTacCombatSubsystem::ExecutePreAttackPhase(FAttackContext& Context)
 		return false;
 	}
 
+	Context.Attacker->OnStartingAttack.Broadcast(Context, Context.Hits[0]);
 	for (FHitInstance& Hit : Context.Hits)
 	{
 		Hit.Target->OnUnitAttacked.Broadcast(Hit.Target, Context.Attacker);
 		Context.Attacker->OnUnitAttacks.Broadcast(Context.Attacker, Hit.Target);
+		Hit.Target->OnBeingAttackedPrePhase.Broadcast(Context, Hit);
 		Hit.CheckCancellation();
 	}
 
@@ -108,6 +112,8 @@ bool UTacCombatSubsystem::ExecutePreAttackPhase(FAttackContext& Context)
 void UTacCombatSubsystem::ExecuteCalculationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult)
 {
 	OnCalculationPhase.Broadcast(Context, Hit);
+	Context.Attacker->OnAttackingInCalculation.Broadcast(Context, Hit);
+	Hit.Target->OnBeingTargetedInCalculation.Broadcast(Context, Hit);
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
@@ -144,6 +150,8 @@ void UTacCombatSubsystem::ExecuteCalculationPhase(FAttackContext& Context, FHitI
 void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& Result)
 {
 	OnEffectApplicationPhase.Broadcast(Context, Hit);
+	Context.Attacker->OnAttackingEffectApplication.Broadcast(Context, Hit);
+	Hit.Target->OnBeingTargetedForEffects.Broadcast(Context, Hit);
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
@@ -179,6 +187,8 @@ void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FAttackContext& Context,
 void UTacCombatSubsystem::ExecuteDamageApplyPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply)
 {
 	OnDamageApplicationPhase.Broadcast(Context, Hit, ToApply.DamageResult);
+	Context.Attacker->OnAttackingDamageApply.Broadcast(Context, Hit, ToApply.DamageResult);
+	Hit.Target->OnBeingHitInDamageApply.Broadcast(Context, Hit, ToApply.DamageResult);
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
@@ -190,7 +200,7 @@ void UTacCombatSubsystem::ExecuteDamageApplyPhase(FAttackContext& Context, FHitI
 	}
 	else
 	{
-		Hit.Target->TakeHit(ToApply.DamageResult);
+		Hit.Target->HandleHit(ToApply.DamageResult, Context.Attacker);
 	}
 }
 

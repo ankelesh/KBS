@@ -2,9 +2,12 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
-#include "GameMechanics/Units/LargeUnit.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
+#include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 
 void FCorpseStack::Push(AUnit* Unit, const FVector& WorldLocation)
 {
@@ -71,7 +74,7 @@ void UGridDataManager::Initialize(ATacBattleGrid* InGrid)
 		AttackerTeam->SetTeamSide(ETeamSide::Attacker);
 		DefenderTeam = NewObject<UBattleTeam>(Grid);
 		DefenderTeam->SetTeamSide(ETeamSide::Defender);
-		PlayerTeam = Grid->GetPlayerTeamSide() == ETeamSide::Attacker ? AttackerTeam : DefenderTeam;
+		bPlayerIsAttacker = Grid->GetPlayerTeamSide() == ETeamSide::Attacker;
 	}
 	GroundLayer.SetNum(FGridConstants::GridSize);
 	AirLayer.SetNum(FGridConstants::GridSize);
@@ -95,52 +98,16 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 		return false;
 	}
 
-	if (Unit->IsMultiCell())
-	{
-		bool bIsHorizontal = Coords.IsFlankCell();
-		FIntPoint SecondaryCell = ALargeUnit::GetSecondaryCell(Coords.Row, Coords.Col, bIsHorizontal, Unit->GetTeamSide());
+	LayerArray[Coords.Row].Cells[Coords.Col] = Unit;
+	Unit->SetActorLocation(Coords.ToWorldLocation(GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight()));
 
-		if (!FTacCoordinates::IsValidCell(SecondaryCell.Y, SecondaryCell.X))
-		{
-			return false;
-		}
-		if (SecondaryCell.Y >= LayerArray.Num() || SecondaryCell.X >= LayerArray[SecondaryCell.Y].Cells.Num())
-		{
-			return false;
-		}
-		if (LayerArray[SecondaryCell.Y].Cells[SecondaryCell.X] != nullptr)
-		{
-			return false;
-		}
-
-		LayerArray[Coords.Row].Cells[Coords.Col] = Unit;
-		LayerArray[SecondaryCell.Y].Cells[SecondaryCell.X] = Unit;
-
-		FVector PrimaryLoc = Coords.ToWorldLocation(GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight());
-		FVector SecondaryLoc = FTacCoordinates::CellToWorldLocation(SecondaryCell.Y, SecondaryCell.X, Coords.Layer, GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight());
-		FVector CenteredLoc = (PrimaryLoc + SecondaryLoc) * 0.5f;
-		Unit->SetActorLocation(CenteredLoc);
-
-		FMultiCellUnitData MultiCellData;
-		MultiCellData.PrimaryCell = Coords;
-		MultiCellData.OccupiedCells.Add(FTacCoordinates(Coords.Row, Coords.Col, Coords.Layer));
-		MultiCellData.OccupiedCells.Add(FTacCoordinates(SecondaryCell.Y, SecondaryCell.X, Coords.Layer));
-		MultiCellData.bIsHorizontal = bIsHorizontal;
-		MultiCellUnits.Add(Unit->GetUnitID(), MultiCellData);
-	}
-	else
-	{
-		LayerArray[Coords.Row].Cells[Coords.Col] = Unit;
-		Unit->SetActorLocation(Coords.ToWorldLocation(GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight()));
-	}
-
-	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, IsFlankCell(Coords));
+	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, Coords.IsFlankCell());
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
 
 // Convenience overload (delegates to primary)
-bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, ETacGridLayer Layer, ATacBattleGrid* TacBattleGrid)
+bool UGridDataManager::PlaceUnit(AUnit* Unit, int32 Row, int32 Col, ETacGridLayer Layer)
 {
 	return PlaceUnit(Unit, FTacCoordinates(Row, Col, Layer));
 }
@@ -182,26 +149,7 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 		return false;
 	}
 
-	if (Unit->IsMultiCell())
-	{
-		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(Unit->GetUnitID());
-		if (MultiCellData)
-		{
-			for (const FTacCoordinates& CellCoord : MultiCellData->OccupiedCells)
-			{
-				TArray<FGridRow>& CellLayer = GetLayer(CellCoord.Layer);
-				if (CellCoord.Row < CellLayer.Num() && CellCoord.Col < CellLayer[CellCoord.Row].Cells.Num())
-				{
-					CellLayer[CellCoord.Row].Cells[CellCoord.Col] = nullptr;
-				}
-			}
-		}
-		MultiCellUnits.Remove(Unit->GetUnitID());
-	}
-	else
-	{
-		LayerArray[Coords.Row].Cells[Coords.Col] = nullptr;
-	}
+	LayerArray[Coords.Row].Cells[Coords.Col] = nullptr;
 
 	UnitFlankStates.Remove(Unit->GetUnitID());
 	UnitOriginalRotations.Remove(Unit->GetUnitID());
@@ -211,7 +159,7 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 }
 
 // Convenience overload (delegates to primary)
-bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, ETacGridLayer Layer, ATacBattleGrid* TacBattleGrid)
+bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, ETacGridLayer Layer)
 {
 	return RemoveUnit(FTacCoordinates(Row, Col, Layer));
 }
@@ -228,17 +176,6 @@ bool UGridDataManager::GetUnitPosition(const AUnit* Unit, FTacCoordinates& OutPo
 	if (!Unit)
 	{
 		return false;
-	}
-
-	if (Unit->IsMultiCell())
-	{
-		const FMultiCellUnitData* MultiCellData = MultiCellUnits.Find(Unit->GetUnitID());
-		if (MultiCellData)
-		{
-			OutPosition = MultiCellData->PrimaryCell;
-			OutLayer = MultiCellData->PrimaryCell.Layer;
-			return true;
-		}
 	}
 
 	for (int32 Row = 0; Row < GroundLayer.Num(); ++Row)
@@ -309,18 +246,6 @@ void UGridDataManager::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rota
 	}
 	UnitOriginalRotations.Add(Unit->GetUnitID(), Rotation);
 }
-bool UGridDataManager::IsValidCell(FTacCoordinates Coords) const
-{
-	return Coords.IsValidCell();
-}
-bool UGridDataManager::IsFlankCell(FTacCoordinates Coords) const
-{
-	return Coords.IsFlankCell();
-}
-bool UGridDataManager::IsRestrictedCell(FTacCoordinates Coords) const
-{
-	return Coords.IsRestrictedCell();
-}
 FVector UGridDataManager::GetCellWorldLocation(FTacCoordinates Coords) const
 {
 	if (!Grid || !Grid->Config)
@@ -329,43 +254,9 @@ FVector UGridDataManager::GetCellWorldLocation(FTacCoordinates Coords) const
 	}
 	return FTacCoordinates::CellToWorldLocation(Coords.Row, Coords.Col, Coords.Layer, GridWorldLocation, Grid->Config->CellSize, Grid->Config->AirLayerHeight);
 }
-UBattleTeam* UGridDataManager::GetTeamForUnit(AUnit* Unit) const
+UBattleTeam* UGridDataManager::GetTeamBySide(ETeamSide Side) const
 {
-	if (!Unit)
-	{
-		return nullptr;
-	}
-	if (AttackerTeam && AttackerTeam->ContainsUnit(Unit))
-	{
-		return AttackerTeam;
-	}
-	if (DefenderTeam && DefenderTeam->ContainsUnit(Unit))
-	{
-		return DefenderTeam;
-	}
-	return nullptr;
-}
-UBattleTeam* UGridDataManager::GetEnemyTeam(AUnit* Unit) const
-{
-	UBattleTeam* UnitTeam = GetTeamForUnit(Unit);
-	if (UnitTeam == AttackerTeam)
-	{
-		return DefenderTeam;
-	}
-	if (UnitTeam == DefenderTeam)
-	{
-		return AttackerTeam;
-	}
-	return nullptr;
-}
-TArray<AUnit*> UGridDataManager::GetUnitsFromTeam(bool bIsAttacker) const
-{
-	UBattleTeam* Team = bIsAttacker ? AttackerTeam : DefenderTeam;
-	if (!Team)
-	{
-		return TArray<AUnit*>();
-	}
-	return Team->GetUnits();
+	return Side == ETeamSide::Attacker ? AttackerTeam : DefenderTeam;
 }
 TArray<FTacCoordinates> UGridDataManager::GetEmptyCells(ETacGridLayer Layer) const
 {
@@ -414,7 +305,7 @@ TArray<FTacCoordinates> UGridDataManager::GetValidPlacementCells(ETacGridLayer L
 	TArray<FTacCoordinates> PlacementCells = GetEmptyCells(Layer);
 	PlacementCells.RemoveAll([this](const FTacCoordinates& Coords)
 	{
-		return IsRestrictedCell(Coords);
+		return Coords.IsRestrictedCell();
 	});
 	return PlacementCells;
 }
@@ -525,102 +416,154 @@ const FMultiCellUnitData* UGridDataManager::GetMultiCellData(const AUnit* Unit) 
 	return MultiCellUnits.Find(Unit->GetUnitID());
 }
 
-TArray<AUnit*> UGridDataManager::GetAllAliveUnits() const
+void UGridDataManager::FilterCells(ETacGridLayer Layer, TFunctionRef<bool(FTacCoordinates)> Predicate, TArray<FTacCoordinates>& OutCells) const
 {
-	TMap<FGuid, TObjectPtr<AUnit>> UniqueUnits;
-
-	for (const FGridRow& Row : GroundLayer)
+	for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
 	{
-		for (const TObjectPtr<AUnit>& Unit : Row.Cells)
+		for (int32 Col = 0; Col < FGridConstants::GridSize; ++Col)
 		{
-			if (Unit && !Unit->GetStats().Status.IsDead())
+			FTacCoordinates Coords(Row, Col, Layer);
+			if (Predicate(Coords))
 			{
-				UniqueUnits.Add(Unit->GetUnitID(), Unit);
+				OutCells.Add(Coords);
 			}
 		}
 	}
-
-	for (const FGridRow& Row : AirLayer)
-	{
-		for (const TObjectPtr<AUnit>& Unit : Row.Cells)
-		{
-			if (Unit && !Unit->GetStats().Status.IsDead())
-			{
-				UniqueUnits.Add(Unit->GetUnitID(), Unit);
-			}
-		}
-	}
-
-	TArray<TObjectPtr<AUnit>> Result;
-	UniqueUnits.GenerateValueArray(Result);
-	return Result;
 }
 
-TArray<AUnit*> UGridDataManager::GetAllDeadUnits() const
+TArray<AUnit*> UGridDataManager::GetUnits(EUnitQuerySource Sources) const
 {
-	TMap<FGuid, TObjectPtr<AUnit>> UniqueCorpses;
+	TMap<FGuid, TObjectPtr<AUnit>> Result;
 
-	for (const FGridRow& Row : GroundLayer)
+	if (EnumHasAnyFlags(Sources, EUnitQuerySource::OnField))
 	{
-		for (const FCorpseStack& Stack : Row.CorpseStacks)
-		{
-			for (const TObjectPtr<AUnit>& Corpse : Stack.GetAll())
-			{
-				if (Corpse)
-				{
-					UniqueCorpses.Add(Corpse->GetUnitID(), Corpse);
-				}
-			}
-		}
+		for (const TArray<FGridRow>* Layer : { &GroundLayer, &AirLayer })
+			for (const FGridRow& Row : *Layer)
+				for (const TObjectPtr<AUnit>& Unit : Row.Cells)
+					if (Unit) Result.Add(Unit->GetUnitID(), Unit);
+	}
+	if (EnumHasAnyFlags(Sources, EUnitQuerySource::OffField))
+	{
+		for (const auto& Pair : OffFieldUnits)
+			if (Pair.Value) Result.Add(Pair.Key, Pair.Value);
+	}
+	if (EnumHasAnyFlags(Sources, EUnitQuerySource::Corpses))
+	{
+		for (const TArray<FGridRow>* Layer : { &GroundLayer, &AirLayer })
+			for (const FGridRow& Row : *Layer)
+				for (const FCorpseStack& Stack : Row.CorpseStacks)
+					for (const TObjectPtr<AUnit>& Corpse : Stack.GetAll())
+						if (Corpse) Result.Add(Corpse->GetUnitID(), Corpse);
 	}
 
-	for (const FGridRow& Row : AirLayer)
-	{
-		for (const FCorpseStack& Stack : Row.CorpseStacks)
-		{
-			for (const TObjectPtr<AUnit>& Corpse : Stack.GetAll())
-			{
-				if (Corpse)
-				{
-					UniqueCorpses.Add(Corpse->GetUnitID(), Corpse);
-				}
-			}
-		}
-	}
-
-	TArray<TObjectPtr<AUnit>> Result;
-	UniqueCorpses.GenerateValueArray(Result);
-	return Result;
+	TArray<TObjectPtr<AUnit>> Out;
+	Result.GenerateValueArray(Out);
+	return Out;
 }
 
-TArray<AUnit*> UGridDataManager::GetAllUnits() const
+TArray<AUnit*> UGridDataManager::GetUnits(EUnitQuerySource Sources, TFunctionRef<bool(const AUnit*)> Predicate) const
 {
-	TMap<FGuid, TObjectPtr<AUnit>> AllUnits;
-
-	TArray<AUnit*> AliveUnits = GetAllAliveUnits();
-	for (AUnit* Unit : AliveUnits)
-	{
-		if (Unit)
-		{
-			AllUnits.Add(Unit->GetUnitID(), Unit);
-		}
-	}
-
-	TArray<AUnit*> DeadUnits = GetAllDeadUnits();
-	for (AUnit* Unit : DeadUnits)
-	{
-		if (Unit)
-		{
-			AllUnits.Add(Unit->GetUnitID(), Unit);
-		}
-	}
-
-	TArray<TObjectPtr<AUnit>> Result;
-	AllUnits.GenerateValueArray(Result);
-	return Result;
+	TArray<AUnit*> All = GetUnits(Sources);
+	All.RemoveAll([&](const AUnit* U) { return !Predicate(U); });
+	return All;
 }
 
-bool UGridDataManager::IsBothTeamsAnyUnitAlive() const
+AUnit* UGridDataManager::SpawnUnit(TSubclassOf<AUnit> UnitClass, UUnitDefinition* Definition,
+                                   FTacCoordinates Cell, UBattleTeam* Team)
 {
-	return AttackerTeam->IsAnyUnitAlive() && DefenderTeam->IsAnyUnitAlive();
+	FVector SpawnLocation = GetCellWorldLocation(Cell);
+	AUnit* NewUnit = Grid->GetWorld()->SpawnActorDeferred<AUnit>(
+		UnitClass,
+		FTransform(SpawnLocation),
+		nullptr, nullptr,
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+	);
+	if (!NewUnit) return nullptr;
+
+	if (Definition)
+	{
+		NewUnit->SetUnitDefinition(Definition);
+	}
+	Team->AddUnit(NewUnit);
+	NewUnit->SetTeamSide(Team->GetTeamSide());
+	NewUnit->FinishSpawning(FTransform(SpawnLocation));
+
+	if (!PlaceUnit(NewUnit, Cell))
+	{
+		Team->RemoveUnit(NewUnit);
+		NewUnit->Destroy();
+		return nullptr;
+	}
+	return NewUnit;
+}
+
+void UGridDataManager::PlaceUnitOffField(AUnit* Unit)
+{
+	const bool bFleeing = Unit->GetStats().Status.IsFleeing();
+	PlaceUnitOffField(Unit, bFleeing, bFleeing);
+}
+
+void UGridDataManager::PlaceUnitOffField(AUnit* Unit, bool bClearEffects, bool bUnsubscribeAbilities)
+{
+	FTacCoordinates CurrentCoords;
+	ETacGridLayer Layer;
+	checkf(GetUnitPosition(Unit, CurrentCoords, Layer), TEXT("PlaceUnitOffField: %s is not on the grid"), *Unit->GetLogName());
+
+	RemoveUnit(CurrentCoords);
+	Unit->GridMetadata.Coords = FTacCoordinates::Invalid();
+
+	if (bClearEffects)
+	{
+		Unit->EffectManager->ClearAllEffects();
+	}
+	if (bUnsubscribeAbilities)
+	{
+		Unit->GetAbilityInventory()->UnregisterPassives();
+	}
+
+	OffFieldUnits.Add(Unit->GetUnitID(), Unit);
+	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnitOffField: %s"), *Unit->GetLogName());
+}
+
+bool UGridDataManager::ReturnUnitToField(const FGuid& UnitID, FTacCoordinates TargetCoords)
+{
+	checkf(OffFieldUnits.Contains(UnitID), TEXT("ReturnUnitToField: unit not in off-field container"));
+
+	if (!TargetCoords.IsValidCell() || IsCellOccupied(TargetCoords))
+	{
+		return false;
+	}
+
+	AUnit* Unit = OffFieldUnits[UnitID];
+	OffFieldUnits.Remove(UnitID);
+	PlaceUnit(Unit, TargetCoords);
+	UE_LOG(LogTacGrid, Log, TEXT("ReturnUnitToField: %s -> [%d,%d]"), *Unit->GetLogName(), TargetCoords.Row, TargetCoords.Col);
+	return true;
+}
+
+bool UGridDataManager::IsUnitOffField(const AUnit* Unit) const
+{
+	return OffFieldUnits.Contains(Unit->GetUnitID());
+}
+
+TArray<AUnit*> UGridDataManager::GetOffFieldUnits() const
+{
+	TArray<TObjectPtr<AUnit>> Values;
+	OffFieldUnits.GenerateValueArray(Values);
+	return Values;
+}
+
+void UGridDataManager::RemoveUnitFromGrid(AUnit* Unit)
+{
+	FTacCoordinates Coords;
+	ETacGridLayer Layer;
+	if (GetUnitPosition(Unit, Coords, Layer))
+	{
+		RemoveUnit(Coords);
+	}
+	UBattleTeam* Team = GetTeamBySide(Unit->GetGridMetadata().Team);
+	if (Team)
+	{
+		Team->RemoveUnit(Unit);
+	}
 }

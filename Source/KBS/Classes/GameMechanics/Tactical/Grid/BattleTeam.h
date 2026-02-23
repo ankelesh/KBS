@@ -22,6 +22,7 @@ public:
 	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
 	const TArray<TObjectPtr<AUnit>>& GetUnits() const { return Units; }
 	bool IsAnyUnitAlive() const;
+	static ETeamSide ReverseTeamSide(ETeamSide Side);
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")
 	ETeamSide TeamSide = ETeamSide::Attacker;

@@ -14,6 +14,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAICombatService.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 
 void FActionsProcessingState::Enter()
 {
@@ -96,7 +97,7 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 	UUnitAbilityInstance* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
 
 	UE_LOG(LogKBSTurn, Log, TEXT("[Input] Ability '%s' -> cell [%d,%d]"),
-	       *Ability->GetAbilityDisplayData().AbilityName, TargetCell.Row, TargetCell.Col);
+	       *Ability->GetConfig()->AbilityName, TargetCell.Row, TargetCell.Col);
 
 	FAbilityResult Result = ExecutorService->CheckAndExecute(Ability, TargetCell);
 
@@ -154,8 +155,7 @@ void FActionsProcessingState::HandleAITurn(AUnit* Unit)
 
 void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 {
-	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingPresentationState || TurnProcessing ==
-		ETurnProcessingSubstate::EAwaitingInputState)
+	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingPresentationState)
 		return;
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
 	UAbilityInventoryComponent* Inventory = CurrentUnit->GetAbilityInventory();

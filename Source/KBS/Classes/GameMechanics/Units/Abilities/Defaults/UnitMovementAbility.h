@@ -8,6 +8,7 @@ class KBS_API UUnitMovementAbility : public UUnitAbilityInstance
 {
 	GENERATED_BODY()
 public:
+	virtual ETargetReach GetTargeting() const override { return ETargetReach::Movement; }
 	virtual bool Execute(FTacCoordinates TargetCell) override;
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;

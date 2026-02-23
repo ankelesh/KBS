@@ -22,8 +22,8 @@ void UTargetDOTBattleEffect::OnTurnEnd()
 	Damage.Damage = FMath::RoundToInt(DOTConfig->EffectMagnitude);
 	Damage.DamageSource = Config->DamageSource;
 	Damage.DamageBlocked = 0;
-	Owner->TakeHit(Damage);
-	SpawnEffectVFX();
+	Owner->HandleHit(Damage, nullptr);
+	NotifyOnTriggered();
 	UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' dealt %d damage (%d turns remaining)"),
 		*Owner->GetName(),
 		*Config->Name.ToString(),
@@ -33,7 +33,8 @@ void UTargetDOTBattleEffect::OnTurnEnd()
 }
 void UTargetDOTBattleEffect::OnApplied()
 {
-	SpawnEffectVFX();
+	checkf(Owner, TEXT("TargetDOTBattleEffect::OnApplied called without Owner set"));
+	NotifyOnTriggered();
 	UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' applied for %d turns"),
 		*Owner->GetName(),
 		*Config->Name.ToString(),
@@ -41,6 +42,7 @@ void UTargetDOTBattleEffect::OnApplied()
 }
 void UTargetDOTBattleEffect::OnRemoved()
 {
+	checkf(Owner, TEXT("TargetDOTBattleEffect::OnRemoved called without Owner set"));
 	UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' removed"),
 		*Owner->GetName(),
 		*Config->Name.ToString());
@@ -53,13 +55,14 @@ bool UTargetDOTBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 	{
 		return false;
 	}
+	checkf(Owner, TEXT("TargetDOTBattleEffect::HandleReapply called without Owner set"));
 	float NewMagnitude = NewDOTConfig->EffectMagnitude;
 	float CurrentMagnitude = DOTConfig->EffectMagnitude;
 	if (NewMagnitude > CurrentMagnitude)
 	{
 		Config = NewDOTConfig;
 		Duration = NewDOTConfig->Duration;
-		SpawnEffectVFX();
+		NotifyOnTriggered();
 		UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' replaced (new magnitude %.1f > old %.1f), duration reset to %d"),
 			*Owner->GetName(),
 			*Config->Name.ToString(),
@@ -69,7 +72,7 @@ bool UTargetDOTBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 		return true;
 	}
 	Duration = DOTConfig->Duration;
-	SpawnEffectVFX();
+	NotifyOnTriggered();
 	UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' refreshed (magnitude %.1f <= %.1f), duration reset to %d"),
 		*Owner->GetName(),
 		*Config->Name.ToString(),

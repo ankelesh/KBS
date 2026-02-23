@@ -9,12 +9,6 @@
 
 void UWeaponSlot::SetupFromWeapon(UWeapon* Weapon, AUnit* Owner)
 {
-	if (!Weapon)
-	{
-		Clear();
-		return;
-	}
-
 	// Get display data
 	FWeaponDisplayData DisplayData = ConvertWeapon(Weapon);
 

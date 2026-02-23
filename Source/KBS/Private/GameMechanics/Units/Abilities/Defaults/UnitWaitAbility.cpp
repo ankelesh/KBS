@@ -1,4 +1,4 @@
-#include "GameMechanics/Units/Abilities/UnitWaitAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/UnitWaitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 

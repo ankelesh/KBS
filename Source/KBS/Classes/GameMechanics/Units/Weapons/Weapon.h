@@ -1,12 +1,11 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/WeaponTypes.h"
 #include "GameMechanics/Units/Stats/BaseUnitStatTypes.h"
 #include "Weapon.generated.h"
 class UBattleEffect;
 class UWeaponDataAsset;
-class UUnitVisualsComponent;
 class AUnit;
 USTRUCT(BlueprintType)
 struct FAreaShape
@@ -39,14 +38,12 @@ struct FWeaponStats
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Targeting")
 	FAreaShape AreaShape;
 };
-UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class KBS_API UWeapon : public UActorComponent
+UCLASS(BlueprintType)
+class KBS_API UWeapon : public UObject
 {
 	GENERATED_BODY()
 public:
-	UWeapon();
-	void Initialize(UUnitVisualsComponent* VisualsComp, UWeaponDataAsset* Data);
-	void InitializeFromDataAsset();
+	void Initialize(UObject* Outer, UWeaponDataAsset* Data);
 
 	// Add enchantments/buffs to weapon stats (e.g., Stats.BaseDamage.AddFlatModifier(...))
 	FWeaponStats& GetMutableStats() { return Stats; }
@@ -56,14 +53,21 @@ public:
 	FText GetEffectsTooltips(AUnit* Owner);
 	const ETargetReach GetReach() const { return Stats.TargetReach; }
 	const UWeaponDataAsset* GetConfig() const { return Config; }
+	EWeaponDesignation GetDesignation() const { return Designation; }
+	bool IsUsableForAutoAttack() const { return Designation != EWeaponDesignation::Spells; }
+	bool IsUsableForSpells() const { return Designation != EWeaponDesignation::AutoAttacks; }
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UWeaponDataAsset> Config;
 
 	// Single stats instance - stat wrappers handle Base/Modified internally
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	EWeaponDesignation Designation = EWeaponDesignation::AllPurpose;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FWeaponStats Stats;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TArray<TObjectPtr<UBattleEffect>> ActiveEffects;
 };
+

@@ -5,6 +5,8 @@
 #include "GameplayTypes/AbilityTypes.h"
 #include "AbilityInventoryComponent.generated.h"
 class UUnitAbilityInstance;
+class UUnitDefinition;
+class AUnit;
 struct FAbilityDisplayData;
 struct FUnitStatusContainer;
 enum class EDefaultAbilitySlot : uint8;
@@ -17,12 +19,13 @@ class KBS_API UAbilityInventoryComponent : public UActorComponent
 
 public:
 	UAbilityInventoryComponent();
+	virtual void BeginPlay() override;
+	void InitializeFromDefinition(const UUnitDefinition* Definition, AUnit* OwnerUnit);
 	void AddActiveAbility(UUnitAbilityInstance* Ability);
 	void AddPassiveAbility(UUnitAbilityInstance* Ability);
 	void RemovePassiveAbility(UUnitAbilityInstance* Ability);
 	void RegisterPassives();
 	void UnregisterPassives();
-	void HandleTurnEnd();
 	UFUNCTION(BlueprintPure, Category = "Abilities")
 	UUnitAbilityInstance* GetCurrentActiveAbility() const;
 	UFUNCTION(BlueprintPure, Category = "Abilities")
@@ -94,4 +97,6 @@ private:
 	bool IsDefaultAbility(UUnitAbilityInstance* Ability) const;
 	bool IsAbilityAvailable(UUnitAbilityInstance* Ability) const;
 	const FUnitStatusContainer* GetOwnerStatus() const;
+	UFUNCTION() void OnOwnerTurnStart(AUnit* Unit);
+	UFUNCTION() void OnOwnerTurnEnd(AUnit* Unit);
 };

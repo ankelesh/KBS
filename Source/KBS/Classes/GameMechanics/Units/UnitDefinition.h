@@ -10,6 +10,21 @@ class UAnimBlueprintGeneratedClass;
 class UMaterialInterface;
 class UAnimMontage;
 class UUnitAbilityDefinition;
+constexpr int32 NoWeaponDamageOverride = -1;
+
+USTRUCT(BlueprintType)
+struct FUnitWeaponEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<UWeaponDataAsset> Weapon;
+
+	// NoWeaponDamageOverride = use weapon asset's own BaseDamage
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	int32 BaseDamageOverride = NoWeaponDamageOverride;
+};
+
 UENUM(BlueprintType)
 enum class EUnitMeshType : uint8
 {
@@ -51,7 +66,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStatsTemplate;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	TArray<TObjectPtr<UWeaponDataAsset>> DefaultWeapons;
+	TArray<FUnitWeaponEntry> DefaultWeapons;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Attack"))
 	TObjectPtr<UUnitAbilityDefinition> DefaultAttackAbility;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Move"))
@@ -64,6 +79,8 @@ public:
 	TObjectPtr<UUnitAbilityDefinition> DefaultFleeAbility;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities")
 	TArray<TObjectPtr<UUnitAbilityDefinition>> AdditionalAbilities;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|Spellbook")
+	TArray<TObjectPtr<UUnitAbilityDefinition>> SpellbookAbilities;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")

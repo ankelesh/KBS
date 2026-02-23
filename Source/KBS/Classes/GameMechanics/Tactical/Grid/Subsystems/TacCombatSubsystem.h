@@ -14,6 +14,8 @@ class UGridDataManager;
 class UTacAbilityExecutorService;
 class UTacCombatStatisticsService;
 class AUnit;
+class UWeapon;
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreUnitAttackPhase, FAttackContext&, Context);
 
@@ -35,8 +37,8 @@ public:
 	UTacAbilityExecutorService* GetAbilityExecutorService() const { return AbilityExecutorService; }
 	UTacCombatStatisticsService* GetCombatStatisticsService() const { return CombatStatisticsService; }
 
-	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, class UWeapon* Weapon);
-	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, class UWeapon* Weapon);
+	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
+	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
 	bool ExecutePreAttackPhase(FAttackContext& Context);
 	void ExecuteCalculationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult);
 	void ExecuteDamageApplyPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply);

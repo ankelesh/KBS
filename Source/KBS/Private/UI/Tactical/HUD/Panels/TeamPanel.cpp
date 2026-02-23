@@ -96,7 +96,7 @@ void UTeamPanel::OnSwapButtonClicked()
 
 void UTeamPanel::OnTurnStarted(AUnit* Unit)
 {
-	ShowTeam(Unit->GetTeamSide());
+	ShowTeam(UBattleTeam::ReverseTeamSide(Unit->GetTeamSide()));
 }
 
 UBattleTeam* UTeamPanel::GetAITeam() const

@@ -52,6 +52,7 @@ public:
 
 	// Turn order operations
 	void Wait();
+	void RegisterSummonedUnit(AUnit* Unit);
 
 	// Input forwarding
 	void UnitClicked(AUnit* Unit);
@@ -92,7 +93,7 @@ private:
 	TUniquePtr<FTacCategoryLogger> TurnLogger;
 	TUniquePtr<FTacCategoryLogger> AILogger;
 	FTacTurnState* CurrentState = nullptr;
-	int32 CurrentRound;
+	int32 CurrentRound = 0;
 	UTacGridSubsystem* GridSubsystem = nullptr;
 	UPROPERTY()
 	TObjectPtr<UTacAICombatService> AICombatService;

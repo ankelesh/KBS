@@ -4,7 +4,6 @@
 
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
-#include "GameMechanics/Units/LargeUnit.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
@@ -47,7 +46,7 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 				NewUnit->SetUnitDefinition(Placement.Definition);
 			}
 			NewUnit->FinishSpawning(FTransform::Identity);
-			const bool bPlaced = Grid->GetDataManager()->PlaceUnit(NewUnit, Placement.Row, Placement.Col, Placement.Layer, Grid);
+			const bool bPlaced = Grid->GetDataManager()->PlaceUnit(NewUnit, Placement.Row, Placement.Col, Placement.Layer);
 			if (bPlaced)
 			{
 				Grid->SpawnedUnits.Add(NewUnit);

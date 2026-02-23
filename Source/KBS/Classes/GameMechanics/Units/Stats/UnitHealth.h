@@ -18,9 +18,8 @@ struct FUnitHealth
 	void RemoveMaxMultiplier(const FGuid& EffectId, int32 Amount);
 
 	// Current HP modification
-	void TakeDamage(int32 Amount);
-	void Heal(int32 Amount);
 	void SetCurrent(int32 NewCurrent);
+	void ApplyDelta(int32 Amount);
 	void FullHeal();
 
 	// Queries

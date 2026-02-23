@@ -15,6 +15,7 @@ UTacGridMovementService::UTacGridMovementService()
 
 void UTacGridMovementService::Initialize(UGridDataManager* InDataManager)
 {
+	checkf(InDataManager, TEXT("UTacGridMovementService: DataManager must not be null"));
 	DataManager = InDataManager;
 }
 
@@ -24,13 +25,9 @@ void UTacGridMovementService::Initialize(UGridDataManager* InDataManager)
 
 bool UTacGridMovementService::ValidateMovementParameters(AUnit* Unit, FTacCoordinates Where) const
 {
-	if (!Unit || !DataManager)
-	{
-		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Invalid Unit or DataManager"));
-		return false;
-	}
+	checkf(Unit, TEXT("UTacGridMovementService: Unit must not be null"));
 
-	if (!DataManager->IsValidCell(Where))
+	if (!Where.IsValidCell())
 	{
 		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Invalid target cell [%d,%d]"), Where.Row, Where.Col);
 		return false;
@@ -62,12 +59,6 @@ bool UTacGridMovementService::ValidateAndGetPosition(AUnit* Unit, FTacCoordinate
 
 bool UTacGridMovementService::ExecuteDataMove(AUnit* Unit, FTacCoordinates From, FTacCoordinates To)
 {
-	if (!DataManager)
-	{
-		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: DataManager null in ExecuteDataMove"));
-		return false;
-	}
-
 	if (!DataManager->RemoveUnit(From))
 	{
 		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to remove unit from [%d,%d]"), From.Row, From.Col);
@@ -79,18 +70,11 @@ bool UTacGridMovementService::ExecuteDataMove(AUnit* Unit, FTacCoordinates From,
 		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to place unit at [%d,%d]"), To.Row, To.Col);
 		return false;
 	}
-
 	return true;
 }
 
 bool UTacGridMovementService::ExecuteSwapMove(AUnit* Unit1, FTacCoordinates Pos1, AUnit* Unit2, FTacCoordinates Pos2)
 {
-	if (!DataManager)
-	{
-		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: DataManager null in ExecuteSwapMove"));
-		return false;
-	}
-
 	// Remove both units first
 	if (!DataManager->RemoveUnit(Pos1))
 	{
@@ -141,36 +125,32 @@ FTacMovementSegment UTacGridMovementService::CreateMovementSegment(FVector Start
 // Visual Generation Helpers
 //=============================================================================
 
+TArray<FTacMovementSegment> UTacGridMovementService::BuildPathSegments(AUnit* Unit, FTacCoordinates Where)
+{
+	const FVector StartLocation = Unit->GetActorLocation();
+	const FVector TargetLocation = DataManager->GetCellWorldLocation(Where);
+	const FVector Direction = (TargetLocation - StartLocation).GetSafeNormal();
+	const float Speed = Unit->GetMovementSpeed();
+
+	FRotator TargetRotation = Direction.Rotation();
+	TargetRotation.Yaw += FTacMovementConstants::ModelForwardOffset;
+
+	return { CreateMovementSegment(StartLocation, TargetLocation, Speed, TargetRotation) };
+}
+
 FTacMovementVisualData UTacGridMovementService::BuildVisualData(const TArray<FTacMovementSegment>& Segments, FTacCoordinates FinalCell, ETeamSide TeamSide, bool bIsFlankCell)
 {
 	FTacMovementVisualData VisualData;
 	VisualData.Segments = Segments;
 	VisualData.CurrentSegmentProgress = 0.0f;
 
-	// Convert FTacCoordinates (Row, Col) to FIntPoint (X=Col, Y=Row) for rendering
-	VisualData.FinalCell = FIntPoint(FinalCell.Col, FinalCell.Row);
-
-	VisualData.UnitTeamSide = TeamSide;
-	VisualData.RotationDuration = FTacMovementConstants::DefaultRotationDuration;
-
 	// Rotation responsibility split:
-	// - Center cells: Simple team-based rotation calculated here
-	// - Flank cells: Complex enemy-dependent rotation handled by caller
-	if (bIsFlankCell)
-	{
-		VisualData.bApplyFlankRotationAtEnd = true;
-		VisualData.bApplyDefaultRotationAtEnd = false;
-		// TargetRotation not set - caller must compute based on adjacent enemies
-	}
-	else
-	{
-		VisualData.bApplyFlankRotationAtEnd = false;
-		VisualData.bApplyDefaultRotationAtEnd = true;
-		// TargetRotation set directly - simple team-based facing
-		VisualData.TargetRotation = CalculateCellOrientation(FinalCell, TeamSide);
-	}
-
-	VisualData.RotationProgress = 0.0f;
+	// - Center cells: team-based final orientation calculated here
+	// - Flank cells: enemy-dependent rotation, no default applied
+	VisualData.bApplyFlankRotationAtEnd = bIsFlankCell;
+	VisualData.bApplyDefaultRotationAtEnd = !bIsFlankCell;
+	if (!bIsFlankCell)
+		VisualData.TargetRotation = CalculateCellOrientation(TeamSide);
 
 	return VisualData;
 }
@@ -179,18 +159,14 @@ FTacMovementVisualData UTacGridMovementService::BuildVisualData(const TArray<FTa
 // Orientation Calculation
 //=============================================================================
 
-FRotator UTacGridMovementService::CalculateCellOrientation(FTacCoordinates Location, ETeamSide TeamSide) const
+FRotator UTacGridMovementService::CalculateCellOrientation(ETeamSide TeamSide) const
 {
 	// Only calculates simple team-based rotation for center cells
 	// Does NOT handle flank rotation (requires enemy adjacency info)
-	FRotator DefaultRotation;
-	DefaultRotation.Pitch = 0.0f;
-	DefaultRotation.Roll = 0.0f;
-	DefaultRotation.Yaw = (TeamSide == ETeamSide::Attacker)
+	const float Yaw = (TeamSide == ETeamSide::Attacker)
 		? FTacMovementConstants::AttackerDefaultYaw
 		: FTacMovementConstants::DefenderDefaultYaw;
-
-	return DefaultRotation;
+	return FRotator(0.0f, Yaw, 0.0f);
 }
 
 //=============================================================================
@@ -199,45 +175,29 @@ FRotator UTacGridMovementService::CalculateCellOrientation(FTacCoordinates Locat
 
 TArray<FTacMovementSegment> UTacGridMovementService::MakeUnitPath(AUnit* UnitToMove, FTacCoordinates Where)
 {
-	TArray<FTacMovementSegment> Path;
-
 	FTacCoordinates CurrentPos;
 	if (!ValidateAndGetPosition(UnitToMove, Where, CurrentPos))
 	{
-		return Path;
+		return {};
 	}
-
-	const FVector StartLocation = UnitToMove->GetActorLocation();
-	const FVector TargetLocation = DataManager->GetCellWorldLocation(Where);
-	const FVector Direction = (TargetLocation - StartLocation).GetSafeNormal();
-	const float Speed = UnitToMove->GetMovementSpeed();
-
-	FRotator TargetRotation = Direction.Rotation();
-	TargetRotation.Yaw += FTacMovementConstants::ModelForwardOffset;
-
-	Path.Add(CreateMovementSegment(StartLocation, TargetLocation, Speed, TargetRotation));
-
-	return Path;
+	return BuildPathSegments(UnitToMove, Where);
 }
 
 FTacMovementVisualData UTacGridMovementService::MakeMovementVisual(AUnit* UnitToMove, FTacCoordinates Where)
 {
-	FTacMovementVisualData VisualData;
-
 	FTacCoordinates CurrentPos;
 	if (!ValidateAndGetPosition(UnitToMove, Where, CurrentPos))
 	{
-		return VisualData;
+		return {};
 	}
 
-	TArray<FTacMovementSegment> Path = MakeUnitPath(UnitToMove, Where);
+	TArray<FTacMovementSegment> Path = BuildPathSegments(UnitToMove, Where);
 	if (Path.Num() == 0)
 	{
-		return VisualData;
+		return {};
 	}
 
-	const bool bIsFlankCell = DataManager && DataManager->IsFlankCell(Where);
-	return BuildVisualData(Path, Where, UnitToMove->GetTeamSide(), bIsFlankCell);
+	return BuildVisualData(Path, Where, UnitToMove->GetTeamSide(), Where.IsFlankCell());
 }
 
 bool UTacGridMovementService::PushUnitToCell(AUnit* UnitToMove, FTacCoordinates Where)
@@ -273,12 +233,13 @@ bool UTacGridMovementService::TeleportUnit(AUnit* UnitToMove, FTacCoordinates Wh
 		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute teleport"));
 		return false;
 	}
+	UnitToMove->HandleMoved(FTacMovementVisualData{});
 
 	UE_LOG(LogTacGrid, Log, TEXT("TeleportUnit: %s [%d,%d]->[%d,%d]"), *UnitToMove->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
 	return true;
 }
 
-bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacMovementVisualData& OutVisuals, TOptional<FTacMovementVisualData>& OutSwappedUnitVisuals)
+bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 {
 	// ===== VALIDATION PHASE =====
 	FTacCoordinates CurrentPos;
@@ -289,36 +250,16 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacM
 
 	AUnit* TargetOccupant = DataManager->GetUnit(Where);
 
-	// Check multi-cell restrictions
-	if (Unit->IsMultiCell() && TargetOccupant)
-	{
-		UE_LOG(LogTacGrid, Warning, TEXT("UTacGridMovementService: Multi-cell units cannot swap positions"));
-		return false;
-	}
-
-	if (TargetOccupant && TargetOccupant->IsMultiCell())
-	{
-		UE_LOG(LogTacGrid, Warning, TEXT("UTacGridMovementService: Cannot swap with multi-cell unit"));
-		return false;
-	}
-
 	// ===== VISUAL GENERATION PHASE (no mutation) =====
 	const bool bIsSwap = (TargetOccupant != nullptr);
+	const bool bTargetIsFlank = Where.IsFlankCell();
+	const bool bCurrentIsFlank = CurrentPos.IsFlankCell();
 
-	const bool bTargetIsFlank = DataManager && DataManager->IsFlankCell(Where);
-	const bool bCurrentIsFlank = DataManager && DataManager->IsFlankCell(CurrentPos);
-
-	TArray<FTacMovementSegment> MainUnitPath = MakeUnitPath(Unit, Where);
-	OutVisuals = BuildVisualData(MainUnitPath, Where, Unit->GetTeamSide(), bTargetIsFlank);
-
+	FTacMovementVisualData UnitVisuals = BuildVisualData(BuildPathSegments(Unit, Where), Where, Unit->GetTeamSide(), bTargetIsFlank);
+	FTacMovementVisualData SwappedVisuals;
 	if (bIsSwap)
 	{
-		TArray<FTacMovementSegment> SwappedUnitPath = MakeUnitPath(TargetOccupant, CurrentPos);
-		OutSwappedUnitVisuals = BuildVisualData(SwappedUnitPath, CurrentPos, TargetOccupant->GetTeamSide(), bCurrentIsFlank);
-	}
-	else
-	{
-		OutSwappedUnitVisuals.Reset();
+		SwappedVisuals = BuildVisualData(BuildPathSegments(TargetOccupant, CurrentPos), CurrentPos, TargetOccupant->GetTeamSide(), bCurrentIsFlank);
 	}
 
 	// ===== GRID MUTATION PHASE =====
@@ -329,6 +270,8 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacM
 			UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute swap move"));
 			return false;
 		}
+		Unit->HandleMoved(UnitVisuals);
+		TargetOccupant->HandleMoved(SwappedVisuals);
 	}
 	else
 	{
@@ -337,17 +280,11 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where, FTacM
 			UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute data move"));
 			return false;
 		}
+		Unit->HandleMoved(UnitVisuals);
 	}
 
-	if (bIsSwap)
-	{
-		UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d] (swap with %s)"),
-			*Unit->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col, *TargetOccupant->GetLogName());
-	}
-	else
-	{
-		UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d]"),
-			*Unit->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col);
-	}
+	const FString SwapSuffix = bIsSwap ? FString::Printf(TEXT(" (swap with %s)"), *TargetOccupant->GetLogName()) : TEXT("");
+	UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d]%s"),
+		*Unit->GetLogName(), CurrentPos.Row, CurrentPos.Col, Where.Row, Where.Col, *SwapSuffix);
 	return true;
 }
