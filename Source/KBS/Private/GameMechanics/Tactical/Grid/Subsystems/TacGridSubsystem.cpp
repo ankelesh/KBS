@@ -159,6 +159,11 @@ bool UTacGridSubsystem::IsUnitOffField(const AUnit* Unit) const
 	return DataManager->IsUnitOffField(Unit);
 }
 
+void UTacGridSubsystem::PlaceUnitOffField(AUnit* Unit)
+{
+	DataManager->PlaceUnitOffField(Unit);
+}
+
 void UTacGridSubsystem::HandleUnitDied(AUnit* Unit)
 {
 	FTacCoordinates UnitCoords;
