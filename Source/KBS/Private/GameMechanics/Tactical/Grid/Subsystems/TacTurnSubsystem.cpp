@@ -217,7 +217,8 @@ void UTacTurnSubsystem::RegisterSummonedUnit(AUnit* Unit)
 
 void UTacTurnSubsystem::ReloadTurnOrder()
 {
-	TArray<AUnit*> Units = GridSubsystem->GetActiveUnits();
+	TArray<AUnit*> Units = GridSubsystem->GetAllAliveUnits();
+	Units.RemoveAll([](AUnit* Unit) { return Unit->GetStats().Status.IsFleeing(); });
 	TurnOrder->Repopulate(Units, GridSubsystem->GetAttackerTeam());
 	for (AUnit* Unit : Units)
 	{
