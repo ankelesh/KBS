@@ -46,6 +46,7 @@ public:
 
 	TArray<AUnit*> GetOffFieldUnits() const;
 	bool IsUnitOffField(const AUnit* Unit) const;
+	void PlaceUnitOffField(AUnit* Unit);
 
 private:
 	UFUNCTION()
