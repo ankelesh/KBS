@@ -87,4 +87,6 @@ public:
 	TObjectPtr<UAnimMontage> HitReactionMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float MovementSpeed = 300.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
+	int32 UnitSize = 1; // 1 = single cell, 2 = two cells
 };
