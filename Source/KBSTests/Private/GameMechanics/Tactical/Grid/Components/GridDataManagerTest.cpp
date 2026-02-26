@@ -327,65 +327,6 @@ bool FGridDataManagerRemoveUnitClearsDataTest::RunTest(const FString& Parameters
 	return true;
 }
 
-// Test: GetUnitPosition for single-cell unit
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetUnitPositionSingleTest,
-	"KBS.Grid.Components.DataManager.GetUnitPosition_SingleCellUnit_ReturnsCorrectPosition",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerGetUnitPositionSingleTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
-
-	DataManager->PlaceUnit(Unit, 3, 1, ETacGridLayer::Air);
-
-	FTacCoordinates OutPosition;
-	ETacGridLayer Layer;
-	bool bFound = DataManager->GetUnitPosition(Unit, OutPosition, Layer);
-
-	TestTrue("Should find unit position", bFound);
-	TestEqual("Row should match", OutPosition.Row, 3);
-	TestEqual("Col should match", OutPosition.Col, 1);
-	TestEqual("Layer should match", Layer, ETacGridLayer::Air);
-
-	Grid->Destroy();
-	Unit->Destroy();
-	return true;
-}
-
-// Test: GetUnitPosition for unplaced unit returns false
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridDataManagerGetUnitPositionNotPlacedTest,
-	"KBS.Grid.Components.DataManager.GetUnitPosition_NotPlacedUnit_ReturnsFalse",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
-)
-
-bool FGridDataManagerGetUnitPositionNotPlacedTest::RunTest(const FString& Parameters)
-{
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World) { AddError("Failed to get world"); return false; }
-
-	ATacBattleGrid* Grid = FGridDataManagerTestHelper::CreateMockGrid(World);
-	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
-	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
-
-	FTacCoordinates OutPosition;
-	ETacGridLayer Layer;
-	bool bFound = DataManager->GetUnitPosition(Unit, OutPosition, Layer);
-
-	TestFalse("Unplaced unit should not be found", bFound);
-
-	Grid->Destroy();
-	Unit->Destroy();
-	return true;
-}
-
 // Test: Corpse push adds corpse to stack
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridDataManagerPushCorpseTest,

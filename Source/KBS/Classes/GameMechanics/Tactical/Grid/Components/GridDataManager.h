@@ -64,13 +64,12 @@ public:
 	bool PlaceUnit(AUnit* Unit, FTacCoordinates Coords);
 	AUnit* GetUnit(FTacCoordinates Coords) const;
 	bool RemoveUnit(FTacCoordinates Coords);
+	bool RemoveUnit(AUnit* Unit);
 
 	// Convenience overloads (delegate to FTacCoordinates versions)
 	bool PlaceUnit(AUnit* Unit, int32 Row, int32 Col, ETacGridLayer Layer);
 	AUnit* GetUnit(int32 Row, int32 Col, ETacGridLayer Layer) const;
 	bool RemoveUnit(int32 Row, int32 Col, ETacGridLayer Layer);
-
-	bool GetUnitPosition(const AUnit* Unit, FTacCoordinates& OutPosition, ETacGridLayer& OutLayer) const;
 	bool IsUnitOnFlank(const AUnit* Unit) const;
 	void SetUnitFlankState(AUnit* Unit, bool bOnFlank);
 	FRotator GetUnitOriginalRotation(const AUnit* Unit) const;
