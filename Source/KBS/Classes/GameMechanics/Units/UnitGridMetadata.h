@@ -69,6 +69,46 @@ struct KBS_API FUnitGridMetadata
 		return Side == ETeamSide::Defender ? EUnitOrientation::GridTop : EUnitOrientation::GridBottom;
 	}
 
+	EUnitOrientation ToAbsoluteOrientation(ETeamRelativeDir Dir) const
+	{
+		// Defender faces GridTop; Attacker faces GridBottom (looking south flips Left<->Right).
+		const bool bDefender = (Team == ETeamSide::Defender);
+		switch (Dir)
+		{
+		case ETeamRelativeDir::Front: return bDefender ? EUnitOrientation::GridTop    : EUnitOrientation::GridBottom;
+		case ETeamRelativeDir::Back:  return bDefender ? EUnitOrientation::GridBottom : EUnitOrientation::GridTop;
+		case ETeamRelativeDir::Left:  return bDefender ? EUnitOrientation::GridLeft   : EUnitOrientation::GridRight;
+		case ETeamRelativeDir::Right: return bDefender ? EUnitOrientation::GridRight  : EUnitOrientation::GridLeft;
+		}
+		return EUnitOrientation::GridTop;
+	}
+
+	ETeamRelativeDir ToTeamRelativeDir(EUnitOrientation AbsOrientation) const
+	{
+		const bool bDefender = (Team == ETeamSide::Defender);
+		if (bDefender)
+		{
+			switch (AbsOrientation)
+			{
+			case EUnitOrientation::GridTop:    return ETeamRelativeDir::Front;
+			case EUnitOrientation::GridBottom: return ETeamRelativeDir::Back;
+			case EUnitOrientation::GridLeft:   return ETeamRelativeDir::Left;
+			case EUnitOrientation::GridRight:  return ETeamRelativeDir::Right;
+			}
+		}
+		else
+		{
+			switch (AbsOrientation)
+			{
+			case EUnitOrientation::GridBottom: return ETeamRelativeDir::Front;
+			case EUnitOrientation::GridTop:    return ETeamRelativeDir::Back;
+			case EUnitOrientation::GridRight:  return ETeamRelativeDir::Left;
+			case EUnitOrientation::GridLeft:   return ETeamRelativeDir::Right;
+			}
+		}
+		return ETeamRelativeDir::Front;
+	}
+
 private:
 	bool bInitialized;
 };

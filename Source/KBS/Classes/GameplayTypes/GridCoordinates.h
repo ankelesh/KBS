@@ -19,6 +19,22 @@ enum class EUnitOrientation : uint8
 	GridRight  = 3 UMETA(DisplayName = "Grid Right")   // Facing col=4
 };
 
+UENUM(BlueprintType)
+enum class ERelativeTurn : uint8
+{
+	Left  UMETA(DisplayName = "Turn Left"),
+	Right UMETA(DisplayName = "Turn Right")
+};
+
+UENUM(BlueprintType)
+enum class ETeamRelativeDir : uint8
+{
+	Front  UMETA(DisplayName = "Team Front"),  // Toward opponent's base
+	Back   UMETA(DisplayName = "Team Back"),   // Toward own base
+	Left   UMETA(DisplayName = "Team Left"),   // Left from unit's facing perspective
+	Right  UMETA(DisplayName = "Team Right")   // Right from unit's facing perspective
+};
+
 
 USTRUCT(BlueprintType)
 struct KBS_API FTacCoordinates
@@ -71,27 +87,32 @@ inline uint32 GetTypeHash(const FTacCoordinates& Coords)
 	return Hash;
 }
 
-inline EUnitOrientation RotateOrientationCW(EUnitOrientation O)
+inline EUnitOrientation RotateOrientationRight(EUnitOrientation O)
 {
 	// Top->Right->Bottom->Left->Top
-	constexpr EUnitOrientation CW[] = {
+	constexpr EUnitOrientation Table[] = {
 		EUnitOrientation::GridRight,  // Top    -> Right
 		EUnitOrientation::GridLeft,   // Bottom -> Left
 		EUnitOrientation::GridTop,    // Left   -> Top
 		EUnitOrientation::GridBottom  // Right  -> Bottom
 	};
-	return CW[static_cast<uint8>(O)];
+	return Table[static_cast<uint8>(O)];
 }
 
-inline EUnitOrientation RotateOrientationCCW(EUnitOrientation O)
+inline EUnitOrientation RotateOrientationLeft(EUnitOrientation O)
 {
-	constexpr EUnitOrientation CCW[] = {
+	constexpr EUnitOrientation Table[] = {
 		EUnitOrientation::GridLeft,   // Top    -> Left
 		EUnitOrientation::GridRight,  // Bottom -> Right
 		EUnitOrientation::GridBottom, // Left   -> Bottom
 		EUnitOrientation::GridTop     // Right  -> Top
 	};
-	return CCW[static_cast<uint8>(O)];
+	return Table[static_cast<uint8>(O)];
+}
+
+inline EUnitOrientation RotateOrientation(EUnitOrientation O, ERelativeTurn Turn)
+{
+	return Turn == ERelativeTurn::Right ? RotateOrientationRight(O) : RotateOrientationLeft(O);
 }
 
 inline EUnitOrientation OppositeOrientation(EUnitOrientation O)
