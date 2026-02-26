@@ -101,7 +101,10 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 	LayerArray[Coords.Row].Cells[Coords.Col] = Unit;
 	Unit->SetActorLocation(Coords.ToWorldLocation(GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight()));
 
-	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, Coords.IsFlankCell());
+	const EUnitOrientation Orientation = FUnitGridMetadata::DefaultOrientationForTeam(Unit->GetTeamSide());
+	const int32 UnitSize = Unit->GetUnitDefinition()->UnitSize;
+	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, Coords.IsFlankCell(),
+		Orientation, FTacCoordinates::Invalid(), UnitSize);
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
@@ -153,7 +156,8 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 
 	UnitFlankStates.Remove(Unit->GetUnitID());
 	UnitOriginalRotations.Remove(Unit->GetUnitID());
-	Unit->GridMetadata = FUnitGridMetadata(Unit->GridMetadata.Coords, Unit->GridMetadata.Team, false, false);
+	Unit->GridMetadata = FUnitGridMetadata(Unit->GridMetadata.Coords, Unit->GridMetadata.Team, false, false,
+		Unit->GridMetadata.Orientation, FTacCoordinates::Invalid(), Unit->GridMetadata.UnitSize);
 	UE_LOG(LogTacGrid, Log, TEXT("RemoveUnit: %s from [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
@@ -396,24 +400,6 @@ TArray<AUnit*> UGridDataManager::GetUnitsInCells(const TArray<FTacCoordinates>& 
 	TArray<TObjectPtr<AUnit>> Result;
 	UniqueUnits.GenerateValueArray(Result);
 	return Result;
-}
-
-bool UGridDataManager::IsMultiCellUnit(const AUnit* Unit) const
-{
-	if (!Unit)
-	{
-		return false;
-	}
-	return MultiCellUnits.Contains(Unit->GetUnitID());
-}
-
-const FMultiCellUnitData* UGridDataManager::GetMultiCellData(const AUnit* Unit) const
-{
-	if (!Unit)
-	{
-		return nullptr;
-	}
-	return MultiCellUnits.Find(Unit->GetUnitID());
 }
 
 void UGridDataManager::FilterCells(ETacGridLayer Layer, TFunctionRef<bool(FTacCoordinates)> Predicate, TArray<FTacCoordinates>& OutCells) const

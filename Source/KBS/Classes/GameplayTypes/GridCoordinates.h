@@ -10,6 +10,15 @@ enum class ETacGridLayer : uint8
 	Air = 1 UMETA(DisplayName = "Air")
 };
 
+UENUM(BlueprintType)
+enum class EUnitOrientation : uint8
+{
+	GridTop    = 0 UMETA(DisplayName = "Grid Top"),    // Facing row=0
+	GridBottom = 1 UMETA(DisplayName = "Grid Bottom"), // Facing last row
+	GridLeft   = 2 UMETA(DisplayName = "Grid Left"),   // Facing col=0
+	GridRight  = 3 UMETA(DisplayName = "Grid Right")   // Facing col=4
+};
+
 
 USTRUCT(BlueprintType)
 struct KBS_API FTacCoordinates
@@ -60,6 +69,54 @@ inline uint32 GetTypeHash(const FTacCoordinates& Coords)
 	uint32 Hash = HashCombine(GetTypeHash(Coords.Row), GetTypeHash(Coords.Col));
 	Hash = HashCombine(Hash, GetTypeHash(static_cast<uint8>(Coords.Layer)));
 	return Hash;
+}
+
+inline EUnitOrientation RotateOrientationCW(EUnitOrientation O)
+{
+	// Top->Right->Bottom->Left->Top
+	constexpr EUnitOrientation CW[] = {
+		EUnitOrientation::GridRight,  // Top    -> Right
+		EUnitOrientation::GridLeft,   // Bottom -> Left
+		EUnitOrientation::GridTop,    // Left   -> Top
+		EUnitOrientation::GridBottom  // Right  -> Bottom
+	};
+	return CW[static_cast<uint8>(O)];
+}
+
+inline EUnitOrientation RotateOrientationCCW(EUnitOrientation O)
+{
+	constexpr EUnitOrientation CCW[] = {
+		EUnitOrientation::GridLeft,   // Top    -> Left
+		EUnitOrientation::GridRight,  // Bottom -> Right
+		EUnitOrientation::GridBottom, // Left   -> Bottom
+		EUnitOrientation::GridTop     // Right  -> Top
+	};
+	return CCW[static_cast<uint8>(O)];
+}
+
+inline EUnitOrientation OppositeOrientation(EUnitOrientation O)
+{
+	constexpr EUnitOrientation Opp[] = {
+		EUnitOrientation::GridBottom, // Top    <-> Bottom
+		EUnitOrientation::GridTop,
+		EUnitOrientation::GridRight,  // Left   <-> Right
+		EUnitOrientation::GridLeft
+	};
+	return Opp[static_cast<uint8>(O)];
+}
+
+// Returns the extra cell in the facing direction from Primary.
+// Caller must validate with IsValidCell() before use.
+inline FTacCoordinates GetExtraCellCoords(FTacCoordinates Primary, EUnitOrientation Orientation)
+{
+	switch (Orientation)
+	{
+	case EUnitOrientation::GridTop:    return FTacCoordinates(Primary.Row - 1, Primary.Col, Primary.Layer);
+	case EUnitOrientation::GridBottom: return FTacCoordinates(Primary.Row + 1, Primary.Col, Primary.Layer);
+	case EUnitOrientation::GridLeft:   return FTacCoordinates(Primary.Row, Primary.Col - 1, Primary.Layer);
+	case EUnitOrientation::GridRight:  return FTacCoordinates(Primary.Row, Primary.Col + 1, Primary.Layer);
+	}
+	return FTacCoordinates::Invalid();
 }
 
 USTRUCT()

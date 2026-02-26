@@ -53,17 +53,6 @@ struct FGridRow
 	}
 };
 
-USTRUCT()
-struct FMultiCellUnitData
-{
-	GENERATED_BODY()
-	UPROPERTY()
-	TArray<FTacCoordinates> OccupiedCells;
-	UPROPERTY()
-	FTacCoordinates PrimaryCell;
-	UPROPERTY()
-	bool bIsHorizontal = false;
-};
 UCLASS()
 class KBS_API UGridDataManager : public UObject
 {
@@ -114,9 +103,6 @@ public:
 	// Collects units from the specified storage locations, filtered by Predicate
 	TArray<AUnit*> GetUnits(EUnitQuerySource Sources, TFunctionRef<bool(const AUnit*)> Predicate) const;
 
-	bool IsMultiCellUnit(const AUnit* Unit) const;
-	const FMultiCellUnitData* GetMultiCellData(const AUnit* Unit) const;
-
 	// Primitive spawn: creates actor, places in grid, assigns team. No event binding, no turn registration.
 	AUnit* SpawnUnit(TSubclassOf<AUnit> UnitClass, UUnitDefinition* Definition, FTacCoordinates Cell, UBattleTeam* Team);
 	// Removes unit from grid data and its team. Does NOT destroy or HandleDeath.
@@ -145,8 +131,6 @@ private:
 	TMap<FGuid, bool> UnitFlankStates;
 	UPROPERTY()
 	TMap<FGuid, FRotator> UnitOriginalRotations;
-	UPROPERTY()
-	TMap<FGuid, FMultiCellUnitData> MultiCellUnits;
 	UPROPERTY()
 	TMap<FGuid, TObjectPtr<AUnit>> OffFieldUnits;
 	UPROPERTY()
