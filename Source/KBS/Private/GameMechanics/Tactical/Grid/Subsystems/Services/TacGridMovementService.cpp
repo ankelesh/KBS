@@ -38,13 +38,12 @@ bool UTacGridMovementService::ValidateMovementParameters(AUnit* Unit, FTacCoordi
 
 bool UTacGridMovementService::GetUnitCurrentPosition(AUnit* Unit, FTacCoordinates& OutPos) const
 {
-	ETacGridLayer Layer;
-	if (!DataManager->GetUnitPosition(Unit, OutPos, Layer))
+	if (!Unit->GridMetadata.IsOnField())
 	{
-		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Could not find unit position"));
+		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Unit is not on field"));
 		return false;
 	}
-	OutPos.Layer = Layer;
+	OutPos = Unit->GridMetadata.Coords;
 	return true;
 }
 

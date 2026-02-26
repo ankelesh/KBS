@@ -143,8 +143,12 @@ bool UTacGridSubsystem::GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& O
 		return false;
 	}
 
-	ETacGridLayer OutLayer;
-	return DataManager->GetUnitPosition(Unit, OutCoordinates, OutLayer);
+	if (!Unit->GridMetadata.IsOnField())
+	{
+		return false;
+	}
+	OutCoordinates = Unit->GridMetadata.Coords;
+	return true;
 }
 
 TArray<AUnit*> UTacGridSubsystem::GetOffFieldUnits() const
@@ -166,14 +170,12 @@ void UTacGridSubsystem::PlaceUnitOffField(AUnit* Unit)
 
 void UTacGridSubsystem::HandleUnitDied(AUnit* Unit)
 {
-	FTacCoordinates UnitCoords;
-	ETacGridLayer Layer;
-	if (!DataManager->GetUnitPosition(Unit, UnitCoords, Layer))
+	if (!Unit->GridMetadata.IsOnField())
 	{
 		return;
 	}
-	DataManager->RemoveUnit(UnitCoords);
-	DataManager->PushCorpse(Unit, UnitCoords);
+	DataManager->PushCorpse(Unit, Unit->GridMetadata.Coords);
+	DataManager->RemoveUnit(Unit);
 }
 
 AUnit* UTacGridSubsystem::SpawnSummonedUnit(TSubclassOf<AUnit> UnitClass, UUnitDefinition* Definition,

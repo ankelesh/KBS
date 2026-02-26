@@ -103,8 +103,23 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 
 	const EUnitOrientation Orientation = FUnitGridMetadata::DefaultOrientationForTeam(Unit->GetTeamSide());
 	const int32 UnitSize = Unit->GetUnitDefinition()->UnitSize;
+
+	FTacCoordinates ExtraCell = FTacCoordinates::Invalid();
+	if (UnitSize > 1)
+	{
+		const FTacCoordinates Candidate = GetExtraCellCoords(Coords, Orientation);
+		if (Candidate.IsValidCell()
+			&& Candidate.Row < LayerArray.Num()
+			&& Candidate.Col < LayerArray[Candidate.Row].Cells.Num()
+			&& LayerArray[Candidate.Row].Cells[Candidate.Col] == nullptr)
+		{
+			LayerArray[Candidate.Row].Cells[Candidate.Col] = Unit;
+			ExtraCell = Candidate;
+		}
+	}
+
 	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, Coords.IsFlankCell(),
-		Orientation, FTacCoordinates::Invalid(), UnitSize);
+		Orientation, ExtraCell, UnitSize);
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
@@ -152,6 +167,16 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 		return false;
 	}
 
+	if (Unit->GridMetadata.HasExtraCell())
+	{
+		const FTacCoordinates Extra = Unit->GridMetadata.ExtraCell;
+		TArray<FGridRow>& ExtraLayer = GetLayer(Extra.Layer);
+		if (Extra.Row < ExtraLayer.Num() && Extra.Col < ExtraLayer[Extra.Row].Cells.Num())
+		{
+			ExtraLayer[Extra.Row].Cells[Extra.Col] = nullptr;
+		}
+	}
+
 	LayerArray[Coords.Row].Cells[Coords.Col] = nullptr;
 
 	UnitFlankStates.Remove(Unit->GetUnitID());
@@ -167,6 +192,13 @@ bool UGridDataManager::RemoveUnit(int32 Row, int32 Col, ETacGridLayer Layer)
 {
 	return RemoveUnit(FTacCoordinates(Row, Col, Layer));
 }
+
+bool UGridDataManager::RemoveUnit(AUnit* Unit)
+{
+	checkf(Unit, TEXT("RemoveUnit: Unit must not be null"));
+	return RemoveUnit(Unit->GridMetadata.Coords);
+}
+
 TArray<FGridRow>& UGridDataManager::GetLayer(ETacGridLayer Layer)
 {
 	return Layer == ETacGridLayer::Ground ? GroundLayer : AirLayer;
@@ -174,39 +206,6 @@ TArray<FGridRow>& UGridDataManager::GetLayer(ETacGridLayer Layer)
 const TArray<FGridRow>& UGridDataManager::GetLayer(ETacGridLayer Layer) const
 {
 	return Layer == ETacGridLayer::Ground ? GroundLayer : AirLayer;
-}
-bool UGridDataManager::GetUnitPosition(const AUnit* Unit, FTacCoordinates& OutPosition, ETacGridLayer& OutLayer) const
-{
-	if (!Unit)
-	{
-		return false;
-	}
-
-	for (int32 Row = 0; Row < GroundLayer.Num(); ++Row)
-	{
-		for (int32 Col = 0; Col < GroundLayer[Row].Cells.Num(); ++Col)
-		{
-			if (GroundLayer[Row].Cells[Col] == Unit)
-			{
-				OutPosition = FTacCoordinates(Row, Col, ETacGridLayer::Ground);
-				OutLayer = ETacGridLayer::Ground;
-				return true;
-			}
-		}
-	}
-	for (int32 Row = 0; Row < AirLayer.Num(); ++Row)
-	{
-		for (int32 Col = 0; Col < AirLayer[Row].Cells.Num(); ++Col)
-		{
-			if (AirLayer[Row].Cells[Col] == Unit)
-			{
-				OutPosition = FTacCoordinates(Row, Col, ETacGridLayer::Air);
-				OutLayer = ETacGridLayer::Air;
-				return true;
-			}
-		}
-	}
-	return false;
 }
 bool UGridDataManager::IsUnitOnFlank(const AUnit* Unit) const
 {
@@ -491,11 +490,9 @@ void UGridDataManager::PlaceUnitOffField(AUnit* Unit)
 
 void UGridDataManager::PlaceUnitOffField(AUnit* Unit, bool bClearEffects, bool bUnsubscribeAbilities)
 {
-	FTacCoordinates CurrentCoords;
-	ETacGridLayer Layer;
-	checkf(GetUnitPosition(Unit, CurrentCoords, Layer), TEXT("PlaceUnitOffField: %s is not on the grid"), *Unit->GetLogName());
+	checkf(Unit->GridMetadata.IsOnField(), TEXT("PlaceUnitOffField: %s is not on the grid"), *Unit->GetLogName());
 
-	RemoveUnit(CurrentCoords);
+	RemoveUnit(Unit);
 	Unit->GridMetadata.Coords = FTacCoordinates::Invalid();
 
 	if (bClearEffects)
@@ -541,11 +538,9 @@ TArray<AUnit*> UGridDataManager::GetOffFieldUnits() const
 
 void UGridDataManager::RemoveUnitFromGrid(AUnit* Unit)
 {
-	FTacCoordinates Coords;
-	ETacGridLayer Layer;
-	if (GetUnitPosition(Unit, Coords, Layer))
+	if (Unit->GridMetadata.IsOnField())
 	{
-		RemoveUnit(Coords);
+		RemoveUnit(Unit);
 	}
 	UBattleTeam* Team = GetTeamBySide(Unit->GetGridMetadata().Team);
 	if (Team)
