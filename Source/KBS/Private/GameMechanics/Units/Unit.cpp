@@ -193,6 +193,11 @@ void AUnit::HandleAttacks(AUnit* Target, bool Emits)
 	if (Emits) OnUnitAttacks.Broadcast(this, Target);
 }
 
+void AUnit::NotifyOrientationChanged()
+{
+	OnOrientationChanged.Broadcast(GridMetadata.Orientation);
+}
+
 void AUnit::HandleMoved(const FTacMovementVisualData& MovementData)
 {
 	if (IsDead()) return;

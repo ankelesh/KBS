@@ -46,24 +46,20 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 				NewUnit->SetUnitDefinition(Placement.Definition);
 			}
 			NewUnit->FinishSpawning(FTransform::Identity);
+			UBattleTeam* Team = Placement.bIsAttacker ? Grid->GetDataManager()->GetAttackerTeam() : Grid->GetDataManager()->GetDefenderTeam();
+			Team->AddUnit(NewUnit);
+			NewUnit->SetTeamSide(Team->GetTeamSide());
+
 			const bool bPlaced = Grid->GetDataManager()->PlaceUnit(NewUnit, Placement.Row, Placement.Col, Placement.Layer);
 			if (bPlaced)
 			{
 				Grid->SpawnedUnits.Add(NewUnit);
-				UBattleTeam* Team = Placement.bIsAttacker ? Grid->GetDataManager()->GetAttackerTeam() : Grid->GetDataManager()->GetDefenderTeam();
-				Team->AddUnit(NewUnit);
-				NewUnit->SetTeamSide(Team->GetTeamSide());
-
-				const bool bIsFlank = FTacCoordinates::IsFlankCell(Placement.Row, Placement.Col);
-				const FRotator Rotation = bIsFlank
-					? FTacCoordinates::GetFlankRotation(Placement.Row, Placement.Col)
-					: FRotator(0.0f, Team->GetTeamSide() == ETeamSide::Attacker ? 0.0f : 180.0f, 0.0f);
-				NewUnit->SetActorRotation(Rotation);
 				UE_LOG(LogTemp, Log, TEXT("Placed unit at [%d,%d] on layer %d"), Placement.Row, Placement.Col, (int32)Placement.Layer);
 			}
 			else
 			{
 				UE_LOG(LogTemp, Error, TEXT("Failed to place unit at [%d,%d]"), Placement.Row, Placement.Col);
+				Team->RemoveUnit(NewUnit);
 				NewUnit->Destroy();
 			}
 		}

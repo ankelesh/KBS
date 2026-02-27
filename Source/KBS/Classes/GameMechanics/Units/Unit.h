@@ -50,6 +50,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitStatsModified, AUnit*, Unit,
  */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitCombatCalculation, FAttackContext&, FHitInstance&);
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUnitDamageApply, FAttackContext&, FHitInstance&, FDamageResult&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitOrientationChanged, EUnitOrientation);
 
 UCLASS(meta=(ScriptName="TacUnit"))
 class KBS_API AUnit : public APawn
@@ -92,6 +93,9 @@ public:
 	FOnUnitStatsModified OnUnitStatsModified;
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitEffectTriggered OnUnitEffectTriggered;
+
+	// Subscribe only — broadcast exclusively via NotifyOrientationChanged() (DataManager-owned).
+	FOnUnitOrientationChanged OnOrientationChanged;
 
 	// --- Combat Phase Events (unit-scoped mirrors of UTacCombatSubsystem signals) ---
 	// Each signal fires only when THIS unit is the attacker or target of the relevant hit.
@@ -184,6 +188,7 @@ protected:
 private:
 	// Grid positioning metadata (modified by UTacGridMovementService via friend access)
 	FUnitGridMetadata GridMetadata;
+	void NotifyOrientationChanged();  // Only UGridDataManager (friend) may call this.
 	void InitializeWeapons(const UUnitDefinition* Definition);
 };
 

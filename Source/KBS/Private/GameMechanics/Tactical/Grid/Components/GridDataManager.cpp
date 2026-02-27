@@ -125,6 +125,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 
 	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, bOnFlank,
 		Orientation, ExtraCell, UnitSize);
+	Unit->NotifyOrientationChanged();
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
@@ -220,6 +221,7 @@ void UGridDataManager::SetUnitOrientation(AUnit* Unit, EUnitOrientation Orientat
 {
 	checkf(Unit, TEXT("SetUnitOrientation: Unit must not be null"));
 	Unit->GridMetadata.Orientation = Orientation;
+	Unit->NotifyOrientationChanged();
 }
 
 void UGridDataManager::SetUnitOnFlank(AUnit* Unit, bool bOnFlank)
