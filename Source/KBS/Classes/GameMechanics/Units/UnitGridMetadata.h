@@ -60,6 +60,32 @@ struct KBS_API FUnitGridMetadata
 	bool IsMultiCell() const { return UnitSize > 1; }
 	bool HasExtraCell() const { return ExtraCell.IsValid(); }
 
+	// For 2-cell units: if Where has a non-zero lateral component (relative to orientation),
+	// resolves to the adjacent cell in that direction from primary. Otherwise returns Where.
+	// For 1-cell units: returns Where unchanged.
+	FTacCoordinates ResolveMovementTarget(FTacCoordinates Where) const
+	{
+		if (!IsMultiCell())
+			return Where;
+
+		// Lateral axis: col for vertical orientations (GridTop/Bottom), row for horizontal (GridLeft/Right)
+		const bool bLateralIsCol = (Orientation == EUnitOrientation::GridTop || Orientation == EUnitOrientation::GridBottom);
+		if (bLateralIsCol)
+		{
+			const int32 ColDelta = Where.Col - Coords.Col;
+			if (ColDelta == 0)
+				return Where;
+			return FTacCoordinates(Coords.Row, Coords.Col + (ColDelta > 0 ? 1 : -1), Coords.Layer);
+		}
+		else
+		{
+			const int32 RowDelta = Where.Row - Coords.Row;
+			if (RowDelta == 0)
+				return Where;
+			return FTacCoordinates(Coords.Row + (RowDelta > 0 ? 1 : -1), Coords.Col, Coords.Layer);
+		}
+	}
+
 	bool IsSameTeam(const FUnitGridMetadata& Other) const { return Team == Other.Team; }
 	bool IsEnemy(const FUnitGridMetadata& Other) const { return Team != Other.Team; }
 	bool IsAlly(const FUnitGridMetadata& Other) const { return Team == Other.Team; }

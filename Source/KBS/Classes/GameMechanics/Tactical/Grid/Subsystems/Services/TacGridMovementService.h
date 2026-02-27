@@ -50,7 +50,7 @@ private:
 	// Visual generation helpers
 	TArray<FTacMovementSegment> BuildPathSegments(AUnit* Unit, FTacCoordinates Where);
 	FTacMovementVisualData BuildVisualData(const TArray<FTacMovementSegment>& Segments,
-		FTacCoordinates FinalCell, ETeamSide TeamSide, bool bIsFlankCell);
+		FTacCoordinates FinalCell, ETeamSide TeamSide, bool bIsFlankCell, bool bIsMultiCell);
 
 	// Orientation calculation
 	FRotator CalculateCellOrientation(ETeamSide TeamSide) const;
