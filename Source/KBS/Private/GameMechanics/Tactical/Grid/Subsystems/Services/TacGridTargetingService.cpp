@@ -23,18 +23,11 @@ void UTacGridTargetingService::Initialize(UGridDataManager* InDataManager)
 	checkf(DataManager, TEXT("TacGridTargetingService: DataManager must be valid after Initialize"));
 }
 
-TArray<FTacCoordinates> UTacGridTargetingService::GetValidTargetCells(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting) const
+TArray<FTacCoordinates> UTacGridTargetingService::GetValidTargetCells(AUnit* Unit, ETargetReach Reach) const
 {
 	check(Unit);
 
 	TArray<FTacCoordinates> TargetCells;
-
-	if (bUseFlankTargeting && Reach == ETargetReach::ClosestEnemies)
-	{
-		GetFlankTargetCells(Unit, TargetCells);
-		UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetCells: %s Flank -> %d cells"), *Unit->GetLogName(), TargetCells.Num());
-		return TargetCells;
-	}
 
 	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
 	check(Metadata.IsValid());
@@ -94,12 +87,12 @@ TArray<FTacCoordinates> UTacGridTargetingService::GetValidTargetCells(AUnit* Uni
 	return TargetCells;
 }
 
-TArray<AUnit*> UTacGridTargetingService::GetValidTargetUnits(AUnit* Unit, ETargetReach Reach, bool bUseFlankTargeting, bool bIncludeDeadUnits) const
+TArray<AUnit*> UTacGridTargetingService::GetValidTargetUnits(AUnit* Unit, ETargetReach Reach, bool bIncludeDeadUnits) const
 {
 	check(Unit);
 
 	TArray<AUnit*> TargetUnits;
-	const TArray<FTacCoordinates> TargetCells = GetValidTargetCells(Unit, Reach, bUseFlankTargeting);
+	const TArray<FTacCoordinates> TargetCells = GetValidTargetCells(Unit, Reach);
 	for (const FTacCoordinates& Cell : TargetCells)
 	{
 		AUnit* TargetUnit = DataManager->GetUnit(Cell);
@@ -129,7 +122,7 @@ FResolvedTargets UTacGridTargetingService::ResolveTargetsFromClick(AUnit* Source
 		case ETargetReach::AllEnemies:
 		case ETargetReach::AllFriendlies:
 		{
-			TArray<AUnit*> AllTargets = GetValidTargetUnits(SourceUnit, Reach, false, false);
+			TArray<AUnit*> AllTargets = GetValidTargetUnits(SourceUnit, Reach, false);
 			Result.ClickedTarget = ClickedUnit;
 			for (AUnit* Target : AllTargets)
 			{
@@ -231,59 +224,23 @@ void UTacGridTargetingService::GetClosestEnemyCells(AUnit* Unit, TArray<FTacCoor
 		CheckNeighbors(Metadata.ExtraCell);
 	}
 
+	const bool bOnEntrance = FFlankCellDefinitions::IsEntranceFlankCell(Metadata.Coords.Row, Metadata.Coords.Col);
+	FTacCoordinates BlockedCell = FTacCoordinates::Invalid();
+	if (bOnEntrance)
+	{
+		BlockedCell = FFlankCellDefinitions::GetEntranceBlockedCell(Metadata.Coords.Row, Metadata.Coords.Col);
+	}
+
 	for (AUnit* Enemy : FoundEnemies)
 	{
+		if (bOnEntrance && Enemy->GetGridMetadata().Coords == BlockedCell)
+		{
+			continue;
+		}
 		AddAllUnitCells(Enemy, OutCells);
 	}
 }
 
-void UTacGridTargetingService::GetFlankTargetCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
-{
-	check(Unit);
-
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
-
-	TArray<FTacCoordinates> AllFlankTargets;
-	const TArray<int32> AdjacentCols = { Metadata.Coords.Col - 1, Metadata.Coords.Col + 1 };
-
-	for (int32 Col : AdjacentCols)
-	{
-		if (Col < 0 || Col >= FGridConstants::GridSize)
-		{
-			continue;
-		}
-		for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
-		{
-			FTacCoordinates TargetCoords(Row, Col, Metadata.Coords.Layer);
-
-			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCoords); TargetUnit && !TargetUnit->IsDead() && Metadata.IsEnemy(TargetUnit->GetGridMetadata()))
-			{
-				AddUnitCellUnique(TargetUnit, AllFlankTargets);
-			}
-		}
-	}
-
-	TArray<FTacCoordinates> ClosestToCenterCells;
-	int32 MinDistToCenter = TNumericLimits<int32>::Max();
-
-	for (const FTacCoordinates& Cell : AllFlankTargets)
-	{
-		const int32 Dist = FMath::Abs(Cell.Row - FGridConstants::CenterRow);
-		if (Dist < MinDistToCenter)
-		{
-			MinDistToCenter = Dist;
-			ClosestToCenterCells.Empty();
-			ClosestToCenterCells.Add(Cell);
-		}
-		else if (Dist == MinDistToCenter)
-		{
-			ClosestToCenterCells.Add(Cell);
-		}
-	}
-
-	OutCells.Append(ClosestToCenterCells);
-}
 
 void UTacGridTargetingService::GetUnitCellsByAffiliation(AUnit* SourceUnit, EAffiliationFilter Filter, TArray<FTacCoordinates>& OutCells) const
 {
@@ -428,6 +385,7 @@ void UTacGridTargetingService::GetAdjacentMoveCells(AUnit* Unit, TArray<FTacCoor
 
 	const bool bIsAttacker = Metadata.Team == ETeamSide::Attacker;
 	const bool bIsMultiCell = Metadata.IsMultiCell() && Metadata.HasExtraCell();
+	const bool bSourceOnFlank = Metadata.Coords.IsFlankCell();
 
 	for (const FIntPoint& Offset : FGridConstants::OrthogonalOffsets)
 	{
@@ -438,44 +396,35 @@ void UTacGridTargetingService::GetAdjacentMoveCells(AUnit* Unit, TArray<FTacCoor
 			continue;
 		}
 
-		// Block own-team flank entry
 		if (NewPrimary.IsFlankCell())
 		{
-			if (bIsAttacker && FFlankCellDefinitions::IsAttackerFlankColumn(NewPrimary.Col))
+			// Intra-flank movement (entrance<->rear on same enemy column) is allowed
+			if (bSourceOnFlank && NewPrimary.Col == Metadata.Coords.Col)
 			{
-				continue;
+				if (!IsValidMoveDestination(Unit, NewPrimary))
+				{
+					continue;
+				}
+				OutCells.Add(NewPrimary);
 			}
-			if (!bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(NewPrimary.Col))
-			{
-				continue;
-			}
+			// All other flank entry goes through GetFlankMoveCells
+			continue;
 		}
 
 		if (bIsMultiCell)
 		{
-			if (NewPrimary.IsFlankCell())
+			FTacCoordinates NewExtra(Metadata.ExtraCell.Row + Offset.Y, Metadata.ExtraCell.Col + Offset.X, Metadata.ExtraCell.Layer);
+			if (!NewExtra.IsValidCell())
 			{
-				// Entering enemy flank: unit becomes 1-cell, only the primary destination must be free
-				if (!DataManager->IsCellOccupied(NewPrimary))
-				{
-					OutCells.Add(NewPrimary);
-				}
+				continue;
 			}
-			else
-			{
-				FTacCoordinates NewExtra(Metadata.ExtraCell.Row + Offset.Y, Metadata.ExtraCell.Col + Offset.X, Metadata.ExtraCell.Layer);
-				if (!NewExtra.IsValidCell())
-				{
-					continue;
-				}
 
-				// Each newly-covered cell (not already part of this unit) must be strictly empty; no swap for 2-cell units
-				const bool bNewPrimaryFree = (NewPrimary == Metadata.Coords || NewPrimary == Metadata.ExtraCell) || !DataManager->IsCellOccupied(NewPrimary);
-				const bool bNewExtraFree   = (NewExtra   == Metadata.Coords || NewExtra   == Metadata.ExtraCell) || !DataManager->IsCellOccupied(NewExtra);
-				if (bNewPrimaryFree && bNewExtraFree)
-				{
-					OutCells.Add(NewPrimary);
-				}
+			// Each newly-covered cell (not already part of this unit) must be strictly empty; no swap for 2-cell units
+			const bool bNewPrimaryFree = (NewPrimary == Metadata.Coords || NewPrimary == Metadata.ExtraCell) || !DataManager->IsCellOccupied(NewPrimary);
+			const bool bNewExtraFree   = (NewExtra   == Metadata.Coords || NewExtra   == Metadata.ExtraCell) || !DataManager->IsCellOccupied(NewExtra);
+			if (bNewPrimaryFree && bNewExtraFree)
+			{
+				OutCells.Add(NewPrimary);
 			}
 		}
 		else
@@ -513,9 +462,14 @@ void UTacGridTargetingService::GetFlankMoveCells(AUnit* Unit, TArray<FTacCoordin
 				continue;
 			}
 
-			if (CanEnterFlankCell(Metadata.Coords, FlankCoords, Metadata.Team) && IsValidMoveDestination(Unit, FlankCoords))
+			if (CanEnterFlankCell(Metadata.Coords, FlankCoords, Metadata.Team))
 			{
-				OutCells.Add(FlankCoords);
+				const bool bIsMultiCell = Metadata.IsMultiCell() && Metadata.HasExtraCell();
+				// Multi-cell units shrink to 1-cell on flank; no swap allowed
+				if (bIsMultiCell ? !DataManager->IsCellOccupied(FlankCoords) : IsValidMoveDestination(Unit, FlankCoords))
+				{
+					OutCells.Add(FlankCoords);
+				}
 			}
 		}
 	}
@@ -622,11 +576,7 @@ void UTacGridTargetingService::AddAllUnitCells(AUnit* Unit, TArray<FTacCoordinat
 
 bool UTacGridTargetingService::CanEnterFlankCell(const FTacCoordinates& UnitPos, const FTacCoordinates& FlankCell, ETeamSide UnitTeamSide) const
 {
-	const int32 UnitRow = UnitPos.Row;
-	const int32 UnitCol = UnitPos.Col;
-	const int32 FlankRow = FlankCell.Row;
 	const int32 FlankCol = FlankCell.Col;
-
 	const bool bIsAttacker = (UnitTeamSide == ETeamSide::Attacker);
 
 	const bool bIsEnemyFlank = (bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(FlankCol)) ||
@@ -636,36 +586,29 @@ bool UTacGridTargetingService::CanEnterFlankCell(const FTacCoordinates& UnitPos,
 		return false;
 	}
 
-	const bool bIsClosestFlank = FFlankCellDefinitions::IsClosestFlankColumn(FlankCol);
-	const bool bIsFarFlank = FFlankCellDefinitions::IsFarFlankColumn(FlankCol);
-
-	if (bIsClosestFlank && FFlankCellDefinitions::IsCenterLineCell(UnitRow, UnitCol))
+	if (FFlankCellDefinitions::IsEntranceFlankCell(FlankCell.Row, FlankCol))
 	{
-		return IsAdjacentCell(UnitPos, FlankCell);
-	}
-
-	if (bIsClosestFlank && UnitPos.IsFlankCell())
-	{
-		const bool bIsOwnFlank = (bIsAttacker && FFlankCellDefinitions::IsAttackerFlankColumn(UnitCol)) ||
-		                         (!bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(UnitCol));
-		if (bIsOwnFlank && IsAdjacentCell(UnitPos, FlankCell))
+		// From same-row cell in adjacent normal column
+		if (UnitPos.Row == FlankCell.Row && UnitPos.Col == FFlankCellDefinitions::GetAdjacentNormalCol(FlankCol))
 		{
 			return true;
 		}
-	}
-
-	if (bIsFarFlank && UnitPos.IsFlankCell())
-	{
-		const bool bIsInClosestEnemyFlank = (bIsAttacker && UnitCol == 3) || (!bIsAttacker && UnitCol == 1);
-		if (bIsInClosestEnemyFlank && IsAdjacentCell(UnitPos, FlankCell))
+		// Retreat from rear on same flank column
+		if (FFlankCellDefinitions::IsRearFlankCell(UnitPos.Row, UnitPos.Col) && UnitPos.Col == FlankCol)
 		{
-			return true;
+			return IsAdjacentCell(UnitPos, FlankCell);
 		}
+		return false;
 	}
 
-	if (bIsFarFlank && !UnitPos.IsFlankCell())
+	if (FFlankCellDefinitions::IsRearFlankCell(FlankCell.Row, FlankCol))
 	{
-		return IsAdjacentCell(UnitPos, FlankCell);
+		// Only from entrance on same flank column
+		if (FFlankCellDefinitions::IsEntranceFlankCell(UnitPos.Row, UnitPos.Col) && UnitPos.Col == FlankCol)
+		{
+			return IsAdjacentCell(UnitPos, FlankCell);
+		}
+		return false;
 	}
 
 	return false;
@@ -839,6 +782,14 @@ bool UTacGridTargetingService::HasValidTargetAtCell(AUnit* Source, FTacCoordinat
 			if (!bAdjacent)
 			{
 				return false;
+			}
+			if (FFlankCellDefinitions::IsEntranceFlankCell(Metadata.Coords.Row, Metadata.Coords.Col))
+			{
+				FTacCoordinates Blocked = FFlankCellDefinitions::GetEntranceBlockedCell(Metadata.Coords.Row, Metadata.Coords.Col);
+				if (TargetCell == Blocked)
+				{
+					return false;
+				}
 			}
 			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell))
 			{

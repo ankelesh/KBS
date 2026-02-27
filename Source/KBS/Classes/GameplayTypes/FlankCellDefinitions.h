@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTypes/GridCoordinates.h"
 
 struct KBS_API FFlankCellDefinitions
 {
@@ -14,4 +15,8 @@ struct KBS_API FFlankCellDefinitions
 	static bool IsCenterLineCell(int32 Row, int32 Col);
 	static bool IsClosestFlankColumn(int32 Col);
 	static bool IsFarFlankColumn(int32 Col);
+	static bool IsEntranceFlankCell(int32 Row, int32 Col);
+	static bool IsRearFlankCell(int32 Row, int32 Col);
+	static int32 GetAdjacentNormalCol(int32 FlankCol);
+	static FTacCoordinates GetEntranceBlockedCell(int32 EntranceRow, int32 FlankCol);
 };
