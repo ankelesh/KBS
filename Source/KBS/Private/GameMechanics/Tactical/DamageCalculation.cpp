@@ -51,10 +51,14 @@ FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weap
 	int32 ArmorPercent = Defense.Armour.GetValue(BestSource);
 	float ArmorValue = ArmorPercent / 100.0f;
 	float DamageAfterArmor = BaseDamage * (1.0f - ArmorValue);
+	if (Attacker->GetGridMetadata().bOnFlank && !Attacker->GetStats().Status.IsFlankDelayed())
+	{
+		DamageAfterArmor *= FLANKING_DAMAGE_MULTIPLIER;
+	}
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
 	if (bIsTargetDefending)
 	{
-		FinalDamage *= 0.5f;
+		FinalDamage *= DEFENSIVE_STANCE_MULTIPLIER;
 	}
 	Result.Damage = FMath::RoundToInt(FinalDamage);
 	Result.DamageBlocked = BaseDamage - Result.Damage;
