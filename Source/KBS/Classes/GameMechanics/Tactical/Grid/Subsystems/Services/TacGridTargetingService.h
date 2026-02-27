@@ -64,5 +64,7 @@ private:
 	bool TryGetPrimaryCellForUnit(AUnit* Unit, FTacCoordinates& OutCell) const;
 	void AddUnitCell(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void AddUnitCellUnique(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
+	// Adds primary cell and ExtraCell (if valid) as unique entries. Used when both cells are valid click targets.
+	void AddAllUnitCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const;
 	void GetEmptyCellsForLayer(ETacGridLayer Layer, TArray<FTacCoordinates>& OutCells) const;
 };
