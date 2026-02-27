@@ -176,6 +176,7 @@ void AUnit::HandleTurnStart(bool Emits)
 void AUnit::HandleTurnEnd(bool Emits)
 {
 	if (IsDead()) return;
+	BaseStats.Status.TickFlankDelay();
 	if (Emits) OnUnitTurnEnd.Broadcast(this);
 }
 
