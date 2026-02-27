@@ -32,10 +32,6 @@ struct KBS_API FUnitGridMetadata
 	UPROPERTY(BlueprintReadOnly, Category = "Grid")
 	int32 UnitSize;
 
-	// Canonical visual resting rotation. Set by GridDataManager on placement; read by visuals.
-	UPROPERTY(BlueprintReadOnly, Category = "Grid")
-	FRotator Rotation;
-
 	FUnitGridMetadata()
 		: Coords(FTacCoordinates())
 		, Team(ETeamSide::Attacker)
@@ -44,12 +40,11 @@ struct KBS_API FUnitGridMetadata
 		, Orientation(EUnitOrientation::GridTop)
 		, ExtraCell(FTacCoordinates::Invalid())
 		, UnitSize(1)
-		, Rotation(FRotator::ZeroRotator)
 		, bInitialized(false)
 	{}
 
 	FUnitGridMetadata(const FTacCoordinates& InCoords, ETeamSide InTeam, bool bInOnField, bool bInOnFlank,
-		EUnitOrientation InOrientation, FTacCoordinates InExtraCell, int32 InUnitSize, FRotator InRotation)
+		EUnitOrientation InOrientation, FTacCoordinates InExtraCell, int32 InUnitSize)
 		: Coords(InCoords)
 		, Team(InTeam)
 		, bOnField(bInOnField)
@@ -57,7 +52,6 @@ struct KBS_API FUnitGridMetadata
 		, Orientation(InOrientation)
 		, ExtraCell(InExtraCell)
 		, UnitSize(InUnitSize)
-		, Rotation(InRotation)
 		, bInitialized(true)
 	{}
 
@@ -90,19 +84,6 @@ struct KBS_API FUnitGridMetadata
 				return Where;
 			return FTacCoordinates(Coords.Row + (RowDelta > 0 ? 1 : -1), Coords.Col, Coords.Layer);
 		}
-	}
-
-	// Maps logical grid orientation to its canonical visual FRotator (Pitch=0, Roll=0).
-	static FRotator OrientationToRotation(EUnitOrientation Orientation)
-	{
-		switch (Orientation)
-		{
-		case EUnitOrientation::GridBottom: return FRotator(0.0f,   0.0f, 0.0f);
-		case EUnitOrientation::GridTop:    return FRotator(0.0f, 180.0f, 0.0f);
-		case EUnitOrientation::GridRight:  return FRotator(0.0f, -90.0f, 0.0f);
-		case EUnitOrientation::GridLeft:   return FRotator(0.0f,  90.0f, 0.0f);
-		}
-		return FRotator::ZeroRotator;
 	}
 
 	bool IsSameTeam(const FUnitGridMetadata& Other) const { return Team == Other.Team; }

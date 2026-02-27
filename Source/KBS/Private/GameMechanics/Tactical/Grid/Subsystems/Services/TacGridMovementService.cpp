@@ -151,6 +151,7 @@ FTacMovementVisualData UTacGridMovementService::BuildVisualData(const TArray<FTa
 	if (bIsFlankCell)
 	{
 		VisualData.bApplyFlankRotationAtEnd = true;
+		VisualData.TargetRotation = FinalCell.GetFlankRotation();
 	}
 	else if (!bIsMultiCell)
 	{

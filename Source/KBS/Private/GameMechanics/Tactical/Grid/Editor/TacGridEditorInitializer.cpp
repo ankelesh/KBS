@@ -54,7 +54,11 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 				Team->AddUnit(NewUnit);
 				NewUnit->SetTeamSide(Team->GetTeamSide());
 
-				NewUnit->SetActorRotation(NewUnit->GetGridMetadata().Rotation);
+				const bool bIsFlank = FTacCoordinates::IsFlankCell(Placement.Row, Placement.Col);
+				const FRotator Rotation = bIsFlank
+					? FTacCoordinates::GetFlankRotation(Placement.Row, Placement.Col)
+					: FRotator(0.0f, Team->GetTeamSide() == ETeamSide::Attacker ? 0.0f : 180.0f, 0.0f);
+				NewUnit->SetActorRotation(Rotation);
 				UE_LOG(LogTemp, Log, TEXT("Placed unit at [%d,%d] on layer %d"), Placement.Row, Placement.Col, (int32)Placement.Layer);
 			}
 			else
