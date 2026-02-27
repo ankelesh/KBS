@@ -151,6 +151,7 @@ FTacMovementVisualData UTacGridMovementService::BuildVisualData(const TArray<FTa
 	if (bIsFlankCell)
 	{
 		VisualData.bApplyFlankRotationAtEnd = true;
+		VisualData.TargetRotation = FinalCell.GetFlankRotation();
 	}
 	else if (!bIsMultiCell)
 	{
@@ -296,24 +297,26 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 	}
 
 	// ===== GRID MUTATION PHASE =====
+	// HandleMoved fires before ExecuteDataMove so bIsTranslating=true guards the orientation
+	// snap triggered by PlaceUnit->NotifyOrientationChanged. Movement visual data owns rotation.
 	if (bIsSwap)
 	{
+		Unit->HandleMoved(UnitVisuals);
+		TargetOccupant->HandleMoved(SwappedVisuals);
 		if (!ExecuteSwapMove(Unit, CurrentPos, TargetOccupant, EffectiveTarget))
 		{
 			UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute swap move"));
 			return false;
 		}
-		Unit->HandleMoved(UnitVisuals);
-		TargetOccupant->HandleMoved(SwappedVisuals);
 	}
 	else
 	{
+		Unit->HandleMoved(UnitVisuals);
 		if (!ExecuteDataMove(Unit, CurrentPos, EffectiveTarget))
 		{
 			UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Failed to execute data move"));
 			return false;
 		}
-		Unit->HandleMoved(UnitVisuals);
 	}
 
 	const FString SwapSuffix = bIsSwap ? FString::Printf(TEXT(" (swap with %s)"), *TargetOccupant->GetLogName()) : TEXT("");

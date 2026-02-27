@@ -31,6 +31,7 @@ void UUnitVisualsComponent::BeginPlay()
 	OwnerUnit->OnUnitDamaged.AddDynamic(this, &UUnitVisualsComponent::OnOwnerDamaged);
 	OwnerUnit->OnUnitEffectTriggered.AddDynamic(this, &UUnitVisualsComponent::OnOwnerEffectTriggered);
 	OwnerUnit->OnUnitMoved.AddDynamic(this, &UUnitVisualsComponent::OnOwnerMoved);
+	OwnerUnit->OnOrientationChanged.AddUObject(this, &UUnitVisualsComponent::OnOwnerOrientationChanged);
 }
 
 void UUnitVisualsComponent::OnOwnerDied(AUnit* Unit)
@@ -54,6 +55,24 @@ void UUnitVisualsComponent::OnOwnerDamaged(AUnit* Victim, AUnit* Attacker)
 void UUnitVisualsComponent::OnOwnerEffectTriggered(AUnit* OwnerUnit, UBattleEffect* Effect)
 {
 	ShowBattleEffect(Effect);
+}
+
+void UUnitVisualsComponent::OnOwnerOrientationChanged(EUnitOrientation NewOrientation)
+{
+	if (bIsTranslating || bIsFinalRotating) return;
+	GetOwner()->SetActorRotation(OrientationToRotation(NewOrientation));
+}
+
+FRotator UUnitVisualsComponent::OrientationToRotation(EUnitOrientation Orientation)
+{
+	switch (Orientation)
+	{
+	case EUnitOrientation::GridBottom: return FRotator(0.0f,   0.0f, 0.0f);
+	case EUnitOrientation::GridTop:    return FRotator(0.0f, 180.0f, 0.0f);
+	case EUnitOrientation::GridRight:  return FRotator(0.0f, -90.0f, 0.0f);
+	case EUnitOrientation::GridLeft:   return FRotator(0.0f,  90.0f, 0.0f);
+	}
+	return FRotator::ZeroRotator;
 }
 
 void UUnitVisualsComponent::OnOwnerMoved(AUnit* Unit, const FTacMovementVisualData& MovementData)
@@ -500,7 +519,7 @@ void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 				SetIsMoving(false);
 				SetMovementSpeed(0.0f);
 
-				if (ActiveMovement.bApplyDefaultRotationAtEnd)
+				if (ActiveMovement.bApplyDefaultRotationAtEnd || ActiveMovement.bApplyFlankRotationAtEnd)
 				{
 					bIsFinalRotating = true;
 				}

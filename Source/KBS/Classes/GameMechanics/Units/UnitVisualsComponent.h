@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
+#include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/TacMovementTypes.h"
 #include "UnitVisualsComponent.generated.h"
 class UUnitDefinition;
@@ -64,6 +65,8 @@ private:
 	UFUNCTION() void OnOwnerDamaged(AUnit* Victim, AUnit* Attacker);
 	UFUNCTION() void OnOwnerEffectTriggered(AUnit* OwnerUnit, UBattleEffect* Effect);
 	UFUNCTION() void OnOwnerMoved(AUnit* Unit, const FTacMovementVisualData& MovementData);
+	void OnOwnerOrientationChanged(EUnitOrientation NewOrientation);
+	static FRotator OrientationToRotation(EUnitOrientation Orientation);
 
 	// Attack/ability rotation
 	FRotator PendingRotation;

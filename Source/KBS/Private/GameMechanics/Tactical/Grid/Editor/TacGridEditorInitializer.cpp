@@ -46,30 +46,20 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 				NewUnit->SetUnitDefinition(Placement.Definition);
 			}
 			NewUnit->FinishSpawning(FTransform::Identity);
+			UBattleTeam* Team = Placement.bIsAttacker ? Grid->GetDataManager()->GetAttackerTeam() : Grid->GetDataManager()->GetDefenderTeam();
+			Team->AddUnit(NewUnit);
+			NewUnit->SetTeamSide(Team->GetTeamSide());
+
 			const bool bPlaced = Grid->GetDataManager()->PlaceUnit(NewUnit, Placement.Row, Placement.Col, Placement.Layer);
 			if (bPlaced)
 			{
 				Grid->SpawnedUnits.Add(NewUnit);
-				const bool bIsFlank = FTacCoordinates::IsFlankCell(Placement.Row, Placement.Col);
-				UBattleTeam* Team = Placement.bIsAttacker ? Grid->GetDataManager()->GetAttackerTeam() : Grid->GetDataManager()->GetDefenderTeam();
-				Team->AddUnit(NewUnit);
-				NewUnit->SetTeamSide(Team->GetTeamSide());
-
-				if (!bIsFlank)
-				{
-					const float Yaw = (Team == Grid->GetDataManager()->GetAttackerTeam()) ? 0.0f : 180.0f;
-					NewUnit->SetActorRotation(FRotator(0.0f, Yaw, 0.0f));
-				}
-				else
-				{
-					const FRotator FlankRotation = FTacCoordinates::GetFlankRotation(Placement.Row, Placement.Col);
-					NewUnit->SetActorRotation(FlankRotation);
-				}
 				UE_LOG(LogTemp, Log, TEXT("Placed unit at [%d,%d] on layer %d"), Placement.Row, Placement.Col, (int32)Placement.Layer);
 			}
 			else
 			{
 				UE_LOG(LogTemp, Error, TEXT("Failed to place unit at [%d,%d]"), Placement.Row, Placement.Col);
+				Team->RemoveUnit(NewUnit);
 				NewUnit->Destroy();
 			}
 		}
@@ -98,6 +88,11 @@ void UTacGridEditorInitializer::SetupUnitsInLayer(ETacGridLayer Layer)
 			if (Row < LayerArray.Num() && Col < LayerArray[Row].Cells.Num() && LayerArray[Row].Cells[Col])
 			{
 				AUnit* Unit = LayerArray[Row].Cells[Col];
+				// Skip the extra cell of a 2-cell unit to avoid binding it twice
+				if (Unit->GetGridMetadata().ExtraCell == FTacCoordinates(Row, Col, Layer))
+				{
+					continue;
+				}
 				BindUnitEvents(Unit, Row, Col, Layer);
 			}
 		}
