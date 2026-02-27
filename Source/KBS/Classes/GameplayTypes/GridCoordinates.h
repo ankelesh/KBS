@@ -70,6 +70,11 @@ struct KBS_API FTacCoordinates
 	bool IsValidCell() const;
 	bool IsFlankCell() const;
 	bool IsRestrictedCell() const;
+	// Col == 0 → GridRight, Col == 4 → GridLeft. Only call when IsFlankCell() is true.
+	EUnitOrientation GetFlankOrientation() const
+	{
+		return Col == 0 ? EUnitOrientation::GridRight : EUnitOrientation::GridLeft;
+	}
 	FVector ToWorldLocation(const FVector& GridOrigin, float CellSize, float AirLayerHeight) const;
 	FRotator GetFlankRotation() const;
 	static bool IsValidCell(int32 Row, int32 Col);
@@ -124,6 +129,14 @@ inline EUnitOrientation OppositeOrientation(EUnitOrientation O)
 		EUnitOrientation::GridLeft
 	};
 	return Opp[static_cast<uint8>(O)];
+}
+
+// Flank cells face inward toward the single adjacent normal cell.
+// Col == 0: only adjacent col is 1 → GridRight. Col == 4: only adjacent col is 3 → GridLeft.
+// Undefined for non-flank columns; caller is responsible for IsFlankCell() check.
+inline EUnitOrientation FlankOrientation(int32 Col)
+{
+	return Col == 0 ? EUnitOrientation::GridRight : EUnitOrientation::GridLeft;
 }
 
 // Returns the extra cell in the facing direction from Primary.

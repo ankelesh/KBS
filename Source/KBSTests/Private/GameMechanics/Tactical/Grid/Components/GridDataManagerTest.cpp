@@ -297,10 +297,10 @@ bool FGridDataManagerRemoveUnitEmptyTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-// Test: RemoveUnit clears flank and rotation data
+// Test: RemoveUnit clears flank state from metadata
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridDataManagerRemoveUnitClearsDataTest,
-	"KBS.Grid.Components.DataManager.RemoveUnit_ClearsFlankAndRotationData",
+	"KBS.Grid.Components.DataManager.RemoveUnit_ClearsFlankState",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter
 )
 
@@ -313,14 +313,14 @@ bool FGridDataManagerRemoveUnitClearsDataTest::RunTest(const FString& Parameters
 	UGridDataManager* DataManager = FGridDataManagerTestHelper::CreateDataManager(World, Grid);
 	AUnit* Unit = FGridDataManagerTestHelper::CreateMockUnit(World);
 
-	DataManager->PlaceUnit(Unit, 2, 2, ETacGridLayer::Ground);
-	DataManager->SetUnitFlankState(Unit, true);
-	DataManager->SetUnitOriginalRotation(Unit, FRotator(0, 90, 0));
+	// [1,0] is a valid non-restricted flank cell; PlaceUnit sets bOnFlank=true automatically.
+	DataManager->PlaceUnit(Unit, 1, 0, ETacGridLayer::Ground);
+	TestTrue("Flank state should be set after placement on flank cell", DataManager->IsUnitOnFlank(Unit));
 
-	DataManager->RemoveUnit(2, 2, ETacGridLayer::Ground);
+	DataManager->RemoveUnit(1, 0, ETacGridLayer::Ground);
 
-	TestFalse("Flank state should be cleared", DataManager->IsUnitOnFlank(Unit));
-	TestEqual("Rotation should be cleared", DataManager->GetUnitOriginalRotation(Unit), FRotator::ZeroRotator);
+	TestFalse("Flank state should be cleared after RemoveUnit", DataManager->IsUnitOnFlank(Unit));
+	TestFalse("Unit should be off-field after RemoveUnit", Unit->GridMetadata.IsOnField());
 
 	Grid->Destroy();
 	Unit->Destroy();
