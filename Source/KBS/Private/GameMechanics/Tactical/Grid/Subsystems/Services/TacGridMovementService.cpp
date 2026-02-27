@@ -319,6 +319,16 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 		}
 	}
 
+	// Ground → flank cell: apply per-definition arrival delay (air landings are exempt)
+	if (bTargetIsFlank && CurrentPos.Layer == ETacGridLayer::Ground)
+	{
+		const int32 Delay = Unit->GetUnitDefinition()->FlankArrivalDelay;
+		if (Delay > 0)
+		{
+			Unit->GetStats().Status.SetFlankDelay(Delay);
+		}
+	}
+
 	const FString SwapSuffix = bIsSwap ? FString::Printf(TEXT(" (swap with %s)"), *TargetOccupant->GetLogName()) : TEXT("");
 	UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s [%d,%d]->[%d,%d]%s"),
 		*Unit->GetLogName(), CurrentPos.Row, CurrentPos.Col, EffectiveTarget.Row, EffectiveTarget.Col, *SwapSuffix);

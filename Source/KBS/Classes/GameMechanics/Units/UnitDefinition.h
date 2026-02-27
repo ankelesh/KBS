@@ -89,4 +89,6 @@ public:
 	float MovementSpeed = 300.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 UnitSize = 1; // 1 = single cell, 2 = two cells
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
+	int32 FlankArrivalDelay = 0; // turns unit must wait in a flank cell before it can act; 0 = no delay
 };

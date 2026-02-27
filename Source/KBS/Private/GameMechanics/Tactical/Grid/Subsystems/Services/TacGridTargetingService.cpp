@@ -217,7 +217,8 @@ void UTacGridTargetingService::GetClosestEnemyCells(AUnit* Unit, TArray<FTacCoor
 				continue;
 			}
 			AUnit* TargetUnit = DataManager->GetUnit(TargetCoords);
-			if (TargetUnit && Metadata.IsEnemy(TargetUnit->GetGridMetadata()) && !TargetUnit->IsDead())
+			if (TargetUnit && Metadata.IsEnemy(TargetUnit->GetGridMetadata()) && !TargetUnit->IsDead()
+				&& !TargetUnit->GetStats().Status.IsFlankDelayed())
 			{
 				FoundEnemies.Add(TargetUnit);
 			}

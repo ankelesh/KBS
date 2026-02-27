@@ -30,6 +30,8 @@ struct FUnitStatusContainer
 	void SetChanneling() {bChanneling = true;}
 	void SetDefending() {bDefending = true;}
 	void SetDead() {bDead = true;}
+	void SetFlankDelay(int32 Turns) { FlankDelay = FMath::Max(0, Turns); }
+	void TickFlankDelay()           { if (FlankDelay > 0) --FlankDelay; }
 	void BlockTurn(FGuid const& EffectId) { TurnBlockedModifiers.Add(EffectId); }
 	void Pin(FGuid const& EffectId) { PinnedModifiers.Add(EffectId); }
 	void Silence(FGuid const& EffectId) { SilencedModifiers.Add(EffectId); }
@@ -52,6 +54,8 @@ struct FUnitStatusContainer
 	bool IsChanneling() const { return bChanneling; }
 	bool IsDefending() const { return bDefending; }
 	bool IsDead() const { return bDead; }
+	bool IsFlankDelayed() const  { return FlankDelay > 0; }
+	int32 FlankTurnsLeft() const { return FlankDelay; }
 	bool HasReplacementBehavior() const { return bFleeing || bChanneling; }
 
 	bool IsStatusActive(EUnitStatus Status) const;
@@ -71,6 +75,10 @@ private:
 
 	UPROPERTY()
 	TArray<FGuid> DisorientedModifiers;
+
+	// Counter statuses
+	UPROPERTY()
+	int32 FlankDelay = 0;
 
 	// Bool statuses
 	UPROPERTY()

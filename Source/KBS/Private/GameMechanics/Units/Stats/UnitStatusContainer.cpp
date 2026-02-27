@@ -155,7 +155,7 @@ void FUnitStatusContainer::ClearAll()
 
 bool FUnitStatusContainer::CanAct() const
 {
-	return TurnBlockedModifiers.Num() == 0;
+	return TurnBlockedModifiers.Num() == 0 && FlankDelay == 0;
 }
 
 bool FUnitStatusContainer::CanMove() const
