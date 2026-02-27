@@ -71,9 +71,14 @@ public:
 	AUnit* GetUnit(int32 Row, int32 Col, ETacGridLayer Layer) const;
 	bool RemoveUnit(int32 Row, int32 Col, ETacGridLayer Layer);
 	bool IsUnitOnFlank(const AUnit* Unit) const;
-	void SetUnitFlankState(AUnit* Unit, bool bOnFlank);
-	FRotator GetUnitOriginalRotation(const AUnit* Unit) const;
-	void SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation);
+
+	// Primitive: writes GridMetadata.Orientation only.
+	void SetUnitOrientation(AUnit* Unit, EUnitOrientation Orientation);
+
+	// Composed primitive: sets bOnFlank + drives orientation atomically.
+	// Entry: orientation set from flank cell direction (requires Coords to already be the flank cell).
+	// Exit:  1-cell → team default; 2-cell → orientation unchanged.
+	void SetUnitOnFlank(AUnit* Unit, bool bOnFlank);
 	FVector GetCellWorldLocation(FTacCoordinates Coords) const;
 
 	UBattleTeam* GetTeamBySide(ETeamSide Side) const;
@@ -126,10 +131,6 @@ private:
 	TArray<FGridRow> GroundLayer;
 	UPROPERTY()
 	TArray<FGridRow> AirLayer;
-	UPROPERTY()
-	TMap<FGuid, bool> UnitFlankStates;
-	UPROPERTY()
-	TMap<FGuid, FRotator> UnitOriginalRotations;
 	UPROPERTY()
 	TMap<FGuid, TObjectPtr<AUnit>> OffFieldUnits;
 	UPROPERTY()

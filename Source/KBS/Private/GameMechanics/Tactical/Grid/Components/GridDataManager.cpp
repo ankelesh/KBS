@@ -101,11 +101,16 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 	LayerArray[Coords.Row].Cells[Coords.Col] = Unit;
 	Unit->SetActorLocation(Coords.ToWorldLocation(GridWorldLocation, Grid->GetCellSize(), Grid->GetAirLayerHeight()));
 
-	const EUnitOrientation Orientation = FUnitGridMetadata::DefaultOrientationForTeam(Unit->GetTeamSide());
 	const int32 UnitSize = Unit->GetUnitDefinition()->UnitSize;
+	const bool bOnFlank = Coords.IsFlankCell();
+
+	// Flank overrides orientation and compresses 2-cell units (no ExtraCell on flank).
+	const EUnitOrientation Orientation = bOnFlank
+		? Coords.GetFlankOrientation()
+		: FUnitGridMetadata::DefaultOrientationForTeam(Unit->GetTeamSide());
 
 	FTacCoordinates ExtraCell = FTacCoordinates::Invalid();
-	if (UnitSize > 1)
+	if (UnitSize > 1 && !bOnFlank)
 	{
 		const FTacCoordinates Candidate = GetExtraCellCoords(Coords, Orientation);
 		if (Candidate.IsValidCell()
@@ -118,7 +123,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 		}
 	}
 
-	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, Coords.IsFlankCell(),
+	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, bOnFlank,
 		Orientation, ExtraCell, UnitSize);
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
@@ -179,8 +184,6 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 
 	LayerArray[Coords.Row].Cells[Coords.Col] = nullptr;
 
-	UnitFlankStates.Remove(Unit->GetUnitID());
-	UnitOriginalRotations.Remove(Unit->GetUnitID());
 	Unit->GridMetadata = FUnitGridMetadata(Unit->GridMetadata.Coords, Unit->GridMetadata.Team, false, false,
 		Unit->GridMetadata.Orientation, FTacCoordinates::Invalid(), Unit->GridMetadata.UnitSize);
 	UE_LOG(LogTacGrid, Log, TEXT("RemoveUnit: %s from [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
@@ -209,45 +212,31 @@ const TArray<FGridRow>& UGridDataManager::GetLayer(ETacGridLayer Layer) const
 }
 bool UGridDataManager::IsUnitOnFlank(const AUnit* Unit) const
 {
-	if (!Unit)
-	{
-		return false;
-	}
-	const bool* bOnFlank = UnitFlankStates.Find(Unit->GetUnitID());
-	return bOnFlank ? *bOnFlank : false;
+	checkf(Unit, TEXT("IsUnitOnFlank: Unit must not be null"));
+	return Unit->GridMetadata.bOnFlank;
 }
-void UGridDataManager::SetUnitFlankState(AUnit* Unit, bool bOnFlank)
+
+void UGridDataManager::SetUnitOrientation(AUnit* Unit, EUnitOrientation Orientation)
 {
-	if (!Unit)
-	{
-		return;
-	}
+	checkf(Unit, TEXT("SetUnitOrientation: Unit must not be null"));
+	Unit->GridMetadata.Orientation = Orientation;
+}
+
+void UGridDataManager::SetUnitOnFlank(AUnit* Unit, bool bOnFlank)
+{
+	checkf(Unit, TEXT("SetUnitOnFlank: Unit must not be null"));
+	Unit->GridMetadata.bOnFlank = bOnFlank;
 	if (bOnFlank)
 	{
-		UnitFlankStates.Add(Unit->GetUnitID(), true);
+		checkf(Unit->GridMetadata.Coords.IsFlankCell(), TEXT("SetUnitOnFlank: unit coords are not a flank cell"));
+		SetUnitOrientation(Unit, Unit->GridMetadata.Coords.GetFlankOrientation());
 	}
-	else
+	else if (!Unit->GridMetadata.IsMultiCell())
 	{
-		UnitFlankStates.Remove(Unit->GetUnitID());
+		SetUnitOrientation(Unit, FUnitGridMetadata::DefaultOrientationForTeam(Unit->GridMetadata.Team));
 	}
-	UE_LOG(LogTacGrid, Log, TEXT("SetUnitFlankState: %s -> %s"), *Unit->GetLogName(), bOnFlank ? TEXT("Flank") : TEXT("Center"));
-}
-FRotator UGridDataManager::GetUnitOriginalRotation(const AUnit* Unit) const
-{
-	if (!Unit)
-	{
-		return FRotator::ZeroRotator;
-	}
-	const FRotator* Rotation = UnitOriginalRotations.Find(Unit->GetUnitID());
-	return Rotation ? *Rotation : FRotator::ZeroRotator;
-}
-void UGridDataManager::SetUnitOriginalRotation(AUnit* Unit, const FRotator& Rotation)
-{
-	if (!Unit)
-	{
-		return;
-	}
-	UnitOriginalRotations.Add(Unit->GetUnitID(), Rotation);
+	// 2-cell leaving flank: orientation unchanged by contract
+	UE_LOG(LogTacGrid, Log, TEXT("SetUnitOnFlank: %s -> %s"), *Unit->GetLogName(), bOnFlank ? TEXT("Flank") : TEXT("Center"));
 }
 FVector UGridDataManager::GetCellWorldLocation(FTacCoordinates Coords) const
 {
