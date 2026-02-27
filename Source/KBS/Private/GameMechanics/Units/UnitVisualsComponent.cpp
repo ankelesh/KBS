@@ -61,6 +61,11 @@ void UUnitVisualsComponent::OnOwnerMoved(AUnit* Unit, const FTacMovementVisualDa
 	if (MovementData.Segments.IsEmpty()) return;
 
 	ActiveMovement = MovementData;
+	// Override TargetRotation from metadata — authoritative after PlaceUnit; covers both default and flank cases.
+	if (ActiveMovement.bApplyDefaultRotationAtEnd || ActiveMovement.bApplyFlankRotationAtEnd)
+	{
+		ActiveMovement.TargetRotation = Unit->GetGridMetadata().Rotation;
+	}
 	MovementSegmentIndex = 0;
 	bIsTranslating = true;
 	bIsFinalRotating = false;
@@ -500,7 +505,7 @@ void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 				SetIsMoving(false);
 				SetMovementSpeed(0.0f);
 
-				if (ActiveMovement.bApplyDefaultRotationAtEnd)
+				if (ActiveMovement.bApplyDefaultRotationAtEnd || ActiveMovement.bApplyFlankRotationAtEnd)
 				{
 					bIsFinalRotating = true;
 				}

@@ -123,8 +123,9 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 		}
 	}
 
+	const FRotator Rotation = FUnitGridMetadata::OrientationToRotation(Orientation);
 	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, bOnFlank,
-		Orientation, ExtraCell, UnitSize);
+		Orientation, ExtraCell, UnitSize, Rotation);
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
@@ -185,7 +186,7 @@ bool UGridDataManager::RemoveUnit(FTacCoordinates Coords)
 	LayerArray[Coords.Row].Cells[Coords.Col] = nullptr;
 
 	Unit->GridMetadata = FUnitGridMetadata(Unit->GridMetadata.Coords, Unit->GridMetadata.Team, false, false,
-		Unit->GridMetadata.Orientation, FTacCoordinates::Invalid(), Unit->GridMetadata.UnitSize);
+		Unit->GridMetadata.Orientation, FTacCoordinates::Invalid(), Unit->GridMetadata.UnitSize, Unit->GridMetadata.Rotation);
 	UE_LOG(LogTacGrid, Log, TEXT("RemoveUnit: %s from [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
 }
@@ -220,6 +221,7 @@ void UGridDataManager::SetUnitOrientation(AUnit* Unit, EUnitOrientation Orientat
 {
 	checkf(Unit, TEXT("SetUnitOrientation: Unit must not be null"));
 	Unit->GridMetadata.Orientation = Orientation;
+	Unit->GridMetadata.Rotation = FUnitGridMetadata::OrientationToRotation(Orientation);
 }
 
 void UGridDataManager::SetUnitOnFlank(AUnit* Unit, bool bOnFlank)
