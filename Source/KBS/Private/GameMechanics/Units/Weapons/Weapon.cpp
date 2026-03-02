@@ -3,7 +3,7 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
 #include "GameMechanics/Units/Unit.h"
-void FWeapon::Initialize(UObject* Outer, UWeaponDataAsset* Data)
+void UWeapon::Initialize(UObject* Outer, UWeaponDataAsset* Data)
 {
 	if (!Data)
 	{
@@ -28,7 +28,7 @@ void FWeapon::Initialize(UObject* Outer, UWeaponDataAsset* Data)
 	}
 }
 
-FText FWeapon::GetEffectsTooltips(AUnit* Owner)
+FText UWeapon::GetEffectsTooltips(AUnit* Owner)
 {
 	return FText();
 }

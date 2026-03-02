@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "UnitDefinition.h"
 #include "GameFramework/Pawn.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "UnitDisplayData.h"
@@ -146,8 +147,10 @@ public:
 	FString GetLogName() const;
 	const FGuid& GetUnitID() const { return UnitID; }
 	FUnitCoreStats& GetStats() { return BaseStats; }
-	const TArray<TObjectPtr<FWeapon>>& GetWeapons() const { return Weapons; }
+	const FUnitCoreStats& GetStats() const { return BaseStats; }
+	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
 	float GetMovementSpeed() const;
+	int32 GetFlankArrivalDelay() const { return UnitDefinition->FlankArrivalDelay; }
 	UFUNCTION(BlueprintCallable)
 	ETeamSide GetTeamSide() const { return GridMetadata.Team; }
 	UFUNCTION(BlueprintCallable)

@@ -146,6 +146,8 @@ struct FResolvedTargets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<AUnit> ClickedTarget = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<AUnit> ClickedCorpse = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<AUnit>> SecondaryTargets;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bWasCellEmpty = false;
@@ -159,6 +161,14 @@ struct FResolvedTargets
 		}
 		AllTargets.Append(SecondaryTargets);
 		return AllTargets;
+	}
+	bool IsCorpseBlocked() const
+	{
+		return ClickedCorpse && ClickedTarget;
+	}
+	static FResolvedTargets MakeEmpty()
+	{
+		return FResolvedTargets();
 	}
 };
 

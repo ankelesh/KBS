@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameplayTypes/GridCoordinates.h"
+#include "GameplayTypes/TeamConstants.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "UnitGridMetadata.generated.h"
 
@@ -58,16 +59,16 @@ struct KBS_API FUnitGridMetadata
 	bool IsValid() const { return bInitialized; }
 	bool IsOnField() const { return bOnField; }
 	bool IsMultiCell() const { return UnitSize > 1; }
-	bool HasExtraCell() const { return ExtraCell.IsValid(); }
+	bool HasExtraCell() const { return ExtraCell.IsValidCell(); }
 
 	// For 2-cell units: if Where has a non-zero lateral component (relative to orientation),
 	// resolves to the adjacent cell in that direction from primary. Otherwise returns Where.
+	// 2-cells collapse to 1-cell in flanks
 	// For 1-cell units: returns Where unchanged.
 	FTacCoordinates ResolveMovementTarget(FTacCoordinates Where) const
 	{
-		if (!IsMultiCell())
+		if (!IsMultiCell() || Where.IsFlankCell())
 			return Where;
-
 		// Lateral axis: col for vertical orientations (GridTop/Bottom), row for horizontal (GridLeft/Right)
 		const bool bLateralIsCol = (Orientation == EUnitOrientation::GridTop || Orientation == EUnitOrientation::GridBottom);
 		if (bLateralIsCol)
@@ -86,10 +87,32 @@ struct KBS_API FUnitGridMetadata
 		}
 	}
 
+	int32 DistanceTo(const FUnitGridMetadata& Other) const
+	{
+		TArray<FTacCoordinates, TInlineAllocator<2>> MyCells = {Coords};
+		if (HasExtraCell()) MyCells.Add(ExtraCell);
+		TArray<FTacCoordinates, TInlineAllocator<2>> OtherCells = {Other.Coords};
+		if (Other.HasExtraCell()) OtherCells.Add(Other.ExtraCell);
+
+		int32 MinDist = TNumericLimits<int32>::Max();
+		for (const FTacCoordinates& A : MyCells)
+			for (const FTacCoordinates& B : OtherCells)
+				MinDist = FMath::Min(MinDist, A.DistanceTo(B));
+		return MinDist;
+	}
+
 	bool IsSameTeam(const FUnitGridMetadata& Other) const { return Team == Other.Team; }
 	bool IsEnemy(const FUnitGridMetadata& Other) const { return Team != Other.Team; }
 	bool IsAlly(const FUnitGridMetadata& Other) const { return Team == Other.Team; }
 
+	TArray<FTacCoordinates> GetCells() const
+	{
+		TArray<FTacCoordinates> Cells;
+		Cells.Add(Coords);
+		if (IsMultiCell())
+			Cells.Add(ExtraCell);
+		return Cells;
+	};
 	static EUnitOrientation DefaultOrientationForTeam(ETeamSide Side)
 	{
 		return Side == ETeamSide::Defender ? EUnitOrientation::GridTop : EUnitOrientation::GridBottom;

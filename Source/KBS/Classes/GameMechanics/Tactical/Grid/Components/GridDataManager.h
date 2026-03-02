@@ -1,8 +1,8 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridQueryPredicates.h"
 #include "GridDataManager.generated.h"
 
 class ATacBattleGrid;
@@ -15,10 +15,11 @@ class UTacGridEditorInitializer;
 // OnField cells contain alive units by contract; Corpses contain dead units.
 enum class EUnitQuerySource : uint8
 {
-	OnField  = 0x01,
+	OnField = 0x01,
 	OffField = 0x02,
-	Corpses  = 0x04,
+	Corpses = 0x04,
 };
+
 ENUM_CLASS_FLAGS(EUnitQuerySource)
 
 USTRUCT()
@@ -38,6 +39,7 @@ struct FCorpseStack
 private:
 	void SetCorpseVisibility(AUnit* Corpse, bool bVisible);
 };
+
 USTRUCT()
 struct FGridRow
 {
@@ -46,6 +48,7 @@ struct FGridRow
 	TArray<TObjectPtr<AUnit>> Cells;
 	UPROPERTY(EditAnywhere)
 	TArray<FCorpseStack> CorpseStacks;
+
 	FGridRow()
 	{
 		Cells.Init(nullptr, FGridConstants::GridSize);
@@ -53,10 +56,13 @@ struct FGridRow
 	}
 };
 
+
+
 UCLASS()
 class KBS_API UGridDataManager : public UObject
 {
 	GENERATED_BODY()
+
 public:
 	void Initialize(ATacBattleGrid* InGrid);
 
@@ -87,17 +93,19 @@ public:
 	UBattleTeam* GetPlayerTeam() const { return bPlayerIsAttacker ? AttackerTeam : DefenderTeam; }
 	ATacBattleGrid* GetGrid() const { return Grid; }
 
-	TArray<FTacCoordinates> GetEmptyCells(ETacGridLayer Layer) const;
-	TArray<FTacCoordinates> GetOccupiedCells(ETacGridLayer Layer, UBattleTeam* Team) const;
 	bool IsCellOccupied(FTacCoordinates Coords) const;
 	TArray<FTacCoordinates> GetValidPlacementCells(ETacGridLayer Layer) const;
 	// Iterates all cells in Layer; adds coords where Predicate returns true
-	void FilterCells(ETacGridLayer Layer, TFunctionRef<bool(FTacCoordinates)> Predicate, TArray<FTacCoordinates>& OutCells) const;
-
+	void FilterCells(AUnit* SourceUnit, ETacGridLayer Layer, QueryPredicates::FCellFilterPredicate Predicate,
+	                 TArray<FTacCoordinates>& OutCells) const;
+	bool TestCells(AUnit* SourceUnit, ETacGridLayer Layer, QueryPredicates::FCellFilterPredicate Predicate) const;
+	void FilterCorpseCells(AUnit* SourceUnit, QueryPredicates::FCorpseFilterPredicate Predicate, TArray<FTacCoordinates>& OutCells) const;
+	bool TestCorpseCells(AUnit* SourceUnit, QueryPredicates::FCorpseFilterPredicate Predicate) const;
+	
 	void PushCorpse(AUnit* Unit, FTacCoordinates Coords);
 	AUnit* GetTopCorpse(FTacCoordinates Coords) const;
 	AUnit* PopCorpse(FTacCoordinates Coords);
-	bool HasCorpses(FTacCoordinates Coords) const;
+	int32 CorpsesNum(FTacCoordinates Coords) const;
 	const TArray<TObjectPtr<AUnit>>& GetCorpseStack(FTacCoordinates Coords) const;
 
 	TArray<AUnit*> GetUnitsInCells(const TArray<FTacCoordinates>& CellCoords, ETacGridLayer Layer) const;
@@ -105,10 +113,11 @@ public:
 	// Collects units from the specified storage locations
 	TArray<AUnit*> GetUnits(EUnitQuerySource Sources) const;
 	// Collects units from the specified storage locations, filtered by Predicate
-	TArray<AUnit*> GetUnits(EUnitQuerySource Sources, TFunctionRef<bool(const AUnit*)> Predicate) const;
+	TArray<AUnit*> GetUnits(EUnitQuerySource Sources, QueryPredicates::FCellFilterPredicate Predicate) const;
 
 	// Primitive spawn: creates actor, places in grid, assigns team. No event binding, no turn registration.
-	AUnit* SpawnUnit(TSubclassOf<AUnit> UnitClass, UUnitDefinition* Definition, FTacCoordinates Cell, UBattleTeam* Team);
+	AUnit* SpawnUnit(TSubclassOf<AUnit> UnitClass, UUnitDefinition* Definition, FTacCoordinates Cell,
+	                 UBattleTeam* Team);
 	// Removes unit from grid data and its team. Does NOT destroy or HandleDeath.
 	void RemoveUnitFromGrid(AUnit* Unit);
 
@@ -120,6 +129,7 @@ public:
 	bool ReturnUnitToField(const FGuid& UnitID, FTacCoordinates TargetCoords);
 	bool IsUnitOffField(const AUnit* Unit) const;
 	TArray<AUnit*> GetOffFieldUnits() const;
+
 private:
 #if WITH_EDITOR
 	friend class UTacGridEditorInitializer;

@@ -26,7 +26,7 @@ TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(F
 	{
 		if (!Target) continue;
 
-		UWeapon* Weapon = TargetingService->SelectWeapon(Owner, Target, true);
+		UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, Target, true);
 		if (!Weapon) continue;
 
 		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, Weapon, Target);
@@ -53,7 +53,7 @@ bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	if (!ResolvedTargets.ClickedTarget) return false;
 
 	// Select weapon for primary target
-	UWeapon* Weapon = TargetingService->SelectWeapon(Owner, ResolvedTargets.ClickedTarget, true);
+	UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, ResolvedTargets.ClickedTarget, true);
 	if (!Weapon) return false;
 
 	UPresentationSubsystem::FScopedBatch AttackBatch(

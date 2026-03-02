@@ -158,5 +158,12 @@ private:
 	void PopActiveBatch();
 	FBatchHandle GetCurrentBatch() const;
 
+	// Sanity timer: fires once after 10s if a batch is still pending; resets on each completion
+	FTimerHandle SanityTimerHandle;
+	bool bSanityResolving = false;
+	void RefreshSanityTimer();
+	void StopSanityTimer();
+	void OnSanityTimerFired();
+
 	friend class FScopedBatch;
 };

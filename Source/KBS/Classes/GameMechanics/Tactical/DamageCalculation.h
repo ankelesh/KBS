@@ -22,6 +22,7 @@ public:
 	// Weapon selection
 	static UWeapon* SelectMaxReachWeapon(AUnit* Unit, bool bAutoAttackOnly = false);
 	static UWeapon* SelectSpellWeapon(AUnit* Unit);
+	static UWeapon* SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly = false);
 
 	// Spell scaling: sets embedded weapon's base damage from spell weapon's modified damage
 	static void ApplySpellScaling(UWeapon* EmbeddedWeapon, UWeapon* SpellWeapon, float Multiplier, int32 FlatBonus);

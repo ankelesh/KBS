@@ -54,6 +54,7 @@ FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weap
 	if (Attacker->GetGridMetadata().bOnFlank && !Attacker->GetStats().Status.IsFlankDelayed())
 	{
 		DamageAfterArmor *= FLANKING_DAMAGE_MULTIPLIER;
+		BaseDamage *= FLANKING_DAMAGE_MULTIPLIER;
 	}
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
 	if (bIsTargetDefending)
@@ -192,6 +193,64 @@ bool FDamageCalculation::IsFriendlyReach(ETargetReach Reach)
 		Reach == ETargetReach::EmptyCellOrFriendly ||
 		Reach == ETargetReach::FriendlyCorpse ||
 		Reach == ETargetReach::FriendlyNonBlockedCorpse;
+}
+
+UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly)
+{
+	check(Attacker && Target);
+
+	const TArray<UWeapon*>& Weapons = Attacker->GetWeapons();
+	if (Weapons.Num() == 0) return nullptr;
+
+	const int32 Distance = Attacker->GetGridMetadata().DistanceTo(Target->GetGridMetadata());
+	const bool bIsFriendly = Attacker->GetGridMetadata().IsAlly(Target->GetGridMetadata());
+
+	// Returns whether a weapon with this reach can hit a target at Distance with the given affiliation.
+	// Collapses all reach variants to two axes: affiliation (friendly/hostile) and range (melee/any).
+	auto CanReachTarget = [&](ETargetReach Reach) -> bool
+	{
+		switch (Reach)
+		{
+		// Hostile melee-only
+		case ETargetReach::ClosestEnemies:
+			return !bIsFriendly && Distance == 1;
+
+		// Hostile any distance
+		case ETargetReach::AnyEnemy:
+		case ETargetReach::AllEnemies:
+		case ETargetReach::Area:
+		case ETargetReach::AreaEnemy:
+			return !bIsFriendly;
+
+		// Friendly any distance
+		case ETargetReach::Self:
+		case ETargetReach::AnyFriendly:
+		case ETargetReach::AllFriendlies:
+		case ETargetReach::EmptyCellOrFriendly:
+		case ETargetReach::AreaFriendly:
+			return bIsFriendly;
+
+		// Non-unit targets (corpse, movement, empty cell) — never targets a live unit
+		default:
+			return false;
+		}
+	};
+
+	UWeapon* BestWeapon = nullptr;
+	int32 BestDamage = -1;
+	for (UWeapon* Weapon : Weapons)
+	{
+		if (bAutoAttackOnly && !Weapon->IsUsableForAutoAttack()) continue;
+		if (!CanReachTarget(Weapon->GetStats().TargetReach)) continue;
+
+		const int32 Dmg = CalculateDamage(Attacker, Weapon, Target).Damage;
+		if (Dmg > BestDamage)
+		{
+			BestDamage = Dmg;
+			BestWeapon = Weapon;
+		}
+	}
+	return BestWeapon;
 }
 
 EDamageSource FDamageCalculation::SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target)

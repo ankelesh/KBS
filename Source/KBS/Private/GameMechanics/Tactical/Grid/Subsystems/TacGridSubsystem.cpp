@@ -143,11 +143,11 @@ bool UTacGridSubsystem::GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& O
 		return false;
 	}
 
-	if (!Unit->GridMetadata.IsOnField())
+	if (!Unit->GetGridMetadata().IsOnField())
 	{
 		return false;
 	}
-	OutCoordinates = Unit->GridMetadata.Coords;
+	OutCoordinates = Unit->GetGridMetadata().Coords;
 	return true;
 }
 
@@ -170,11 +170,11 @@ void UTacGridSubsystem::PlaceUnitOffField(AUnit* Unit)
 
 void UTacGridSubsystem::HandleUnitDied(AUnit* Unit)
 {
-	if (!Unit->GridMetadata.IsOnField())
+	if (!Unit->GetGridMetadata().IsOnField())
 	{
 		return;
 	}
-	DataManager->PushCorpse(Unit, Unit->GridMetadata.Coords);
+	DataManager->PushCorpse(Unit, Unit->GetGridMetadata().Coords);
 	DataManager->RemoveUnit(Unit);
 }
 

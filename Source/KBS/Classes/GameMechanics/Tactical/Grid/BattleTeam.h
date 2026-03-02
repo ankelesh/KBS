@@ -1,14 +1,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "GameplayTypes/TeamConstants.h"
 #include "BattleTeam.generated.h"
 class AUnit;
-UENUM(BlueprintType)
-enum class ETeamSide : uint8
-{
-	Attacker UMETA(DisplayName = "Attacker"),
-	Defender UMETA(DisplayName = "Defender")
-};
+
 UCLASS()
 class KBS_API UBattleTeam : public UObject
 {
@@ -22,6 +18,9 @@ public:
 	void SetTeamSide(ETeamSide Side) { TeamSide = Side; }
 	const TArray<TObjectPtr<AUnit>>& GetUnits() const { return Units; }
 	bool IsAnyUnitAlive() const;
+	bool IsAnyUnitOnField() const;
+	bool IsOtherUnitAlive(AUnit* Unit) const;
+	bool IsOtherUnitOnField(AUnit* Unit) const;
 	static ETeamSide ReverseTeamSide(ETeamSide Side);
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")

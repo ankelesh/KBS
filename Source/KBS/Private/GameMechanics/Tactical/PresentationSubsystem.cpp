@@ -1,5 +1,6 @@
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "Engine/World.h"
+#include "TimerManager.h"
 
 void UPresentationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -74,6 +75,10 @@ void UPresentationSubsystem::EndBatch(FBatchHandle BatchHandle)
 	if (Batch->IsComplete())
 	{
 		OnBatchCompleted(BatchHandle);
+	}
+	else
+	{
+		RefreshSanityTimer();
 	}
 }
 
@@ -151,6 +156,10 @@ void UPresentationSubsystem::UnregisterOperation(FOperationHandle Handle)
 	else
 	{
 		CheckAndBroadcastIdle();
+		if (!IsIdle())
+		{
+			RefreshSanityTimer();
+		}
 	}
 }
 
@@ -196,9 +205,84 @@ void UPresentationSubsystem::CheckAndBroadcastIdle()
 {
 	if (IsIdle())
 	{
+		StopSanityTimer();
 		UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: All presentations complete, broadcasting event"));
 		OnAllPresentationsComplete.Broadcast();
 	}
+}
+
+void UPresentationSubsystem::RefreshSanityTimer()
+{
+	if (bSanityResolving)
+	{
+		return;
+	}
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	World->GetTimerManager().SetTimer(SanityTimerHandle, this, &UPresentationSubsystem::OnSanityTimerFired, 10.0f, false);
+}
+
+void UPresentationSubsystem::StopSanityTimer()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	World->GetTimerManager().ClearTimer(SanityTimerHandle);
+}
+
+void UPresentationSubsystem::OnSanityTimerFired()
+{
+	UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: *** SANITY TIMEOUT *** Stuck for 10s. Active batches: %d | Pending ops: %d"),
+		ActiveBatches.Num(), PendingOperations.Num());
+
+	for (const auto& BatchPair : ActiveBatches)
+	{
+		const FPresentationBatch& Batch = BatchPair.Value;
+		if (Batch.Name == TEXT("DefaultBatch"))
+		{
+			continue;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("  [Batch] '%s' ID=%s | Ended=%s | Pending=%d"),
+			*Batch.Name,
+			*BatchPair.Key.ToString(),
+			Batch.bEnded ? TEXT("yes") : TEXT("no"),
+			Batch.PendingOperations.Num());
+
+		for (const FOperationHandle& OpHandle : Batch.PendingOperations)
+		{
+			const FPresentationOperation* Op = PendingOperations.Find(OpHandle.ID);
+			UE_LOG(LogTemp, Warning, TEXT("    [Op] '%s' ID=%s"),
+				Op ? *Op->DebugLabel : TEXT("<missing>"),
+				*OpHandle.ID.ToString());
+		}
+	}
+
+	// Force-resolve everything so the game can continue
+	bSanityResolving = true;
+
+	TArray<FGuid> StuckOpIds;
+	PendingOperations.GetKeys(StuckOpIds);
+	for (const FGuid& OpId : StuckOpIds)
+	{
+		UnregisterOperation(FOperationHandle(OpId));
+	}
+
+	// Force-end batches that were never explicitly ended
+	TArray<FGuid> StuckBatchIds;
+	ActiveBatches.GetKeys(StuckBatchIds);
+	for (const FGuid& BatchId : StuckBatchIds)
+	{
+		EndBatch(FBatchHandle(BatchId));
+	}
+
+	bSanityResolving = false;
+	CheckAndBroadcastIdle();
 }
 
 void UPresentationSubsystem::OnBatchCompleted(FBatchHandle BatchHandle)

@@ -22,6 +22,8 @@ enum class ETargetReach : uint8
 	AnyEnemy UMETA(DisplayName = "Any Enemy"),
 	AllEnemies UMETA(DisplayName = "All Enemies"),
 	Area UMETA(DisplayName = "Area"),
+	AreaFriendly UMETA(DisplayName = "Area Friendly"),
+	AreaEnemy UMETA(DisplayName="Area with enemies"),
 	AnyFriendly UMETA(DisplayName = "Any Friendly"),
 	AllFriendlies UMETA(DisplayName = "All Friendlies"),
 	EmptyCell UMETA(DisplayName = "Empty Cell"),

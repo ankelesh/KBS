@@ -53,9 +53,16 @@ struct KBS_API FTacCoordinates
 	FTacCoordinates() : Row(0), Col(0), Layer(ETacGridLayer::Ground) {}
 	FTacCoordinates(int32 Row, int32 Col) : Row(Row), Col(Col), Layer(ETacGridLayer::Ground) {}
 	FTacCoordinates(int32 Row, int32 Col, ETacGridLayer Layer) : Row(Row), Col(Col), Layer(Layer) {}
+	
+	int32 DistanceTo(const FTacCoordinates& Other) const
+	{
+		return FMath::Max(
+			FMath::Abs(Row - Other.Row),
+			FMath::Abs(Col - Other.Col)
+		);
+	}
 
 	static FTacCoordinates Invalid() { return FTacCoordinates(-1, -1); }
-	bool IsValid() const { return Row >= 0 && Col >= 0; }
 
 	bool operator==(const FTacCoordinates& Other) const
 	{
@@ -65,6 +72,22 @@ struct KBS_API FTacCoordinates
 	bool operator!=(const FTacCoordinates& Other) const
 	{
 		return !(*this == Other);
+	}
+	
+	FTacCoordinates operator+(const FIntPoint& Other) const
+	{
+		FTacCoordinates Result(*this);
+		Result.Row += Other.X;
+		Result.Col += Other.Y;
+		return Result;
+	}
+	
+	FTacCoordinates operator-(const FIntPoint& Other) const
+	{
+		FTacCoordinates Result(*this);
+		Result.Row -= Other.X;
+		Result.Col -= Other.Y;
+		return Result;
 	}
 
 	bool IsValidCell() const;
@@ -145,10 +168,10 @@ inline FTacCoordinates GetExtraCellCoords(FTacCoordinates Primary, EUnitOrientat
 {
 	switch (Orientation)
 	{
-	case EUnitOrientation::GridTop:    return FTacCoordinates(Primary.Row - 1, Primary.Col, Primary.Layer);
-	case EUnitOrientation::GridBottom: return FTacCoordinates(Primary.Row + 1, Primary.Col, Primary.Layer);
-	case EUnitOrientation::GridLeft:   return FTacCoordinates(Primary.Row, Primary.Col - 1, Primary.Layer);
-	case EUnitOrientation::GridRight:  return FTacCoordinates(Primary.Row, Primary.Col + 1, Primary.Layer);
+	case EUnitOrientation::GridTop:    return FTacCoordinates(Primary.Row + 1, Primary.Col, Primary.Layer);
+	case EUnitOrientation::GridBottom: return FTacCoordinates(Primary.Row - 1, Primary.Col, Primary.Layer);
+	case EUnitOrientation::GridLeft:   return FTacCoordinates(Primary.Row, Primary.Col + 1, Primary.Layer);
+	case EUnitOrientation::GridRight:  return FTacCoordinates(Primary.Row, Primary.Col - 1, Primary.Layer);
 	}
 	return FTacCoordinates::Invalid();
 }

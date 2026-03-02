@@ -112,7 +112,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 	FTacCoordinates ExtraCell = FTacCoordinates::Invalid();
 	if (UnitSize > 1 && !bOnFlank)
 	{
-		const FTacCoordinates Candidate = GetExtraCellCoords(Coords, Orientation);
+		const FTacCoordinates Candidate = GetExtraCellCoords(Coords, OppositeOrientation(Orientation));
 		if (Candidate.IsValidCell()
 			&& Candidate.Row < LayerArray.Num()
 			&& Candidate.Col < LayerArray[Candidate.Row].Cells.Num()
@@ -252,56 +252,10 @@ UBattleTeam* UGridDataManager::GetTeamBySide(ETeamSide Side) const
 {
 	return Side == ETeamSide::Attacker ? AttackerTeam : DefenderTeam;
 }
-TArray<FTacCoordinates> UGridDataManager::GetEmptyCells(ETacGridLayer Layer) const
-{
-	TArray<FTacCoordinates> EmptyCells;
-	const TArray<FGridRow>& LayerArray = GetLayer(Layer);
-	for (int32 Row = 0; Row < LayerArray.Num(); ++Row)
-	{
-		for (int32 Col = 0; Col < LayerArray[Row].Cells.Num(); ++Col)
-		{
-			FTacCoordinates Coords(Row, Col, Layer);
-			if (Coords.IsValidCell() && LayerArray[Row].Cells[Col] == nullptr)
-			{
-				EmptyCells.Add(Coords);
-			}
-		}
-	}
-	return EmptyCells;
-}
-TArray<FTacCoordinates> UGridDataManager::GetOccupiedCells(ETacGridLayer Layer, UBattleTeam* Team) const
-{
-	TArray<FTacCoordinates> OccupiedCells;
-	if (!Team)
-	{
-		return OccupiedCells;
-	}
-	const TArray<FGridRow>& LayerArray = GetLayer(Layer);
-	for (int32 Row = 0; Row < LayerArray.Num(); ++Row)
-	{
-		for (int32 Col = 0; Col < LayerArray[Row].Cells.Num(); ++Col)
-		{
-			AUnit* Unit = LayerArray[Row].Cells[Col];
-			if (Unit && Team->ContainsUnit(Unit))
-			{
-				OccupiedCells.Add(FTacCoordinates(Row, Col, Layer));
-			}
-		}
-	}
-	return OccupiedCells;
-}
+
 bool UGridDataManager::IsCellOccupied(FTacCoordinates Coords) const
 {
 	return GetUnit(Coords) != nullptr;
-}
-TArray<FTacCoordinates> UGridDataManager::GetValidPlacementCells(ETacGridLayer Layer) const
-{
-	TArray<FTacCoordinates> PlacementCells = GetEmptyCells(Layer);
-	PlacementCells.RemoveAll([this](const FTacCoordinates& Coords)
-	{
-		return Coords.IsRestrictedCell();
-	});
-	return PlacementCells;
 }
 void UGridDataManager::PushCorpse(AUnit* Unit, FTacCoordinates Coords)
 {
@@ -344,7 +298,7 @@ AUnit* UGridDataManager::PopCorpse(FTacCoordinates Coords)
 	UE_LOG(LogTacGrid, Log, TEXT("PopCorpse: %s from [%d,%d]"), *Corpse->GetLogName(), Coords.Row, Coords.Col);
 	return Corpse;
 }
-bool UGridDataManager::HasCorpses(FTacCoordinates Coords) const
+int32 UGridDataManager::CorpsesNum(FTacCoordinates Coords) const
 {
 	if (!Coords.IsValidCell())
 	{
@@ -354,7 +308,7 @@ bool UGridDataManager::HasCorpses(FTacCoordinates Coords) const
 	{
 		return false;
 	}
-	return !GroundLayer[Coords.Row].CorpseStacks[Coords.Col].IsEmpty();
+	return !GroundLayer[Coords.Row].CorpseStacks[Coords.Col].Num();
 }
 const TArray<TObjectPtr<AUnit>>& UGridDataManager::GetCorpseStack(FTacCoordinates Coords) const
 {
@@ -392,14 +346,71 @@ TArray<AUnit*> UGridDataManager::GetUnitsInCells(const TArray<FTacCoordinates>& 
 	return Result;
 }
 
-void UGridDataManager::FilterCells(ETacGridLayer Layer, TFunctionRef<bool(FTacCoordinates)> Predicate, TArray<FTacCoordinates>& OutCells) const
+void UGridDataManager::FilterCells(AUnit* SourceUnit, ETacGridLayer Layer, QueryPredicates::FCellFilterPredicate Predicate, TArray<FTacCoordinates>& OutCells) const
 {
 	for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
 	{
 		for (int32 Col = 0; Col < FGridConstants::GridSize; ++Col)
 		{
 			FTacCoordinates Coords(Row, Col, Layer);
-			if (Predicate(Coords))
+			if (Coords.IsRestrictedCell())
+				continue;
+			if (Predicate(SourceUnit, GetUnit(Coords), Coords))
+			{
+				OutCells.Add(Coords);
+			}
+		}
+	}
+}
+
+bool UGridDataManager::TestCells(AUnit* SourceUnit, ETacGridLayer Layer,
+	QueryPredicates::FCellFilterPredicate Predicate) const
+{
+	for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridConstants::GridSize; ++Col)
+		{
+			FTacCoordinates Coords(Row, Col, Layer);
+			if (Coords.IsRestrictedCell())
+				continue;
+			if (Predicate(SourceUnit, GetUnit(Coords), Coords))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool UGridDataManager::TestCorpseCells(AUnit* SourceUnit, QueryPredicates::FCorpseFilterPredicate Predicate) const
+{
+	for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridConstants::GridSize; ++Col)
+		{
+			FTacCoordinates Coords(Row, Col, ETacGridLayer::Ground);
+			if (Coords.IsRestrictedCell())
+				continue;
+			if (Predicate(Coords, IsCellOccupied(Coords), GetTopCorpse(Coords), CorpsesNum(Coords)))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void UGridDataManager::FilterCorpseCells(AUnit* SourceUnit, QueryPredicates::FCorpseFilterPredicate Predicate,
+                                         TArray<FTacCoordinates>& OutCells) const
+{
+	for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
+	{
+		for (int32 Col = 0; Col < FGridConstants::GridSize; ++Col)
+		{
+			FTacCoordinates Coords(Row, Col, ETacGridLayer::Ground);
+			if (Coords.IsRestrictedCell())
+				continue;
+			if (Predicate(Coords, IsCellOccupied(Coords), GetTopCorpse(Coords), CorpsesNum(Coords)))
 			{
 				OutCells.Add(Coords);
 			}
@@ -437,12 +448,6 @@ TArray<AUnit*> UGridDataManager::GetUnits(EUnitQuerySource Sources) const
 	return Out;
 }
 
-TArray<AUnit*> UGridDataManager::GetUnits(EUnitQuerySource Sources, TFunctionRef<bool(const AUnit*)> Predicate) const
-{
-	TArray<AUnit*> All = GetUnits(Sources);
-	All.RemoveAll([&](const AUnit* U) { return !Predicate(U); });
-	return All;
-}
 
 AUnit* UGridDataManager::SpawnUnit(TSubclassOf<AUnit> UnitClass, UUnitDefinition* Definition,
                                    FTacCoordinates Cell, UBattleTeam* Team)

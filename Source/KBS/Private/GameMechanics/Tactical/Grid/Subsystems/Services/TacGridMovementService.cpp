@@ -38,12 +38,12 @@ bool UTacGridMovementService::ValidateMovementParameters(AUnit* Unit, FTacCoordi
 
 bool UTacGridMovementService::GetUnitCurrentPosition(AUnit* Unit, FTacCoordinates& OutPos) const
 {
-	if (!Unit->GridMetadata.IsOnField())
+	if (!Unit->GetGridMetadata().IsOnField())
 	{
 		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Unit is not on field"));
 		return false;
 	}
-	OutPos = Unit->GridMetadata.Coords;
+	OutPos = Unit->GetGridMetadata().Coords;
 	return true;
 }
 
@@ -182,7 +182,7 @@ FRotator UTacGridMovementService::CalculateCellOrientation(ETeamSide TeamSide) c
 
 TArray<FTacMovementSegment> UTacGridMovementService::MakeUnitPath(AUnit* UnitToMove, FTacCoordinates Where)
 {
-	const FTacCoordinates EffectiveTarget = UnitToMove->GridMetadata.ResolveMovementTarget(Where);
+	const FTacCoordinates EffectiveTarget = UnitToMove->GetGridMetadata().ResolveMovementTarget(Where);
 	FTacCoordinates CurrentPos;
 	if (!ValidateAndGetPosition(UnitToMove, EffectiveTarget, CurrentPos))
 	{
@@ -193,7 +193,7 @@ TArray<FTacMovementSegment> UTacGridMovementService::MakeUnitPath(AUnit* UnitToM
 
 FTacMovementVisualData UTacGridMovementService::MakeMovementVisual(AUnit* UnitToMove, FTacCoordinates Where)
 {
-	const FTacCoordinates EffectiveTarget = UnitToMove->GridMetadata.ResolveMovementTarget(Where);
+	const FTacCoordinates EffectiveTarget = UnitToMove->GetGridMetadata().ResolveMovementTarget(Where);
 	FTacCoordinates CurrentPos;
 	if (!ValidateAndGetPosition(UnitToMove, EffectiveTarget, CurrentPos))
 	{
@@ -206,12 +206,12 @@ FTacMovementVisualData UTacGridMovementService::MakeMovementVisual(AUnit* UnitTo
 		return {};
 	}
 
-	return BuildVisualData(Path, EffectiveTarget, UnitToMove->GetTeamSide(), EffectiveTarget.IsFlankCell(), UnitToMove->GridMetadata.IsMultiCell());
+	return BuildVisualData(Path, EffectiveTarget, UnitToMove->GetTeamSide(), EffectiveTarget.IsFlankCell(), UnitToMove->GetGridMetadata().IsMultiCell());
 }
 
 bool UTacGridMovementService::PushUnitToCell(AUnit* UnitToMove, FTacCoordinates Where)
 {
-	const FTacCoordinates EffectiveTarget = UnitToMove->GridMetadata.ResolveMovementTarget(Where);
+	const FTacCoordinates EffectiveTarget = UnitToMove->GetGridMetadata().ResolveMovementTarget(Where);
 	FTacCoordinates CurrentPos;
 	if (!ValidateAndGetPosition(UnitToMove, EffectiveTarget, CurrentPos))
 	{
@@ -231,7 +231,7 @@ bool UTacGridMovementService::PushUnitToCell(AUnit* UnitToMove, FTacCoordinates 
 
 bool UTacGridMovementService::TeleportUnit(AUnit* UnitToMove, FTacCoordinates Where)
 {
-	const FTacCoordinates EffectiveTarget = UnitToMove->GridMetadata.ResolveMovementTarget(Where);
+	const FTacCoordinates EffectiveTarget = UnitToMove->GetGridMetadata().ResolveMovementTarget(Where);
 	FTacCoordinates CurrentPos;
 	if (!ValidateAndGetPosition(UnitToMove, EffectiveTarget, CurrentPos))
 	{
@@ -253,7 +253,7 @@ bool UTacGridMovementService::TeleportUnit(AUnit* UnitToMove, FTacCoordinates Wh
 bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 {
 	// ===== VALIDATION PHASE =====
-	const FTacCoordinates EffectiveTarget = Unit->GridMetadata.ResolveMovementTarget(Where);
+	const FTacCoordinates EffectiveTarget = Unit->GetGridMetadata().ResolveMovementTarget(Where);
 	FTacCoordinates CurrentPos;
 	if (!ValidateAndGetPosition(Unit, EffectiveTarget, CurrentPos))
 	{
@@ -264,16 +264,16 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 
 	// Swaps are only valid between two 1-cell units
 	const bool bIsSwap = (TargetOccupant != nullptr);
-	if (bIsSwap && (Unit->GridMetadata.IsMultiCell() || TargetOccupant->GridMetadata.IsMultiCell()))
+	if (bIsSwap && (Unit->GetGridMetadata().IsMultiCell() || TargetOccupant->GetGridMetadata().IsMultiCell()))
 	{
 		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Swap not allowed when either unit is 2-cell"));
 		return false;
 	}
 
 	// For 2-cell movers: ensure the secondary target cell is also free
-	if (Unit->GridMetadata.IsMultiCell())
+	if (Unit->GetGridMetadata().IsMultiCell())
 	{
-		const FTacCoordinates NewSecondary = GetExtraCellCoords(EffectiveTarget, Unit->GridMetadata.Orientation);
+		const FTacCoordinates NewSecondary = GetExtraCellCoords(EffectiveTarget, Unit->GetGridMetadata().Orientation);
 		if (NewSecondary.IsValidCell())
 		{
 			AUnit* SecondaryOccupant = DataManager->GetUnit(NewSecondary);
@@ -289,7 +289,7 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 	const bool bTargetIsFlank = EffectiveTarget.IsFlankCell();
 	const bool bCurrentIsFlank = CurrentPos.IsFlankCell();
 
-	FTacMovementVisualData UnitVisuals = BuildVisualData(BuildPathSegments(Unit, EffectiveTarget), EffectiveTarget, Unit->GetTeamSide(), bTargetIsFlank, Unit->GridMetadata.IsMultiCell());
+	FTacMovementVisualData UnitVisuals = BuildVisualData(BuildPathSegments(Unit, EffectiveTarget), EffectiveTarget, Unit->GetTeamSide(), bTargetIsFlank, Unit->GetGridMetadata().IsMultiCell());
 	FTacMovementVisualData SwappedVisuals;
 	if (bIsSwap)
 	{
@@ -322,10 +322,11 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 	// Ground → flank cell: apply per-definition arrival delay (air landings are exempt)
 	if (bTargetIsFlank && CurrentPos.Layer == ETacGridLayer::Ground)
 	{
-		const int32 Delay = Unit->GetUnitDefinition()->FlankArrivalDelay;
+		const int32 Delay = Unit->GetFlankArrivalDelay();
 		if (Delay > 0)
 		{
 			Unit->GetStats().Status.SetFlankDelay(Delay);
+			UE_LOG(LogTacGrid, Log, TEXT("MoveUnit: %s got it's flank delay: %d"), *Unit->GetLogName(), Delay);
 		}
 	}
 

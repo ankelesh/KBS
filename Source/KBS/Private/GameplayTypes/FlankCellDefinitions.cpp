@@ -1,44 +1,101 @@
 #include "GameplayTypes/FlankCellDefinitions.h"
-const TArray<int32> FFlankCellDefinitions::AttackerFlankColumns = {0, 1};
-const TArray<int32> FFlankCellDefinitions::DefenderFlankColumns = {3, 4};
-const TArray<int32> FFlankCellDefinitions::ClosestFlankColumns = {1, 3};
-const TArray<int32> FFlankCellDefinitions::FarFlankColumns = {0, 4};
-const int32 FFlankCellDefinitions::CenterRow = 2;
+
 const TArray<int32> FFlankCellDefinitions::CenterColumns = {1, 2, 3};
-bool FFlankCellDefinitions::IsAttackerFlankColumn(int32 Col)
+const FTacCoordinates FFlankCellDefinitions::AttackerLeftEntranceCell(FlankEntranceBottom, FlankColRight,
+                                                                      ETacGridLayer::Ground);
+const FTacCoordinates FFlankCellDefinitions::AttackerRightEntranceCell(FlankEntranceBottom, FlankColLeft,
+                                                                       ETacGridLayer::Ground);
+const FTacCoordinates FFlankCellDefinitions::DefenderLeftEntranceCell(FlankEntranceTop, FlankColLeft,
+                                                                      ETacGridLayer::Ground);
+const FTacCoordinates FFlankCellDefinitions::DefenderRightEntranceCell(FlankEntranceTop, FlankColRight,
+                                                                       ETacGridLayer::Ground);
+const FTacCoordinates
+FFlankCellDefinitions::AttackerLeftRearCell(FlankRearBottom, FlankColRight, ETacGridLayer::Ground);
+const FTacCoordinates
+FFlankCellDefinitions::AttackerRightRearCell(FlankRearBottom, FlankColLeft, ETacGridLayer::Ground);
+const FTacCoordinates FFlankCellDefinitions::DefenderLeftRearCell(FlankRearTop, FlankColLeft, ETacGridLayer::Ground);
+const FTacCoordinates FFlankCellDefinitions::DefenderRightRearCell(FlankRearTop, FlankColRight, ETacGridLayer::Ground);
+
+bool FFlankCellDefinitions::IsAttackerFlank(FTacCoordinates Cell)
 {
-	return AttackerFlankColumns.Contains(Col);
+	return (Cell.Col == FlankColLeft || Cell.Col == FlankColRight) && Cell.Row >= FlankEntranceBottom;
 }
-bool FFlankCellDefinitions::IsDefenderFlankColumn(int32 Col)
+
+bool FFlankCellDefinitions::IsDefenderFlank(FTacCoordinates Cell)
 {
-	return DefenderFlankColumns.Contains(Col);
+	return (Cell.Col == FlankColLeft || Cell.Col == FlankColRight) && Cell.Row <= FlankEntranceTop;
 }
-bool FFlankCellDefinitions::IsCenterLineCell(int32 Row, int32 Col)
+
+bool FFlankCellDefinitions::IsCenterLineCell(FTacCoordinates Cell)
 {
-	return Row == CenterRow && CenterColumns.Contains(Col);
+	switch (Cell.Col)
+	{
+	case 1:
+	case 2:
+	case 3:
+		return true;
+	default:
+		return false;
+	}
 }
-bool FFlankCellDefinitions::IsClosestFlankColumn(int32 Col)
+
+bool FFlankCellDefinitions::IsEntranceCell(FTacCoordinates Cell)
 {
-	return ClosestFlankColumns.Contains(Col);
+	return (Cell.Col == FlankColLeft || Cell.Col == FlankColRight) && (Cell.Row == FlankEntranceTop || Cell.Row ==
+		FlankEntranceBottom);
 }
-bool FFlankCellDefinitions::IsFarFlankColumn(int32 Col)
+
+bool FFlankCellDefinitions::IsEntranceAvailable(FTacCoordinates Cell)
 {
-	return FarFlankColumns.Contains(Col);
+	return Cell.Col == FlankColLeft + 1 || Cell.Col == FlankColRight - 1;
 }
-bool FFlankCellDefinitions::IsEntranceFlankCell(int32 Row, int32 Col)
+
+FTacCoordinates FFlankCellDefinitions::GetAvailableFlankCell(FTacCoordinates Cell, ETeamSide Team)
 {
-	return FTacCoordinates::IsFlankCell(Row, Col) && (Row == 1 || Row == 3);
+	if (Team == ETeamSide::Attacker)
+	{
+		if (IsRearAvailable(Cell))
+		{
+			return Cell.Col == AttackerLeftEntranceCell.Col ? AttackerLeftRearCell : AttackerRightRearCell;
+		}
+		if (IsEntranceAvailable(Cell))
+		{
+			// reversed since attacker relative is reversed
+			return Cell.Col == EntranceRightClosestCol ? AttackerLeftEntranceCell : AttackerRightEntranceCell;
+		}
+	}
+	if (Team == ETeamSide::Defender)
+	{
+		if (IsRearAvailable(Cell))
+		{
+			return Cell.Col == DefenderLeftEntranceCell.Col ? DefenderLeftRearCell : DefenderRightRearCell;
+		}
+		if (IsEntranceAvailable(Cell))
+		{
+			return Cell.Col == EntranceLeftClosestCol ? DefenderLeftEntranceCell : DefenderRightEntranceCell;
+		}
+	}
+	return FTacCoordinates::Invalid();
 }
-bool FFlankCellDefinitions::IsRearFlankCell(int32 Row, int32 Col)
+
+bool FFlankCellDefinitions::IsRearAvailable(FTacCoordinates Cell)
 {
-	return FTacCoordinates::IsFlankCell(Row, Col) && (Row == 0 || Row == 4);
+	return (Cell.Col == FlankColLeft || Cell.Col == FlankColRight)
+		&& (Cell.Row == FlankEntranceTop || Cell.Row == FlankEntranceBottom);
 }
-int32 FFlankCellDefinitions::GetAdjacentNormalCol(int32 FlankCol)
+
+FTacCoordinates FFlankCellDefinitions::GetAdjacentNormalCell(FTacCoordinates Cell)
 {
-	return FlankCol == 0 ? 1 : 3;
+	const int32 NormalCol = (Cell.Col == FlankColLeft) ? FlankColLeft + 1 : FlankColRight - 1;
+	return FTacCoordinates(Cell.Row, NormalCol, Cell.Layer);
 }
-FTacCoordinates FFlankCellDefinitions::GetEntranceBlockedCell(int32 EntranceRow, int32 FlankCol)
+
+FTacCoordinates FFlankCellDefinitions::GetEntranceBlockedCell(FTacCoordinates Cell)
 {
-	const int32 BlockedRow = (EntranceRow == 1) ? 0 : 4;
-	return FTacCoordinates(BlockedRow, GetAdjacentNormalCol(FlankCol));
+	if (IsEntranceCell(Cell))
+	{
+		const int32 RearRow = (Cell.Row == FlankEntranceTop) ? FlankRearTop : FlankRearBottom;
+		return GetAdjacentNormalCell(FTacCoordinates(RearRow, Cell.Col, Cell.Layer));
+	}
+	return FTacCoordinates::Invalid();
 }

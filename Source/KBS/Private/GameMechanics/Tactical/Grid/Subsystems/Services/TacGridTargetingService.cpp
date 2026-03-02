@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+#include "GameMechanics/Tactical/Grid/Algo/TacGridAlgo.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
@@ -9,9 +10,58 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/FlankCellDefinitions.h"
-#include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameplayTypes/CombatTypes.h"
 
+
+namespace
+{
+	struct CorpseTargetingFilter
+	{
+		bool bIsAllowingBlocked;
+		EAffiliationFilter Filter;
+	};
+
+	constexpr CorpseTargetingFilter CorpseTargetBounds(ETargetReach Reach)
+	{
+		switch (Reach)
+		{
+		case ETargetReach::AnyCorpse: return {true, EAffiliationFilter::Any};
+		case ETargetReach::AnyNonBlockedCorpse: return {false, EAffiliationFilter::Any};
+		case ETargetReach::EnemyCorpse: return {true, EAffiliationFilter::Enemy};
+		case ETargetReach::EnemyNonBlockedCorpse: return {false, EAffiliationFilter::Enemy};
+		case ETargetReach::FriendlyCorpse: return {true, EAffiliationFilter::Friendly};
+		case ETargetReach::FriendlyNonBlockedCorpse: return {false, EAffiliationFilter::Friendly};
+		default:
+			checkNoEntry(); // crashes in dev builds; stripped in shipping
+			return {false, EAffiliationFilter::Any};
+		}
+	}
+
+	struct AffiliationTargetingFilter
+	{
+		EAffiliationFilter Filter;
+		bool bAllowEmpty;
+		bool bAllowFlank;
+	};
+
+	constexpr AffiliationTargetingFilter AffiliationTargetBounds(ETargetReach Reach)
+	{
+		switch (Reach)
+		{
+		case ETargetReach::AnyEnemy:
+		case ETargetReach::Area:
+		case ETargetReach::AllEnemies:          return {EAffiliationFilter::Enemy,    false, true};
+		case ETargetReach::AllFriendlies:
+		case ETargetReach::AnyFriendly:         return {EAffiliationFilter::Friendly, false, true};
+		case ETargetReach::EmptyCellOrFriendly: return {EAffiliationFilter::Friendly, true,  false};
+		default:
+			checkNoEntry();
+			return {EAffiliationFilter::Any, false, false};
+		}
+	}
+}
+
+using namespace TargetingPredicates;
 
 UTacGridTargetingService::UTacGridTargetingService()
 {
@@ -26,920 +76,419 @@ void UTacGridTargetingService::Initialize(UGridDataManager* InDataManager)
 TArray<FTacCoordinates> UTacGridTargetingService::GetValidTargetCells(AUnit* Unit, ETargetReach Reach) const
 {
 	check(Unit);
-
 	TArray<FTacCoordinates> TargetCells;
-
 	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
 
 	switch (Reach)
 	{
-		case ETargetReach::None:
+	case ETargetReach::None:
+		break;
+	case ETargetReach::Self:
+		TargetCells.Append(Metadata.GetCells());
+		break;
+	case ETargetReach::ClosestEnemies:
+		GetClosestEnemyCells(Unit, TargetCells);
+		break;
+	case ETargetReach::AnyEnemy:
+	case ETargetReach::Area:
+	case ETargetReach::AllEnemies:
+	case ETargetReach::AllFriendlies:
+	case ETargetReach::AnyFriendly:
+	case ETargetReach::EmptyCellOrFriendly:
+		{
+			auto [Filter, bAllowEmpty, bAllowFlank] = AffiliationTargetBounds(Reach);
+			GetCellsByAffiliation(Unit, Filter, TargetCells, bAllowEmpty, bAllowFlank);
 			break;
-		case ETargetReach::Self:
-			TargetCells.Add(Metadata.Coords);
+		}
+	case ETargetReach::EmptyCell:
+		DataManager->FilterCells(Unit, Metadata.Coords.Layer, EmptyNotFlankPredicate, TargetCells);
+		break;
+	case ETargetReach::Movement:
+		GetMovementCells(Unit, TargetCells);
+		break;
+	case ETargetReach::AnyCorpse:
+	case ETargetReach::FriendlyCorpse:
+	case ETargetReach::EnemyCorpse:
+	case ETargetReach::AnyNonBlockedCorpse:
+	case ETargetReach::FriendlyNonBlockedCorpse:
+	case ETargetReach::EnemyNonBlockedCorpse:
+		{
+			auto FilterBound = CorpseTargetBounds(Reach);
+			GetCorpseCellsByAffiliation(Unit, FilterBound.Filter, FilterBound.bIsAllowingBlocked, TargetCells);
 			break;
-		case ETargetReach::ClosestEnemies:
-			GetClosestEnemyCells(Unit, TargetCells);
-			break;
-		case ETargetReach::AnyEnemy:
-		case ETargetReach::Area:
-			GetUnitCellsByAffiliation(Unit, EAffiliationFilter::Enemy, TargetCells);
-			break;
-		case ETargetReach::AllEnemies:
-			GetUnitCellsByAffiliation(Unit, EAffiliationFilter::Enemy, TargetCells);
-			break;
-		case ETargetReach::AnyFriendly:
-			GetUnitCellsByAffiliation(Unit, EAffiliationFilter::Friendly, TargetCells);
-			break;
-		case ETargetReach::AllFriendlies:
-			GetUnitCellsByAffiliation(Unit, EAffiliationFilter::Friendly, TargetCells);
-			break;
-		case ETargetReach::EmptyCell:
-			GetEmptyCellsForLayer(Metadata.Coords.Layer, TargetCells);
-			break;
-		case ETargetReach::EmptyCellOrFriendly:
-			GetEmptyCellsOrFriendly(Unit, TargetCells);
-			break;
-		case ETargetReach::Movement:
-			GetMovementCells(Unit, TargetCells);
-			break;
-		case ETargetReach::AnyCorpse:
-			GetCorpseCells(nullptr, ECorpseFilter::Any, TargetCells);
-			break;
-		case ETargetReach::FriendlyCorpse:
-			GetCorpseCells(Unit, ECorpseFilter::Friendly, TargetCells);
-			break;
-		case ETargetReach::EnemyCorpse:
-			GetCorpseCells(Unit, ECorpseFilter::Enemy, TargetCells);
-			break;
-		case ETargetReach::AnyNonBlockedCorpse:
-			GetCorpseCells(Unit, ECorpseFilter::AnyNonBlocked, TargetCells);
-			break;
-		case ETargetReach::FriendlyNonBlockedCorpse:
-			GetCorpseCells(Unit, ECorpseFilter::FriendlyNonBlocked, TargetCells);
-			break;
-		case ETargetReach::EnemyNonBlockedCorpse:
-			GetCorpseCells(Unit, ECorpseFilter::EnemyNonBlocked, TargetCells);
-			break;
+		}
+	default:
+		UE_LOG(LogTacGrid, Warning, TEXT("Unknown target reach type: %d"), (int32)Reach);
 	}
-	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetCells: %s Reach=%d -> %d cells"), *Unit->GetLogName(), (int32)Reach, TargetCells.Num());
+	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetCells: %s Reach=%d -> %d cells"), *Unit->GetLogName(), (int32)Reach,
+	       TargetCells.Num());
 	return TargetCells;
 }
 
-TArray<AUnit*> UTacGridTargetingService::GetValidTargetUnits(AUnit* Unit, ETargetReach Reach, bool bIncludeDeadUnits) const
+TArray<AUnit*> UTacGridTargetingService::GetValidTargetUnits(AUnit* Unit, ETargetReach Reach,
+                                                             bool bIncludeSelf) const
 {
 	check(Unit);
-
-	TArray<AUnit*> TargetUnits;
-	const TArray<FTacCoordinates> TargetCells = GetValidTargetCells(Unit, Reach);
-	for (const FTacCoordinates& Cell : TargetCells)
+	auto TargetCells = GetValidTargetCells(Unit, Reach);
+	if (!bIncludeSelf)
 	{
-		AUnit* TargetUnit = DataManager->GetUnit(Cell);
-		if (TargetUnit)
-		{
-			if (!bIncludeDeadUnits && TargetUnit->IsDead())
-			{
-				continue;
-			}
-			TargetUnits.AddUnique(TargetUnit);
-		}
+		TargetCells.Remove(Unit->GetGridMetadata().Coords);
+		if (Unit->GetGridMetadata().HasExtraCell())
+			TargetCells.Remove(Unit->GetGridMetadata().ExtraCell);
 	}
-	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetUnits: %s Reach=%d -> %d units"), *Unit->GetLogName(), (int32)Reach, TargetUnits.Num());
+	auto TargetUnits{KbsAlgo::ExtractUnits<TArray>(TargetCells, DataManager)};
+	UE_LOG(LogTacGrid, Log, TEXT("GetValidTargetUnits: %s Reach=%d -> %d units"), *Unit->GetLogName(), (int32)Reach,
+	       TargetUnits.Num());
 	return TargetUnits;
 }
 
-FResolvedTargets UTacGridTargetingService::ResolveTargetsFromClick(AUnit* SourceUnit, FTacCoordinates ClickedCell, ETargetReach Reach, const FAreaShape* AreaShape) const
+FResolvedTargets UTacGridTargetingService::ResolveTargetsFromClick(AUnit* SourceUnit, FTacCoordinates ClickedCell,
+                                                                   ETargetReach Reach,
+                                                                   const FAreaShape* AreaShape) const
 {
 	check(SourceUnit);
 
-	FResolvedTargets Result;
-	AUnit* ClickedUnit = DataManager->GetUnit(ClickedCell);
-	AUnit* ClickedCorpse = DataManager->GetTopCorpse(ClickedCell);
-
+	TArray<FTacCoordinates> Cells;
 	switch (Reach)
 	{
-		case ETargetReach::AllEnemies:
-		case ETargetReach::AllFriendlies:
+	case ETargetReach::AllEnemies:
+	case ETargetReach::AllFriendlies:
+		Cells = GetValidTargetCells(SourceUnit, Reach);
+		return BuildTargetsFromCells(ClickedCell, Cells);
+	case ETargetReach::Area:
+		if (AreaShape)
+			GetCellsInArea(SourceUnit, ClickedCell, EAffiliationFilter::Any, *AreaShape, Cells);
+		return BuildTargetsFromCells(ClickedCell, Cells);
+
+	case ETargetReach::AnyCorpse:
+	case ETargetReach::FriendlyCorpse:
+	case ETargetReach::EnemyCorpse:
+	case ETargetReach::AnyNonBlockedCorpse:
+	case ETargetReach::FriendlyNonBlockedCorpse:
+	case ETargetReach::EnemyNonBlockedCorpse:
 		{
-			TArray<AUnit*> AllTargets = GetValidTargetUnits(SourceUnit, Reach, false);
-			Result.ClickedTarget = ClickedUnit;
-			for (AUnit* Target : AllTargets)
-			{
-				if (Target != ClickedUnit)
-				{
-					Result.SecondaryTargets.Add(Target);
-				}
-			}
-			Result.bWasCellEmpty = (ClickedUnit == nullptr);
-			break;
+			auto [bCanTargetBlocked,Filter] = CorpseTargetBounds(Reach);
+			return BuildTargetFromCell(ClickedCell,
+			                           TestCell(ClickedCell,
+			                                    CorpseAffiliationPredicateFactory(SourceUnit,
+				                                    Filter, bCanTargetBlocked)));
 		}
-		case ETargetReach::Area:
+	case ETargetReach::ClosestEnemies:
+		return BuildTargetFromCell(ClickedCell,
+		                           CanTargetClosestCell(SourceUnit, EAffiliationFilter::Enemy, ClickedCell));
+	case ETargetReach::AnyEnemy:
+	case ETargetReach::AnyFriendly:
+	case ETargetReach::EmptyCellOrFriendly:
 		{
-			if (AreaShape)
-			{
-				TArray<AUnit*> AreaTargets = GetUnitsInArea(ClickedCell, *AreaShape);
-				Result.ClickedTarget = ClickedUnit;
-				for (AUnit* Target : AreaTargets)
-				{
-					if (Target != ClickedUnit)
-					{
-						Result.SecondaryTargets.Add(Target);
-					}
-				}
-			}
-			else
-			{
-				Result.ClickedTarget = ClickedUnit;
-			}
-			Result.bWasCellEmpty = (ClickedUnit == nullptr);
-			break;
+			auto [Filter, bAllowEmpty, bAllowFlank] = AffiliationTargetBounds(Reach);
+			return BuildTargetFromCell(ClickedCell,
+			                           TestCell(SourceUnit, ClickedCell,
+			                                    AffiliationPredicateFactory(Filter, bAllowEmpty, bAllowFlank)));
 		}
-		case ETargetReach::AnyCorpse:
-		case ETargetReach::FriendlyCorpse:
-		case ETargetReach::EnemyCorpse:
-		case ETargetReach::AnyNonBlockedCorpse:
-		case ETargetReach::FriendlyNonBlockedCorpse:
-		case ETargetReach::EnemyNonBlockedCorpse:
-		{
-			Result.ClickedTarget = ClickedCorpse;
-			Result.bWasCellEmpty = (ClickedCorpse == nullptr);
-			break;
-		}
-		case ETargetReach::ClosestEnemies:
-		case ETargetReach::AnyEnemy:
-		case ETargetReach::AnyFriendly:
-		case ETargetReach::EmptyCell:
-		case ETargetReach::EmptyCellOrFriendly:
-		default:
-		{
-			Result.ClickedTarget = ClickedUnit;
-			Result.bWasCellEmpty = (ClickedUnit == nullptr);
-			break;
-		}
+	case ETargetReach::EmptyCell:
+		return BuildTargetFromCell(ClickedCell, TestCell(SourceUnit, ClickedCell, EmptyNotFlankPredicate));
+	default:
+		UE_LOG(LogTacGrid, Warning, TEXT("Unknown target reach type: %d"), (int32)Reach);
 	}
-	UE_LOG(LogTacGrid, Log, TEXT("ResolveTargets: %s clicked [%d,%d] -> primary=%s secondary=%d"),
-		*SourceUnit->GetLogName(), ClickedCell.Row, ClickedCell.Col, *Result.ClickedTarget->GetLogName(), Result.SecondaryTargets.Num());
-	return Result;
-}
 
-bool UTacGridTargetingService::IsValidTargetCell(AUnit* Unit, const FTacCoordinates& Cell, ETargetReach Reach) const
-{
-	check(Unit);
-
-	const TArray<FTacCoordinates> ValidCells = GetValidTargetCells(Unit, Reach);
-	return ValidCells.Contains(Cell);
+	return FResolvedTargets::MakeEmpty();
 }
 
 void UTacGridTargetingService::GetClosestEnemyCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
 {
-	check(Unit);
-
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
-
-	// Collect unique enemy units adjacent to any cell the source occupies
-	TSet<AUnit*> FoundEnemies;
-	auto CheckNeighbors = [&](const FTacCoordinates& Origin)
+	if (!CheckUnitAndData(Unit)) return;
+	auto EnemyPredicate = AffiliationPredicateFactory(EAffiliationFilter::Enemy, false, true);
+	TSet<FTacCoordinates> FoundEnemyCells = KbsAlgo::CollectAdjacentCellsIf<TSet>(
+		Unit, DataManager.Get(), EnemyPredicate, true);
+	if (FTacCoordinates BlockedCell = FFlankCellDefinitions::GetEntranceBlockedCell(Unit->GetGridMetadata().Coords);
+		BlockedCell.IsValidCell())
 	{
-		for (const FIntPoint& Offset : FGridConstants::AllAdjacentOffsets)
-		{
-			FTacCoordinates TargetCoords(Origin.Row + Offset.Y, Origin.Col + Offset.X, Origin.Layer);
-			if (!TargetCoords.IsValidCell())
-			{
-				continue;
-			}
-			AUnit* TargetUnit = DataManager->GetUnit(TargetCoords);
-			if (TargetUnit && Metadata.IsEnemy(TargetUnit->GetGridMetadata()) && !TargetUnit->IsDead()
-				&& !TargetUnit->GetStats().Status.IsFlankDelayed())
-			{
-				FoundEnemies.Add(TargetUnit);
-			}
-		}
-	};
-
-	CheckNeighbors(Metadata.Coords);
-	if (Metadata.HasExtraCell())
-	{
-		CheckNeighbors(Metadata.ExtraCell);
+		FoundEnemyCells.Remove(BlockedCell);
 	}
-
-	const bool bOnEntrance = FFlankCellDefinitions::IsEntranceFlankCell(Metadata.Coords.Row, Metadata.Coords.Col);
-	FTacCoordinates BlockedCell = FTacCoordinates::Invalid();
-	if (bOnEntrance)
-	{
-		BlockedCell = FFlankCellDefinitions::GetEntranceBlockedCell(Metadata.Coords.Row, Metadata.Coords.Col);
-	}
-
-	for (AUnit* Enemy : FoundEnemies)
-	{
-		if (bOnEntrance && Enemy->GetGridMetadata().Coords == BlockedCell)
-		{
-			continue;
-		}
-		AddAllUnitCells(Enemy, OutCells);
-	}
+	Algo::Copy(FoundEnemyCells, OutCells);
 }
 
-
-void UTacGridTargetingService::GetUnitCellsByAffiliation(AUnit* SourceUnit, EAffiliationFilter Filter, TArray<FTacCoordinates>& OutCells) const
+bool UTacGridTargetingService::CanTargetClosestCell(AUnit* SourceUnit, EAffiliationFilter Filter,
+                                                    FTacCoordinates Cell) const
 {
-	check(SourceUnit);
-
-	const FUnitGridMetadata& SourceMetadata = SourceUnit->GetGridMetadata();
-	check(SourceMetadata.IsValid());
-
-	const ETeamSide TeamSide = SourceMetadata.Team;
-	UBattleTeam* FriendlyTeam = DataManager->GetTeamBySide(TeamSide);
-	UBattleTeam* EnemyTeam = DataManager->GetTeamBySide(TeamSide == ETeamSide::Attacker ? ETeamSide::Defender : ETeamSide::Attacker);
-
-	if (Filter == EAffiliationFilter::Any || Filter == EAffiliationFilter::Friendly)
-	{
-		if (FriendlyTeam)
-		{
-			for (AUnit* Unit : FriendlyTeam->GetUnits())
-			{
-				if (Unit && Unit != SourceUnit && !Unit->IsDead())
-				{
-					AddAllUnitCells(Unit, OutCells);
-				}
-			}
-		}
-	}
-
-	if (Filter == EAffiliationFilter::Any || Filter == EAffiliationFilter::Enemy)
-	{
-		if (EnemyTeam)
-		{
-			for (AUnit* Unit : EnemyTeam->GetUnits())
-			{
-				if (Unit && !Unit->IsDead())
-				{
-					AddAllUnitCells(Unit, OutCells);
-				}
-			}
-		}
-	}
+	if (!CheckUnitAndData(SourceUnit)) return false;
+	if (FTacCoordinates BlockedCell = FFlankCellDefinitions::GetEntranceBlockedCell(
+			SourceUnit->GetGridMetadata().Coords);
+		BlockedCell.IsValidCell())
+		if (Cell == BlockedCell)
+			return false;
+	auto Predicate = AffiliationPredicateFactory(Filter, false, true, false);
+	return KbsAlgo::AdjacentContains(SourceUnit, DataManager, Cell, Predicate);
 }
 
-void UTacGridTargetingService::GetEmptyCellsOrFriendly(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
+bool UTacGridTargetingService::CanSelfTarget(AUnit* Source, FTacCoordinates Coord) const
 {
-	check(Unit);
-
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
-
-	GetEmptyCellsForLayer(Metadata.Coords.Layer, OutCells);
-
-	// Only 1-cell friendlies are valid swap destinations; 2-cell units cannot be swapped into
-	UBattleTeam* FriendlyTeam = DataManager->GetTeamBySide(Metadata.Team);
-	if (FriendlyTeam)
-	{
-		for (AUnit* Ally : FriendlyTeam->GetUnits())
-		{
-			if (Ally && Ally != Unit && !Ally->IsDead() && !Ally->GetGridMetadata().IsMultiCell())
-			{
-				AddUnitCell(Ally, OutCells);
-			}
-		}
-	}
+	check(Source);
+	if (!Coord.IsValidCell()) return false;
+	if (Source->GetGridMetadata().Coords == Coord)
+		return true;
+	if (Source->GetGridMetadata().ExtraCell == Coord)
+		return true;
+	return false;
 }
+
+
+void UTacGridTargetingService::GetCellsByAffiliation(AUnit* SourceUnit, EAffiliationFilter Filter,
+                                                     TArray<FTacCoordinates>& OutCells, bool bAllowEmpty,
+                                                     bool bAllowFlank) const
+{
+	if (!CheckUnitAndData(SourceUnit)) return;
+	auto AffiliationPredicate = AffiliationPredicateFactory(Filter, bAllowEmpty, bAllowFlank);
+	DataManager->FilterCells(SourceUnit, ETacGridLayer::Ground, AffiliationPredicate, OutCells);
+	DataManager->FilterCells(SourceUnit, ETacGridLayer::Air, AffiliationPredicate, OutCells);
+}
+
 
 void UTacGridTargetingService::GetMovementCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
 {
-	check(Unit);
-
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
-
-	if (Metadata.Coords.Layer == ETacGridLayer::Air)
+	if (!CheckUnitAndData(Unit)) return;
+	if (Unit->GetGridMetadata().Coords.Layer == ETacGridLayer::Air)
 	{
 		GetAirMoveCells(Unit, OutCells);
 	}
 	else
 	{
-		GetAdjacentMoveCells(Unit, OutCells);
-		GetFlankMoveCells(Unit, OutCells);
+		GetGroundMoveCells(Unit, OutCells);
 	}
 }
 
-void UTacGridTargetingService::GetCorpseCells(AUnit* Unit, ECorpseFilter Filter, TArray<FTacCoordinates>& OutCells) const
+bool UTacGridTargetingService::TestMovementCell(AUnit* Unit, FTacCoordinates Cell) const
 {
-	const bool bRequireNonBlocked = (Filter == ECorpseFilter::AnyNonBlocked ||
-	                                  Filter == ECorpseFilter::FriendlyNonBlocked ||
-	                                  Filter == ECorpseFilter::EnemyNonBlocked);
-
-	const bool bRequireFriendly = (Filter == ECorpseFilter::Friendly || Filter == ECorpseFilter::FriendlyNonBlocked);
-	const bool bRequireEnemy = (Filter == ECorpseFilter::Enemy || Filter == ECorpseFilter::EnemyNonBlocked);
-	const bool bAnyAffiliation = (Filter == ECorpseFilter::Any || Filter == ECorpseFilter::AnyNonBlocked);
-
-	if (!bAnyAffiliation)
-	{
-		check(Unit);
-	}
-
-	const FUnitGridMetadata* SourceMetadata = nullptr;
-	if (Unit)
-	{
-		SourceMetadata = &Unit->GetGridMetadata();
-		check(SourceMetadata->IsValid());
-	}
-
-	DataManager->FilterCells(ETacGridLayer::Ground, [this, SourceMetadata, bRequireNonBlocked, bRequireFriendly, bRequireEnemy, bAnyAffiliation](const FTacCoordinates& Coords) {
-		if (bRequireNonBlocked && DataManager->IsCellOccupied(Coords))
-		{
-			return false;
-		}
-
-		AUnit* TopCorpse = DataManager->GetTopCorpse(Coords);
-		if (!TopCorpse)
-		{
-			return DataManager->HasCorpses(Coords) && bAnyAffiliation;
-		}
-
-		if (bAnyAffiliation)
-		{
-			return true;
-		}
-
-		if (bRequireFriendly)
-		{
-			return SourceMetadata->IsAlly(TopCorpse->GetGridMetadata());
-		}
-
-		if (bRequireEnemy)
-		{
-			return SourceMetadata->IsEnemy(TopCorpse->GetGridMetadata());
-		}
-
-		return false;
-	}, OutCells);
+	TArray<FTacCoordinates> OutCells;
+	GetMovementCells(Unit, OutCells);
+	return OutCells.Contains(Cell);
 }
 
-void UTacGridTargetingService::GetAdjacentMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
+void UTacGridTargetingService::GetCorpseCellsByAffiliation(AUnit* Unit, EAffiliationFilter Filter, bool bAllowBlocked,
+                                                           TArray<FTacCoordinates>& OutCells) const
 {
-	check(Unit);
+	DataManager->FilterCorpseCells(Unit, CorpseAffiliationPredicateFactory(Unit, Filter, bAllowBlocked), OutCells);
+}
 
+void UTacGridTargetingService::GetGroundMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
+{
+	if (!CheckUnitAndData(Unit)) return;
+	auto& Metadata = Unit->GetGridMetadata();
+
+	if (Metadata.IsMultiCell() && Metadata.HasExtraCell())
+	{
+		GetMultiCellGroundMoveCells(Unit, OutCells);
+		return;
+	}
+
+	TArray<FTacCoordinates> Result = KbsAlgo::CollectAdjacentCellsIf<TArray>(
+		Unit, DataManager, MovePredicateFactory(false), false,
+		KbsAlgo::EAdjacencyMode::OrthogonalOnly);
+	if (FTacCoordinates FlankCoord = FFlankCellDefinitions::GetAvailableFlankCell(Metadata.Coords, Metadata.Team);
+		FlankCoord.IsValidCell())
+	{
+		if (!DataManager->IsCellOccupied(FlankCoord))
+			Result.Add(FlankCoord);
+	}
+	Algo::Copy(Result, OutCells);
+}
+
+void UTacGridTargetingService::GetMultiCellGroundMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
+{
 	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
+	const FTacCoordinates Primary = Metadata.Coords;
+	const FTacCoordinates Extra = Metadata.ExtraCell;
 
-	const bool bIsAttacker = Metadata.Team == ETeamSide::Attacker;
-	const bool bIsMultiCell = Metadata.IsMultiCell() && Metadata.HasExtraCell();
-	const bool bSourceOnFlank = Metadata.Coords.IsFlankCell();
-
+	TSet<FTacCoordinates> Candidates;
 	for (const FIntPoint& Offset : FGridConstants::OrthogonalOffsets)
 	{
-		FTacCoordinates NewPrimary(Metadata.Coords.Row + Offset.Y, Metadata.Coords.Col + Offset.X, Metadata.Coords.Layer);
+		const FTacCoordinates NewPrimary(Primary.Row + Offset.X, Primary.Col + Offset.Y, Primary.Layer);
+		const FTacCoordinates NewExtra(Extra.Row + Offset.X, Extra.Col + Offset.Y, Extra.Layer);
 
-		if (!NewPrimary.IsValidCell())
+		if (!NewPrimary.IsValidCell() || !NewExtra.IsValidCell()) continue;
+		if (NewPrimary.IsFlankCell() || NewExtra.IsFlankCell()) continue;
+		auto IsBlockedByOther = [&](const FTacCoordinates& Cell) -> bool
 		{
-			continue;
-		}
+			if (Cell == Primary || Cell == Extra) return false;
+			return DataManager->IsCellOccupied(Cell);
+		};
+		if (IsBlockedByOther(NewPrimary) || IsBlockedByOther(NewExtra)) continue;
 
-		if (NewPrimary.IsFlankCell())
-		{
-			// Intra-flank movement (entrance<->rear on same enemy column) is allowed
-			if (bSourceOnFlank && NewPrimary.Col == Metadata.Coords.Col)
-			{
-				if (!IsValidMoveDestination(Unit, NewPrimary))
-				{
-					continue;
-				}
-				OutCells.Add(NewPrimary);
-			}
-			// All other flank entry goes through GetFlankMoveCells
-			continue;
-		}
-
-		if (bIsMultiCell)
-		{
-			FTacCoordinates NewExtra(Metadata.ExtraCell.Row + Offset.Y, Metadata.ExtraCell.Col + Offset.X, Metadata.ExtraCell.Layer);
-			if (!NewExtra.IsValidCell())
-			{
-				continue;
-			}
-
-			// Each newly-covered cell (not already part of this unit) must be strictly empty; no swap for 2-cell units
-			const bool bNewPrimaryFree = (NewPrimary == Metadata.Coords || NewPrimary == Metadata.ExtraCell) || !DataManager->IsCellOccupied(NewPrimary);
-			const bool bNewExtraFree   = (NewExtra   == Metadata.Coords || NewExtra   == Metadata.ExtraCell) || !DataManager->IsCellOccupied(NewExtra);
-			if (bNewPrimaryFree && bNewExtraFree)
-			{
-				OutCells.Add(NewPrimary);
-			}
-		}
+		if (NewPrimary == Extra)
+			Candidates.Add(NewPrimary);
+		else if (NewExtra == Primary)
+			Candidates.Add(NewPrimary);
 		else
 		{
-			if (!IsValidMoveDestination(Unit, NewPrimary))
-			{
-				continue;
-			}
-			OutCells.Add(NewPrimary);
+			Candidates.Add(NewPrimary);
+			Candidates.Add(NewExtra);
 		}
 	}
-}
+	Algo::Copy(Candidates, OutCells);
 
-void UTacGridTargetingService::GetFlankMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
-{
-	check(Unit);
-
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
-
-	const bool bIsAttacker = Metadata.Team == ETeamSide::Attacker;
-
-	const TArray<int32>& EnemyFlankColumns = bIsAttacker ?
-		FFlankCellDefinitions::DefenderFlankColumns :
-		FFlankCellDefinitions::AttackerFlankColumns;
-
-	for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
+	if (FTacCoordinates FlankCoord = FFlankCellDefinitions::GetAvailableFlankCell(Primary, Metadata.Team);
+		FlankCoord.IsValidCell())
 	{
-		for (int32 Col : EnemyFlankColumns)
-		{
-			FTacCoordinates FlankCoords(Row, Col, Metadata.Coords.Layer);
-
-			if (!FlankCoords.IsValidCell() || !FlankCoords.IsFlankCell())
-			{
-				continue;
-			}
-
-			if (CanEnterFlankCell(Metadata.Coords, FlankCoords, Metadata.Team))
-			{
-				const bool bIsMultiCell = Metadata.IsMultiCell() && Metadata.HasExtraCell();
-				// Multi-cell units shrink to 1-cell on flank; no swap allowed
-				if (bIsMultiCell ? !DataManager->IsCellOccupied(FlankCoords) : IsValidMoveDestination(Unit, FlankCoords))
-				{
-					OutCells.Add(FlankCoords);
-				}
-			}
-		}
+		if (!DataManager->IsCellOccupied(FlankCoord))
+			OutCells.Add(FlankCoord);
 	}
 }
 
 void UTacGridTargetingService::GetAirMoveCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
 {
+	if (!CheckUnitAndData(Unit)) return;
+	DataManager->FilterCells(Unit, ETacGridLayer::Air, AirMovePredicate, OutCells);
+}
+
+
+bool UTacGridTargetingService::CheckUnitAndData(AUnit* Unit) const
+{
 	check(Unit);
-
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	check(Metadata.IsValid());
-
-	for (int32 Row = 0; Row < FGridConstants::GridSize; ++Row)
-	{
-		for (int32 Col = 0; Col < FGridConstants::GridSize; ++Col)
-		{
-			FTacCoordinates TargetCoords(Row, Col, Metadata.Coords.Layer);
-
-			if (TargetCoords.IsRestrictedCell())
-			{
-				continue;
-			}
-
-			if (IsValidMoveDestination(Unit, TargetCoords))
-			{
-				OutCells.Add(TargetCoords);
-			}
-		}
-	}
+	return Unit->GetGridMetadata().IsValid();
 }
 
-void UTacGridTargetingService::GetEmptyCellsForLayer(ETacGridLayer Layer, TArray<FTacCoordinates>& OutCells) const
+bool UTacGridTargetingService::TestCell(AUnit* SourceUnit, FTacCoordinates Cell,
+                                        QueryPredicates::FCellFilterPredicate Predicate) const
 {
-	OutCells.Append(DataManager->GetValidPlacementCells(Layer));
+	AUnit* ClickedUnit = DataManager->GetUnit(Cell);
+	return Predicate(SourceUnit, ClickedUnit, Cell);
 }
 
-bool UTacGridTargetingService::TryGetPrimaryCellForUnit(AUnit* Unit, FTacCoordinates& OutCell) const
+bool UTacGridTargetingService::TestCell(FTacCoordinates Cell, QueryPredicates::FCorpseFilterPredicate Predicate) const
 {
-	if (!Unit)
-	{
-		return false;
-	}
-
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	if (!Metadata.IsValid())
-	{
-		return false;
-	}
-
-	OutCell = Metadata.Coords;
-	return true;
+	return Predicate(Cell, DataManager->IsCellOccupied(Cell), DataManager->GetTopCorpse(Cell),
+	                 DataManager->CorpsesNum(Cell));
 }
 
-bool UTacGridTargetingService::IsValidMoveDestination(AUnit* MovingUnit, const FTacCoordinates& TargetCoords) const
+FResolvedTargets UTacGridTargetingService::BuildTargetsFromCells(FTacCoordinates ClickedCell,
+                                                                 TArray<FTacCoordinates>& QueriedCells) const
 {
-	check(MovingUnit);
-
-	if (AUnit* Occupant = DataManager->GetUnit(TargetCoords))
-	{
-		if (!MovingUnit->GetGridMetadata().IsAlly(Occupant->GetGridMetadata()))
-		{
-			return false;
-		}
-	}
-
-	return true;
+	FResolvedTargets Result;
+	AUnit* ClickedUnit = DataManager->GetUnit(ClickedCell);
+	if (ClickedUnit && QueriedCells.Contains(ClickedCell))
+		Result.ClickedTarget = ClickedUnit;
+	else
+		Result.ClickedTarget = nullptr;
+	Result.ClickedCorpse = DataManager->GetTopCorpse(ClickedCell);
+	Result.bWasCellEmpty = (ClickedUnit == nullptr);
+	QueriedCells.Remove(ClickedCell);
+	if (ClickedUnit)
+		if (ClickedUnit->GetGridMetadata().HasExtraCell())
+			QueriedCells.Remove(ClickedUnit->GetGridMetadata().ExtraCell);
+	Result.SecondaryTargets = KbsAlgo::ExtractUnits<TArray>(QueriedCells, DataManager);
+	if (Result.ClickedTarget)
+		UE_LOG(LogTacGrid, Log, TEXT("ResolveTargets: clicked [%d,%d] -> primary=%s secondary=%d"),
+	       ClickedCell.Row, ClickedCell.Col, *Result.ClickedTarget->GetLogName(),
+	       Result.SecondaryTargets.Num());
+	return Result;
 }
 
-void UTacGridTargetingService::AddUnitCell(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
+FResolvedTargets UTacGridTargetingService::BuildTargetFromCell(FTacCoordinates ClickedCell,
+                                                               bool bHasPassedPredicate) const
 {
-	FTacCoordinates Cell;
-	if (TryGetPrimaryCellForUnit(Unit, Cell))
+	FResolvedTargets Result;
+	if (bHasPassedPredicate)
 	{
-		OutCells.Add(Cell);
+		Result.ClickedTarget = DataManager->GetUnit(ClickedCell);
+		Result.ClickedCorpse = DataManager->GetTopCorpse(ClickedCell);
 	}
+	Result.bWasCellEmpty = (DataManager->GetUnit(ClickedCell) == nullptr);
+	if (Result.ClickedTarget)
+		UE_LOG(LogTacGrid, Log, TEXT("ResolveTargets: clicked [%d,%d] -> primary=%s"),
+	       ClickedCell.Row, ClickedCell.Col, *Result.ClickedTarget->GetLogName());
+	return Result;
 }
 
-void UTacGridTargetingService::AddUnitCellUnique(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
+
+void UTacGridTargetingService::GetCellsInArea(AUnit* SourceUnit, FTacCoordinates CenterCell, EAffiliationFilter Filter,
+                                              const FAreaShape& AreaShape, TArray<FTacCoordinates>& OutCells) const
 {
-	FTacCoordinates Cell;
-	if (TryGetPrimaryCellForUnit(Unit, Cell))
-	{
-		OutCells.AddUnique(Cell);
-	}
+	if (!CheckUnitAndData(SourceUnit)) return;
+	auto AffiliationPredicate = AffiliationPredicateFactory(Filter, true, true);
+	auto Result = KbsAlgo::CollectCellsInArea<TArray>(SourceUnit, DataManager, AffiliationPredicate, CenterCell,
+	                                                  AreaShape);
+	Algo::Copy(Result, OutCells);
 }
 
-void UTacGridTargetingService::AddAllUnitCells(AUnit* Unit, TArray<FTacCoordinates>& OutCells) const
+bool UTacGridTargetingService::IsAdjacent(AUnit* Source, const FTacCoordinates& Coords) const
 {
-	if (!Unit)
-	{
-		return;
-	}
-	const FUnitGridMetadata& Metadata = Unit->GetGridMetadata();
-	if (!Metadata.IsValid())
-	{
-		return;
-	}
-	OutCells.AddUnique(Metadata.Coords);
-	if (Metadata.HasExtraCell())
-	{
-		OutCells.AddUnique(Metadata.ExtraCell);
-	}
-}
-
-bool UTacGridTargetingService::CanEnterFlankCell(const FTacCoordinates& UnitPos, const FTacCoordinates& FlankCell, ETeamSide UnitTeamSide) const
-{
-	const int32 FlankCol = FlankCell.Col;
-	const bool bIsAttacker = (UnitTeamSide == ETeamSide::Attacker);
-
-	const bool bIsEnemyFlank = (bIsAttacker && FFlankCellDefinitions::IsDefenderFlankColumn(FlankCol)) ||
-	                           (!bIsAttacker && FFlankCellDefinitions::IsAttackerFlankColumn(FlankCol));
-	if (!bIsEnemyFlank)
-	{
-		return false;
-	}
-
-	if (FFlankCellDefinitions::IsEntranceFlankCell(FlankCell.Row, FlankCol))
-	{
-		// From same-row cell in adjacent normal column
-		if (UnitPos.Row == FlankCell.Row && UnitPos.Col == FFlankCellDefinitions::GetAdjacentNormalCol(FlankCol))
-		{
-			return true;
-		}
-		// Retreat from rear on same flank column
-		if (FFlankCellDefinitions::IsRearFlankCell(UnitPos.Row, UnitPos.Col) && UnitPos.Col == FlankCol)
-		{
-			return IsAdjacentCell(UnitPos, FlankCell);
-		}
-		return false;
-	}
-
-	if (FFlankCellDefinitions::IsRearFlankCell(FlankCell.Row, FlankCol))
-	{
-		// Only from entrance on same flank column
-		if (FFlankCellDefinitions::IsEntranceFlankCell(UnitPos.Row, UnitPos.Col) && UnitPos.Col == FlankCol)
-		{
-			return IsAdjacentCell(UnitPos, FlankCell);
-		}
-		return false;
-	}
-
-	return false;
-}
-
-bool UTacGridTargetingService::IsAdjacentCell(const FTacCoordinates& CellA, const FTacCoordinates& CellB) const
-{
-	const int32 ManhattanDistance = FMath::Abs(CellA.Col - CellB.Col) + FMath::Abs(CellA.Row - CellB.Row);
-	return ManhattanDistance == 1;
-}
-
-TArray<AUnit*> UTacGridTargetingService::GetUnitsInArea(FTacCoordinates CenterCell, const FAreaShape& AreaShape) const
-{
-	TArray<AUnit*> UnitsInArea;
-	if (!DataManager)
-	{
-		return UnitsInArea;
-	}
-
-	TArray<FTacCoordinates> TargetCells;
-	for (const FIntPoint& RelativeOffset : AreaShape.RelativeCells)
-	{
-		const int32 TargetCol = CenterCell.Col + RelativeOffset.X;
-		const int32 TargetRow = CenterCell.Row + RelativeOffset.Y;
-
-		FTacCoordinates TargetCoords(TargetRow, TargetCol, CenterCell.Layer);
-		if (TargetCoords.IsValidCell())
-		{
-			TargetCells.Add(TargetCoords);
-		}
-	}
-
-	TArray<AUnit*> UnitsAtLayer = DataManager->GetUnitsInCells(TargetCells, CenterCell.Layer);
-	for (AUnit* Unit : UnitsAtLayer)
-	{
-		if (Unit && !Unit->IsDead())
-		{
-			UnitsInArea.Add(Unit);
-		}
-	}
-
-	if (AreaShape.ShapeLayering == EShapeLayering::BothLayerArea)
-	{
-		ETacGridLayer OtherLayer = (CenterCell.Layer == ETacGridLayer::Ground) ? ETacGridLayer::Air : ETacGridLayer::Ground;
-		TArray<AUnit*> UnitsAtOtherLayer = DataManager->GetUnitsInCells(TargetCells, OtherLayer);
-		for (AUnit* Unit : UnitsAtOtherLayer)
-		{
-			if (Unit && !Unit->IsDead())
-			{
-				UnitsInArea.Add(Unit);
-			}
-		}
-	}
-
-	return UnitsInArea;
-}
-
-int32 UTacGridTargetingService::CalculateDistance(AUnit* Unit1, AUnit* Unit2) const
-{
-	check(Unit1 && Unit2);
-
-	const FUnitGridMetadata& Metadata1 = Unit1->GetGridMetadata();
-	const FUnitGridMetadata& Metadata2 = Unit2->GetGridMetadata();
-
-	check(Metadata1.IsValid() && Metadata2.IsValid());
-
-	// Chebyshev distance - minimum across all cell pairs (2-cell units may be closer via ExtraCell)
-	TArray<FTacCoordinates, TInlineAllocator<2>> Cells1 = { Metadata1.Coords };
-	if (Metadata1.HasExtraCell()) Cells1.Add(Metadata1.ExtraCell);
-	TArray<FTacCoordinates, TInlineAllocator<2>> Cells2 = { Metadata2.Coords };
-	if (Metadata2.HasExtraCell()) Cells2.Add(Metadata2.ExtraCell);
-
-	int32 MinDist = TNumericLimits<int32>::Max();
-	for (const FTacCoordinates& C1 : Cells1)
-	{
-		for (const FTacCoordinates& C2 : Cells2)
-		{
-			MinDist = FMath::Min(MinDist, FMath::Max(FMath::Abs(C1.Row - C2.Row), FMath::Abs(C1.Col - C2.Col)));
-		}
-	}
-	return MinDist;
-}
-
-UWeapon* UTacGridTargetingService::SelectWeapon(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly) const
-{
-	check(Attacker && Target);
-
-	auto Weapons = Attacker->GetWeapons();
-	if (Weapons.Num() == 0)
-	{
-		return nullptr;
-	}
-
-	int32 Distance = CalculateDistance(Attacker, Target);
-	bool bIsFriendlyTarget = Attacker->GetGridMetadata().IsAlly(Target->GetGridMetadata());
-
-	TArray<UWeapon*> ValidWeapons;
-	for (UWeapon* Weapon : Weapons)
-	{
-		if (bAutoAttackOnly && !Weapon->IsUsableForAutoAttack()) continue;
-		const FWeaponStats& Stats = Weapon->GetStats();
-		ETargetReach WeaponReach = Stats.TargetReach;
-
-		// Check if weapon can target this type (friendly vs hostile)
-		bool bCanTargetType = false;
-		if (bIsFriendlyTarget)
-		{
-			bCanTargetType = FDamageCalculation::IsFriendlyReach(WeaponReach);
-		}
-		else
-		{
-			// Hostile targeting
-			if (WeaponReach == ETargetReach::ClosestEnemies && Distance == 1)
-			{
-				bCanTargetType = true;
-			}
-			else if (WeaponReach == ETargetReach::AnyEnemy ||
-			         WeaponReach == ETargetReach::AllEnemies ||
-			         WeaponReach == ETargetReach::Area)
-			{
-				bCanTargetType = true;
-			}
-		}
-
-		if (bCanTargetType)
-		{
-			ValidWeapons.Add(Weapon);
-		}
-	}
-
-	if (ValidWeapons.Num() == 0)
-	{
-		return nullptr;
-	}
-
-	// Pick weapon with highest damage output
-	UWeapon* BestWeapon = nullptr;
-	int32 BestDamage = -1;
-	for (UWeapon* Weapon : ValidWeapons)
-	{
-		FDamageResult DamageResult = FDamageCalculation::CalculateDamage(Attacker, Weapon, Target);
-		if (DamageResult.Damage > BestDamage)
-		{
-			BestDamage = DamageResult.Damage;
-			BestWeapon = Weapon;
-		}
-	}
-
-	return BestWeapon;
+	if (Source->GetGridMetadata().HasExtraCell())
+		if (Source->GetGridMetadata().ExtraCell.DistanceTo(Coords) == 1) return true;
+	return Source->GetGridMetadata().Coords.DistanceTo(Coords) == 1;
 }
 
 bool UTacGridTargetingService::HasValidTargetAtCell(AUnit* Source, FTacCoordinates TargetCell, ETargetReach Reach) const
 {
-	check(Source);
-
-	const FUnitGridMetadata& Metadata = Source->GetGridMetadata();
-	check(Metadata.IsValid());
-
+	if (!CheckUnitAndData(Source)) return false;
+	if (!TargetCell.IsValidCell()) return false;
 	switch (Reach)
 	{
-		case ETargetReach::None:
-			return false;
-
-		case ETargetReach::Self:
-			return TargetCell == Metadata.Coords || (Metadata.HasExtraCell() && TargetCell == Metadata.ExtraCell);
-
-		case ETargetReach::ClosestEnemies:
+	case ETargetReach::None:
+		return false;
+	case ETargetReach::Self:
+		return CanSelfTarget(Source, TargetCell);
+	case ETargetReach::ClosestEnemies:
+		return CanTargetClosestCell(Source, EAffiliationFilter::Enemy, TargetCell);
+	case ETargetReach::AnyEnemy:
+	case ETargetReach::AllEnemies:
+	case ETargetReach::Area:
+	case ETargetReach::AnyFriendly:
+	case ETargetReach::AllFriendlies:
+	case ETargetReach::EmptyCellOrFriendly:
 		{
-			const bool bAdjacent = IsAdjacentCell(Metadata.Coords, TargetCell) ||
-				(Metadata.HasExtraCell() && IsAdjacentCell(Metadata.ExtraCell, TargetCell));
-			if (!bAdjacent)
-			{
-				return false;
-			}
-			if (FFlankCellDefinitions::IsEntranceFlankCell(Metadata.Coords.Row, Metadata.Coords.Col))
-			{
-				FTacCoordinates Blocked = FFlankCellDefinitions::GetEntranceBlockedCell(Metadata.Coords.Row, Metadata.Coords.Col);
-				if (TargetCell == Blocked)
-				{
-					return false;
-				}
-			}
-			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell))
-			{
-				return !TargetUnit->IsDead() && Metadata.IsEnemy(TargetUnit->GetGridMetadata());
-			}
-			return false;
+			auto [Filter, bAllowEmpty, bAllowFlank] = AffiliationTargetBounds(Reach);
+			return TestCell(Source, TargetCell, AffiliationPredicateFactory(Filter, bAllowEmpty, bAllowFlank));
 		}
-
-		case ETargetReach::AnyEnemy:
-		case ETargetReach::AllEnemies:
-		case ETargetReach::Area:
+	case ETargetReach::EmptyCell:
+		return TestCell(Source, TargetCell, EmptyNotFlankPredicate);
+	case ETargetReach::Movement:
+		return TestMovementCell(Source, TargetCell);
+	case ETargetReach::AnyCorpse:
+	case ETargetReach::FriendlyCorpse:
+	case ETargetReach::EnemyCorpse:
+	case ETargetReach::AnyNonBlockedCorpse:
+	case ETargetReach::FriendlyNonBlockedCorpse:
+	case ETargetReach::EnemyNonBlockedCorpse:
 		{
-			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell))
-			{
-				return !TargetUnit->IsDead() && Metadata.IsEnemy(TargetUnit->GetGridMetadata());
-			}
-			return false;
+			auto [bCanTargetBlocked,Filter] = CorpseTargetBounds(Reach);
+			return TestCell(TargetCell, CorpseAffiliationPredicateFactory(Source, Filter, bCanTargetBlocked));
 		}
-
-		case ETargetReach::AnyFriendly:
-		case ETargetReach::AllFriendlies:
-		{
-			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell); TargetUnit && TargetUnit != Source && !TargetUnit->IsDead())
-			{
-				return Metadata.IsAlly(TargetUnit->GetGridMetadata());
-			}
-			return false;
-		}
-
-		case ETargetReach::EmptyCell:
-			return !DataManager->IsCellOccupied(TargetCell) && TargetCell.Layer == Metadata.Coords.Layer;
-
-		case ETargetReach::EmptyCellOrFriendly:
-		{
-			if (!DataManager->IsCellOccupied(TargetCell) && TargetCell.Layer == Metadata.Coords.Layer)
-			{
-				return true;
-			}
-			if (AUnit* TargetUnit = DataManager->GetUnit(TargetCell); TargetUnit && TargetUnit != Source)
-			{
-				return Metadata.IsAlly(TargetUnit->GetGridMetadata());
-			}
-			return false;
-		}
-
-		case ETargetReach::Movement:
-		{
-			// Complex pathfinding - need full list
-			const TArray<FTacCoordinates> MoveCells = GetValidTargetCells(Source, Reach);
-			return MoveCells.Contains(TargetCell);
-		}
-
-		case ETargetReach::AnyCorpse:
-			return DataManager->HasCorpses(TargetCell);
-
-		case ETargetReach::FriendlyCorpse:
-		{
-			if (AUnit* Corpse = DataManager->GetTopCorpse(TargetCell))
-			{
-				return Metadata.IsAlly(Corpse->GetGridMetadata());
-			}
-			return false;
-		}
-
-		case ETargetReach::EnemyCorpse:
-		{
-			if (AUnit* Corpse = DataManager->GetTopCorpse(TargetCell))
-			{
-				return Metadata.IsEnemy(Corpse->GetGridMetadata());
-			}
-			return false;
-		}
-
-		case ETargetReach::AnyNonBlockedCorpse:
-			return DataManager->HasCorpses(TargetCell) && !DataManager->IsCellOccupied(TargetCell);
-
-		case ETargetReach::FriendlyNonBlockedCorpse:
-		{
-			if (DataManager->IsCellOccupied(TargetCell))
-			{
-				return false;
-			}
-			if (AUnit* Corpse = DataManager->GetTopCorpse(TargetCell))
-			{
-				return Metadata.IsAlly(Corpse->GetGridMetadata());
-			}
-			return false;
-		}
-
-		case ETargetReach::EnemyNonBlockedCorpse:
-		{
-			if (DataManager->IsCellOccupied(TargetCell))
-			{
-				return false;
-			}
-			if (AUnit* Corpse = DataManager->GetTopCorpse(TargetCell))
-			{
-				return Metadata.IsEnemy(Corpse->GetGridMetadata());
-			}
-			return false;
-		}
+	default:
+		UE_LOG(LogTacGrid, Warning, TEXT("Unknown target reach type: %d in HasValidTargetAtCell"), (int32)Reach);
 	}
-
 	return false;
 }
 
 bool UTacGridTargetingService::HasAnyValidTargets(AUnit* Source, ETargetReach Reach) const
 {
 	check(Source);
-
 	// Trivial cases
 	if (Reach == ETargetReach::None)
 	{
 		return false;
 	}
-
 	if (Reach == ETargetReach::Self)
 	{
 		return true;
 	}
 
-	// Team-based checks: use quick helper
 	const ETeamSide TeamSide = Source->GetGridMetadata().Team;
 	if (Reach == ETargetReach::Area || Reach == ETargetReach::AnyEnemy || Reach == ETargetReach::AllEnemies)
 	{
-		UBattleTeam* EnemyTeam = DataManager->GetTeamBySide(TeamSide == ETeamSide::Attacker ? ETeamSide::Defender : ETeamSide::Attacker);
-		return EnemyTeam->IsAnyUnitAlive();
+		UBattleTeam* EnemyTeam = DataManager->GetTeamBySide(
+			TeamSide == ETeamSide::Attacker ? ETeamSide::Defender : ETeamSide::Attacker);
+		return EnemyTeam->IsAnyUnitAlive() && EnemyTeam->IsAnyUnitOnField();
 	}
 
 	if (Reach == ETargetReach::AnyFriendly || Reach == ETargetReach::AllFriendlies)
 	{
 		if (UBattleTeam* FriendlyTeam = DataManager->GetTeamBySide(TeamSide))
 		{
-			// Need at least one alive unit besides Source
-			if (!FriendlyTeam->IsAnyUnitAlive())
-			{
-				return false;
-			}
-			// If only 1 unit total, it must be Source
-			if (FriendlyTeam->GetUnits().Num() == 1)
-			{
-				return false;
-			}
-			// At least 2 units and at least one alive, so there's a target
-			return true;
+			return (FriendlyTeam->IsOtherUnitAlive(Source) && FriendlyTeam->IsOtherUnitOnField(Source));
 		}
 		return false;
 	}
 
-	// For everything else, check if filter returns any results
 	const TArray<FTacCoordinates> ValidCells = GetValidTargetCells(Source, Reach);
 	return ValidCells.Num() > 0;
 }
