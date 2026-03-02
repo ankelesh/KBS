@@ -38,6 +38,7 @@ public:
 	void SetIsMoving(bool bMoving);
 	void RotateTowardTarget(FRotator TargetRotation, float Speed = 360.0f);
 	bool IsRotating() const { return bIsRotating; }
+	void SetCellSize(float InCellSize) { CachedCellSize = InCellSize; }
 	UNiagaraComponent* SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration);
 	FBatchHandle PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, UWeapon* Weapon);
 	void ShowBattleEffect(UBattleEffect* Effect);
@@ -75,6 +76,9 @@ private:
 
 	static constexpr float AttackRotationSpeed = 540.0f;
 	static constexpr float MeshYawOffset = -90.0f;
+
+	int32 CachedUnitSize = 1;
+	float CachedCellSize = 200.0f;
 
 	// Presentation operation tracking
 	FOperationHandle CurrentRotationOperation;

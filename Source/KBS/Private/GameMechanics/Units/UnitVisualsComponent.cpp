@@ -61,6 +61,15 @@ void UUnitVisualsComponent::OnOwnerOrientationChanged(EUnitOrientation NewOrient
 {
 	if (bIsTranslating || bIsFinalRotating) return;
 	GetOwner()->SetActorRotation(OrientationToRotation(NewOrientation));
+	if (VisualsRoot)
+	{
+		// For 2-cell units the model center sits between primary and extra cell.
+		// Extra cell is always at local (0, -CellSize, 0), so shift by half that.
+		const FVector Offset = CachedUnitSize > 1
+			? FVector(0.0f, -CachedCellSize * 0.5f, 0.0f)
+			: FVector::ZeroVector;
+		VisualsRoot->SetRelativeLocation(Offset);
+	}
 }
 
 FRotator UUnitVisualsComponent::OrientationToRotation(EUnitOrientation Orientation)
@@ -146,6 +155,7 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 		UE_LOG(LogTemp, Error, TEXT("UUnitVisualsComponent: Cannot initialize from null UnitDefinition"));
 		return;
 	}
+	CachedUnitSize = Definition->UnitSize;
 	if (Definition->MeshComponents.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitDefinition"));

@@ -9,7 +9,7 @@ public class KBS : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG",
-			"Slate", "SlateCore", "EnhancedInput", "Niagara" });
+			"Slate", "SlateCore", "EnhancedInput", "Niagara", "ProceduralMeshComponent" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

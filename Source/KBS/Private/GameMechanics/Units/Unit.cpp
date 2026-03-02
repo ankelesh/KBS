@@ -76,6 +76,7 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 	UnitDefinition = InDefinition;
 	if (UnitDefinition)
 	{
+		SetActorLabel(FString::Printf(TEXT("%s_%s"), *UnitDefinition->UnitName, *UnitID.ToString().Left(8)));
 		BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
 
 		Weapons.Empty();

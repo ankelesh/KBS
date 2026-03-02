@@ -11,6 +11,7 @@
 class UDecalComponent;
 class UGridDataManager;
 class UGridHighlightComponent;
+class UGridVisualMeshComponent;
 
 #if WITH_EDITOR
 class UTacGridEditorInitializer;
@@ -42,6 +43,19 @@ public:
 	float CellSize = 200.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Sizes")
 	float AirLayerHeight = 500.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Sizes")
+	float MeshZOffset = 2.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Sizes")
+	float GroundCellBoxZExtent = 10.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Sizes")
+	float AirCellBoxZExtent = 50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Materials")
+	TObjectPtr<UMaterialInterface> NormalCellMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Materials")
+	TObjectPtr<UMaterialInterface> FlankCellMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Materials")
+	TObjectPtr<UMaterialInterface> AirCellMaterial;
 };
 
 UCLASS()
@@ -57,6 +71,9 @@ public:
 	UGridHighlightComponent* GetHighlightComponent() { return HighlightComponent; }
 	float GetCellSize() const { return Config ? Config->CellSize : 200.0f; }
 	float GetAirLayerHeight() const { return Config ? Config->AirLayerHeight : 500.0f; }
+	float GetMeshZOffset() const { return Config ? Config->MeshZOffset : 2.0f; }
+	float GetGroundCellBoxZExtent() const { return Config ? Config->GroundCellBoxZExtent : 10.0f; }
+	float GetAirCellBoxZExtent() const { return Config ? Config->AirCellBoxZExtent : 50.0f; }
 	ETeamSide GetPlayerTeamSide() const { return Player1ControlledTeam; }
 
 	// EDITOR - public for editor components
@@ -76,14 +93,13 @@ protected:
 	void HandleUnitClicked(AUnit* Unit, FKey ButtonPressed);
 private:
 	void InitializeComponents();
-	void AdjustCollisionBox();
 	bool GetCellUnderMouse(int32& OutRow, int32& OutCol, ETacGridLayer& OutLayer) const;
 
 	// Visuals
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> Root;
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<class UBoxComponent> GridCollision;
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UGridVisualMeshComponent> VisualMesh;
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<UGridHighlightComponent> HighlightComponent;
 

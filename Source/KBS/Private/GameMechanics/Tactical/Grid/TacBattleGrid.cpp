@@ -1,7 +1,7 @@
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "Components/DecalComponent.h"
-#include "Components/BoxComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
+#include "GameMechanics/Tactical/Grid/Components/GridVisualMeshComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Components/TacGridInputRouter.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
@@ -19,8 +19,7 @@ ATacBattleGrid::ATacBattleGrid()
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = Root;
 	Root->SetMobility(EComponentMobility::Movable);
-	GridCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("GridCollision"));
-	GridCollision->SetupAttachment(Root);
+	VisualMesh = CreateDefaultSubobject<UGridVisualMeshComponent>(TEXT("VisualMesh"));
 
 	DataManager = CreateDefaultSubobject<UGridDataManager>(TEXT("DataManager"));
 	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
@@ -99,7 +98,7 @@ void ATacBattleGrid::InitializeComponents()
 	DataManager->Initialize(this);
 	HighlightComponent->Initialize(Root, Config);
 	HighlightComponent->CreateHighlightPool();
-	AdjustCollisionBox();
+	VisualMesh->Initialize(this);
 
 	// Initialize InputRouter
 	if (InputRouter)
@@ -108,8 +107,6 @@ void ATacBattleGrid::InitializeComponents()
 		UE_LOG(LogTemp, Log, TEXT("TacBattleGrid: InputRouter initialized"));
 	}
 }
-
-// TODO: Moved to TacGridEditorInitializer and GridEditorVisualComponent
 
 bool ATacBattleGrid::GetCellUnderMouse(int32& OutRow, int32& OutCol, ETacGridLayer& OutLayer) const
 {
@@ -138,19 +135,4 @@ bool ATacBattleGrid::GetCellUnderMouse(int32& OutRow, int32& OutCol, ETacGridLay
 	// 	return true;
 	// }
 	return false;
-}
-
-void ATacBattleGrid::AdjustCollisionBox()
-{
-	if (Config)
-	{
-		float CellSize = Config->CellSize;
-		GridCollision->SetBoxExtent(FVector(FGridConstants::GridSize * CellSize * 0.5f,
-			FGridConstants::GridSize * CellSize * 0.5f, 10.0f));
-		GridCollision->SetRelativeLocation(FVector(FGridConstants::GridSize * CellSize * 0.5f,
-			FGridConstants::GridSize * CellSize * 0.5f, 0.0f));
-		GridCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		GridCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
-		GridCollision->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-	}
 }

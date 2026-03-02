@@ -125,6 +125,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 
 	Unit->GridMetadata = FUnitGridMetadata(Coords, Unit->GetTeamSide(), true, bOnFlank,
 		Orientation, ExtraCell, UnitSize);
+	Unit->GetVisualsComponent()->SetCellSize(Grid->GetCellSize());
 	Unit->NotifyOrientationChanged();
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnit: %s -> [%d,%d]"), *Unit->GetLogName(), Coords.Row, Coords.Col);
 	return true;
