@@ -17,14 +17,14 @@ class AUnit;
 class UWeapon;
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreUnitAttackPhase, FAttackContext&, Context);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreUnitAttackPhase, FCombatContext&, Context);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCalculationPhase, FAttackContext&, Context, FHitInstance&, HitContext);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCalculationPhase, FCombatContext&, Context, FHitInstance&, HitContext);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDamageApplicationPhase, FAttackContext&, Context, FHitInstance&,
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDamageApplicationPhase, FCombatContext&, Context, FHitInstance&,
                                                HitContext, FDamageResult&, Damage);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEffectApplicationPhase, FAttackContext&, Context, FHitInstance&,
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEffectApplicationPhase, FCombatContext&, Context, FHitInstance&,
                                              HitContext);
 
 UCLASS()
@@ -38,24 +38,29 @@ public:
 	UTacCombatStatisticsService* GetCombatStatisticsService() const { return CombatStatisticsService; }
 
 	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
+	TArray<FCombatHitResult> ResolveHealing(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
+	TArray<FCombatHitResult> ResolveEffectApplication(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
+	
 	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
-	bool ExecutePreAttackPhase(FAttackContext& Context);
-	void ExecuteCalculationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult);
-	void ExecuteDamageApplyPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply);
-	void ExecuteEffectApplicationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& Result);
+	
+	bool ExecutePreResolutionPhase(FCombatContext& Context);
+	void ExecuteCalculationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult);
+	void ExecuteResultApplyPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply);
+	void ExecuteEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& Result);
 
 	// Events
 	UPROPERTY(BlueprintAssignable)
-	FOnPreUnitAttackPhase OnPreUnitAttackPhase;
+	FOnPreUnitAttackPhase OnPreResolutionPhase;
 	UPROPERTY(BlueprintAssignable)
 	FOnCalculationPhase OnCalculationPhase;
 	UPROPERTY(BlueprintAssignable)
-	FOnDamageApplicationPhase OnDamageApplicationPhase;
+	FOnDamageApplicationPhase OnResultApplicationPhase;
 	UPROPERTY(BlueprintAssignable)
 	FOnEffectApplicationPhase OnEffectApplicationPhase;
 
 private:
-	TArray<FCombatHitResult> ResolveAttackInternal(FAttackContext& Context);
+	TArray<FCombatHitResult> ResolveAttackInternal(FCombatContext& Context);
+	void LogAttackStart(FCombatContext& Context);
 
 	UPROPERTY()
 	UTacAbilityExecutorService* AbilityExecutorService;

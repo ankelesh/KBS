@@ -35,7 +35,7 @@ FHitInstance::~FHitInstance()
 		Ability->HitTriggerCleanup(*this);
 }
 
-void FAttackContext::Reset()
+void FCombatContext::Reset()
 {
 	Hits.Empty();
 	for (auto Ability : InterferingAbilities)
@@ -48,7 +48,7 @@ void FAttackContext::Reset()
 }
 
 
-FAttackContext::FAttackContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction)
+FCombatContext::FCombatContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction)
 	:
 	  Attacker(AttackerUnit), Hits(), AttackerWeapon(Weapon), InterferingAbilities(), bIsAttackCancelled(false), bIsReactionHit(bIsReaction)
 {
@@ -58,20 +58,20 @@ FAttackContext::FAttackContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUni
 	}
 }
 
-void FAttackContext::Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled)
+void FCombatContext::Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled)
 {
 	InterferingAbilities.Add(Ability);
 	bIsAttackCancelled |= bIsCancelled;
 }
 
-FAttackContext::~FAttackContext()
+FCombatContext::~FCombatContext()
 {
 	Hits.Empty();
 	for (auto Ability : InterferingAbilities)
 		Ability->AttackTriggerCleanup(*this);
 }
 
-void FAttackContext::CheckCancellation()
+void FCombatContext::CheckCancellation()
 {
 	bIsAttackCancelled |= Attacker->IsDead();
 }

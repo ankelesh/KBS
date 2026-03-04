@@ -10,6 +10,19 @@ DEFINE_LOG_CATEGORY(LogKBSCombat);
 #include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 
+namespace
+{
+	void LogCancellation(const FCombatContext& Context, const TCHAR* Phase)
+	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[%s CANCELLED] %s's action was cancelled"), Phase, *Context.Attacker->GetName());
+	}
+
+	void LogCancellation(const FCombatContext& Context, const FHitInstance& Hit, const TCHAR* Phase)
+	{
+		UE_LOG(LogKBSCombat, Log, TEXT("[%s CANCELLED] %s -> %s"), Phase, *Context.Attacker->GetName(), *Hit.Target->GetName());
+	}
+}
+
 TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon* Weapon)
 {
 	TArray<FCombatHitResult> Results;
@@ -18,7 +31,7 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttack(AUnit* Attacker, TAr
 		return Results;
 	}
 
-	FAttackContext Context(Attacker, Weapon, Targets, false);
+	FCombatContext Context(Attacker, Weapon, Targets, false);
 	if (!Context.Attacker || !Context.AttackerWeapon || Context.Hits.Num() == 0)
 	{
 		return Results;
@@ -34,7 +47,7 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveReactionAttack(AUnit* Attac
 		return Results;
 	}
 
-	FAttackContext Context(Attacker, Weapon, Targets, true);
+	FCombatContext Context(Attacker, Weapon, Targets, true);
 	if (!Context.Attacker || !Context.AttackerWeapon || Context.Hits.Num() == 0)
 	{
 		return Results;
@@ -42,22 +55,15 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveReactionAttack(AUnit* Attac
 	return ResolveAttackInternal(Context);
 }
 
-TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FAttackContext& Context)
+TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FCombatContext& Context)
 {
 	TArray<FCombatHitResult> Results;
-
-	TArray<FString> TargetNames;
-	for (const FHitInstance& Hit : Context.Hits) { TargetNames.Add(Hit.Target->GetName()); }
-	const UWeaponDataAsset* WeaponConfig = Context.AttackerWeapon ? Context.AttackerWeapon->GetConfig() : nullptr;
-	UE_LOG(LogKBSCombat, Log, TEXT("[ATTACK START] %s -> [%s] weapon=%s reaction=%d"),
-		*Context.Attacker->GetName(), *FString::Join(TargetNames, TEXT(", ")),
-		WeaponConfig ? *WeaponConfig->GetName() : TEXT("none"), Context.bIsReactionHit ? 1 : 0);
-
-	if (!ExecutePreAttackPhase(Context))
+	LogAttackStart(Context);
+	if (!ExecutePreResolutionPhase(Context))
 	{
 		for (const FHitInstance& Hit : Context.Hits)
 		{
-			Results.Add(FCombatHitResult::Miss(Hit.Target));
+			Results.Add(FCombatHitResult::Cancelled(Hit.Target));
 		}
 		return Results;
 	}
@@ -71,7 +77,7 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FAttackConte
 			Results.Add(Result);
 			continue;
 		}
-		ExecuteDamageApplyPhase(Context, Hit, Result);
+		ExecuteResultApplyPhase(Context, Hit, Result);
 		if (Result.bHit)
 		{
 			ExecuteEffectApplicationPhase(Context, Hit, Result);
@@ -82,81 +88,74 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FAttackConte
 	int32 HitCount = 0, TotalDamage = 0;
 	for (const FCombatHitResult& R : Results) { if (R.bHit) { ++HitCount; TotalDamage += R.DamageResult.Damage; } }
 	UE_LOG(LogKBSCombat, Log, TEXT("[ATTACK END] %s: %d/%d hit, total_dmg=%d"),
-		*Context.Attacker->GetName(), HitCount, Results.Num(), TotalDamage);
+		*Context.Attacker->GetLogName(), HitCount, Results.Num(), TotalDamage);
 
 	return Results;
 }
 
-bool UTacCombatSubsystem::ExecutePreAttackPhase(FAttackContext& Context)
+
+
+bool UTacCombatSubsystem::ExecutePreResolutionPhase(FCombatContext& Context)
 {
-	OnPreUnitAttackPhase.Broadcast(Context);
+	OnPreResolutionPhase.Broadcast(Context);
 	Context.CheckCancellation();
 	if (Context.bIsAttackCancelled)
 	{
-		UE_LOG(LogKBSCombat, Log, TEXT("[PRE-ATTACK CANCELLED] %s's attack was cancelled"), *Context.Attacker->GetName());
+		LogCancellation(Context, TEXT("PRE-RESOLUTION"));
 		return false;
 	}
 
-	Context.Attacker->OnStartingAttack.Broadcast(Context, Context.Hits[0]);
+	Context.Attacker->EnterCombatResolutionPhase(Context, Context.Hits[0], false);
 	for (FHitInstance& Hit : Context.Hits)
 	{
 		Hit.Target->OnUnitAttacked.Broadcast(Hit.Target, Context.Attacker);
 		Context.Attacker->OnUnitAttacks.Broadcast(Context.Attacker, Hit.Target);
-		Hit.Target->OnBeingAttackedPrePhase.Broadcast(Context, Hit);
+		Hit.Target->EnterCombatResolutionPhase(Context, Hit, true);
 		Hit.CheckCancellation();
 	}
 
 	return true;
 }
 
-void UTacCombatSubsystem::ExecuteCalculationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult)
+void UTacCombatSubsystem::ExecuteCalculationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult)
 {
 	OnCalculationPhase.Broadcast(Context, Hit);
-	Context.Attacker->OnAttackingInCalculation.Broadcast(Context, Hit);
-	Hit.Target->OnBeingTargetedInCalculation.Broadcast(Context, Hit);
+	Context.Attacker->EnterCombatCalculationPhase(Context, Hit, false);
+	Hit.Target->EnterCombatCalculationPhase(Context, Hit, true);
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
-		UE_LOG(LogKBSCombat, Log, TEXT("[HIT CANCELLED] %s -> %s: cancelled in calculation phase"),
-			*Context.Attacker->GetName(), *Hit.Target->GetName());
-		OutResult = FCombatHitResult::Miss(Hit.Target);
+		LogCancellation(Context, Hit, TEXT("HIT"));
+		OutResult = FCombatHitResult::Cancelled(Hit.Target);
 		return;
 	}
 
 	OutResult.TargetUnit = Hit.Target;
-	if (FDamageCalculation::IsFriendlyReach(Context.AttackerWeapon->GetReach()))
-	{
-		OutResult.bHit = true;
-	}
-	else
+	if (Context.AttackerWeapon->IsRequiringAccuracyRoll())
 	{
 		OutResult.bHit = FDamageCalculation::PerformAccuracyRoll(
 			FDamageCalculation::CalculateHitChance(Context.Attacker, Context.AttackerWeapon, Hit.Target));
 	}
-
-	if (OutResult.bHit)
-	{
-		OutResult.DamageResult = FDamageCalculation::CalculateDamage(Context.Attacker, Context.AttackerWeapon, Hit.Target);
-		UE_LOG(LogKBSCombat, Log, TEXT("[HIT] %s -> %s: dmg=%d blocked=%d"),
-			*Context.Attacker->GetName(), *Hit.Target->GetName(),
-			OutResult.DamageResult.Damage, OutResult.DamageResult.DamageBlocked);
-	}
 	else
 	{
-		UE_LOG(LogKBSCombat, Log, TEXT("[MISS] %s -> %s"), *Context.Attacker->GetName(), *Hit.Target->GetName());
+		OutResult.bHit = true;
+	}
+
+	if (OutResult.bHit && Context.AttackerWeapon->GetIntent() == EAttackIntent::Attack)
+	{
+		OutResult.DamageResult = FDamageCalculation::CalculateDamage(Context.Attacker, Context.AttackerWeapon, Hit.Target);
 	}
 }
 
-void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& Result)
+void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& Result)
 {
 	OnEffectApplicationPhase.Broadcast(Context, Hit);
-	Context.Attacker->OnAttackingEffectApplication.Broadcast(Context, Hit);
-	Hit.Target->OnBeingTargetedForEffects.Broadcast(Context, Hit);
+	Context.Attacker->EnterCombatEffectApplicationPhase(Context, Hit, false);
+	Hit.Target->EnterCombatEffectApplicationPhase(Context, Hit, true);
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
-		UE_LOG(LogKBSCombat, Log, TEXT("[EFFECTS CANCELLED] %s -> %s: effect phase cancelled"),
-			*Context.Attacker->GetName(), *Hit.Target->GetName());
+		LogCancellation(Context, Hit, TEXT("EFFECTS"));
 		return;
 	}
 
@@ -177,30 +176,29 @@ void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FAttackContext& Context,
 			++Result.EffectsApplied;
 		}
 	}
-
-	if (Result.EffectsApplied > 0)
-	{
-		UE_LOG(LogKBSCombat, Log, TEXT("[EFFECTS] %d effects applied to %s"), Result.EffectsApplied, *Hit.Target->GetName());
-	}
 }
 
-void UTacCombatSubsystem::ExecuteDamageApplyPhase(FAttackContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply)
+void UTacCombatSubsystem::ExecuteResultApplyPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply)
 {
-	OnDamageApplicationPhase.Broadcast(Context, Hit, ToApply.DamageResult);
-	Context.Attacker->OnAttackingDamageApply.Broadcast(Context, Hit, ToApply.DamageResult);
-	Hit.Target->OnBeingHitInDamageApply.Broadcast(Context, Hit, ToApply.DamageResult);
+	OnResultApplicationPhase.Broadcast(Context, Hit, ToApply.DamageResult);
+	Context.Attacker->EnterCombatResultApplyPhase(Context, Hit, ToApply.DamageResult, false);
+	Hit.Target->EnterCombatResultApplyPhase(Context, Hit, ToApply.DamageResult, true);
 	Hit.CheckCancellation();
 	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
 	{
-		UE_LOG(LogKBSCombat, Log, TEXT("[DAMAGE BLOCKED] %s -> %s: hit cancelled at damage phase"),
-			*Context.Attacker->GetName(), *Hit.Target->GetName());
+		LogCancellation(Context, Hit, TEXT("DAMAGE"));
 		ToApply.bHit = false;
 		ToApply.DamageResult.DamageBlocked += ToApply.DamageResult.Damage;
 		ToApply.DamageResult.Damage = 0;
 	}
 	else
 	{
-		Hit.Target->HandleHit(ToApply.DamageResult, Context.Attacker);
+		if (Context.Intent == EAttackIntent::Attack)
+			Hit.Target->HandleHit(ToApply.DamageResult, Context.Attacker);
+		else if (Context.Intent == EAttackIntent::Heal)
+		{
+			Hit.Target->ChangeUnitHP(ToApply.DamageResult.Damage);
+		}
 	}
 }
 
@@ -210,4 +208,17 @@ void UTacCombatSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	AbilityExecutorService = NewObject<UTacAbilityExecutorService>(this);
 	CombatStatisticsService = NewObject<UTacCombatStatisticsService>(this);
 	CombatLogger = MakeUnique<FTacCategoryLogger>(FName("LogKBSCombat"), TEXT("Combat"));
+}
+
+
+
+
+void UTacCombatSubsystem::LogAttackStart(FCombatContext& Context)
+{
+	TArray<FString> TargetNames;
+	for (const FHitInstance& Hit : Context.Hits) { TargetNames.Add(Hit.Target->GetName()); }
+	const UWeaponDataAsset* WeaponConfig = Context.AttackerWeapon ? Context.AttackerWeapon->GetConfig() : nullptr;
+	UE_LOG(LogKBSCombat, Log, TEXT("[ATTACK START] %s -> [%s] weapon=%s reaction=%d"),
+		*Context.Attacker->GetLogName(), *FString::Join(TargetNames, TEXT(", ")),
+		WeaponConfig ? *WeaponConfig->GetName() : TEXT("none"), Context.bIsReactionHit ? 1 : 0);
 }

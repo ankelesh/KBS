@@ -26,7 +26,7 @@ void UEvasiveStancePassive::Unsubscribe()
 		*Owner->GetLogName());
 }
 
-void UEvasiveStancePassive::OnBeingTargeted(FAttackContext& Context, FHitInstance& Hit)
+void UEvasiveStancePassive::OnBeingTargeted(FCombatContext& Context, FHitInstance& Hit)
 {
 	Context.Attacker->GetStats().Accuracy.AddFlatModifier(ModifierID, AccuracyPenalty);
 	Hit.Interfere(this);

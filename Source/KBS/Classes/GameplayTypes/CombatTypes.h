@@ -44,7 +44,7 @@ struct FHitInstance
 };
 
 USTRUCT(BlueprintType)
-struct FAttackContext
+struct FCombatContext
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -58,13 +58,15 @@ struct FAttackContext
 	bool bIsAttackCancelled = false;
 	UPROPERTY()
 	bool bIsReactionHit = false;
+	UPROPERTY()
+	EAttackIntent Intent;
 	
 	void Reset();
-	FAttackContext() = default;
-	explicit FAttackContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction = false);
+	FCombatContext() = default;
+	explicit FCombatContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction = false);
 	void Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled = false);
 	void CheckCancellation();
-	~FAttackContext();
+	~FCombatContext();
 };
 
 
@@ -75,7 +77,8 @@ enum class EHitOutcome : uint8
 	Hit,
 	Miss,
 	Immune,
-	Warded
+	Warded,
+	Cancelled
 };
 
 USTRUCT(BlueprintType)
@@ -123,6 +126,13 @@ struct FCombatHitResult
 		FCombatHitResult Res;
 		Res.TargetUnit = Target;
 		Res.HitOutcome = EHitOutcome::Warded;
+		return Res;
+	}
+	static FCombatHitResult Cancelled(AUnit* Target)
+	{
+		FCombatHitResult Res;
+		Res.TargetUnit = Target;
+		Res.HitOutcome = EHitOutcome::Cancelled;
 		return Res;
 	}
 };

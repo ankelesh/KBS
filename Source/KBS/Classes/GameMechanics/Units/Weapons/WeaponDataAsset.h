@@ -31,6 +31,12 @@ public:
 	TArray<FWeaponEffectConfig> Effects;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	EWeaponDesignation Designation = EWeaponDesignation::AllPurpose;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	EAttackIntent Intent = EAttackIntent::Auto;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
+	bool bIsImmutable = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
+	bool bGuaranteedHit = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Animation")
 	TObjectPtr<UAnimMontage> AttackMontage;

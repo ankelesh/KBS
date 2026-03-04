@@ -90,11 +90,7 @@ void AUnit::InitializeWeapons(const UUnitDefinition* Definition)
 	{
 		if (!Entry.Weapon) continue;
 		TObjectPtr<UWeapon> NewWeapon = NewObject<UWeapon>();
-		NewWeapon->Initialize(this, Entry.Weapon);
-		if (Entry.BaseDamageOverride != NoWeaponDamageOverride)
-		{
-			NewWeapon->GetMutableStats().BaseDamage.SetBase(Entry.BaseDamageOverride);
-		}
+		NewWeapon->Initialize(this, Entry.Weapon, Entry.BaseDamageOverride);
 		Weapons.Add(NewWeapon);
 	}
 }
@@ -135,6 +131,38 @@ void AUnit::HandleDeath(bool Emits)
 {
 	BaseStats.Status.SetDead();
 	if (Emits) OnUnitDied.Broadcast(this);
+}
+
+void AUnit::EnterCombatResolutionPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget)
+{
+	if (IsTarget)
+		OnCombatResolutionCaptured.Broadcast(Context, Hit);
+	else
+		OnStartingCombatResolution.Broadcast(Context, Hit);
+}
+
+void AUnit::EnterCombatCalculationPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget)
+{
+	if (IsTarget)
+		OnBeingTargetedInCalculation.Broadcast(Context, Hit);
+	else
+		OnResolutionCalculating.Broadcast(Context, Hit);
+}
+
+void AUnit::EnterCombatResultApplyPhase(FCombatContext& Context, FHitInstance& Hit, FDamageResult& DamageResult, bool IsTarget)
+{
+	if (IsTarget)
+		OnCombatResolutionResultApplied.Broadcast(Context, Hit, DamageResult);
+	else
+		OnCombatResolutionResultApplication.Broadcast(Context, Hit, DamageResult);
+}
+
+void AUnit::EnterCombatEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget)
+{
+	if (IsTarget)
+		OnCombatResolutionEffectApplied.Broadcast(Context, Hit);
+	else
+		OnCombatResolutionEffectApplication.Broadcast(Context, Hit);
 }
 
 void AUnit::ChangeUnitHP(int32 Delta, bool Emits)

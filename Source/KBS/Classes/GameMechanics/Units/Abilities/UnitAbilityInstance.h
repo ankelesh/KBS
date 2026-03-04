@@ -19,7 +19,7 @@ class UTacGridCombatSystem;
 class UTacGridTargetingService;
 class UTacTurnSubsystem;
 class UTacAbilityExecutorService;
-struct FAttackContext;
+struct FCombatContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbilityInstance*, Ability, bool, Available);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityUsed, int32, ChargesLeft, bool, Available);
@@ -44,7 +44,7 @@ public:
 	virtual void HandleTurnEnd();
 	virtual void Subscribe() {};
 	virtual void Unsubscribe() {};
-	virtual void AttackTriggerCleanup(FAttackContext& Context) {};
+	virtual void AttackTriggerCleanup(FCombatContext& Context) {};
 	virtual void HitTriggerCleanup(FHitInstance& Hit) {};
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }

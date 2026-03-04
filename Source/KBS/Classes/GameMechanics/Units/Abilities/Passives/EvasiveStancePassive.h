@@ -26,7 +26,7 @@ public:
 	virtual bool CanExecute() const override { return false; }
 
 private:
-	void OnBeingTargeted(FAttackContext& Context, FHitInstance& Hit);
+	void OnBeingTargeted(FCombatContext& Context, FHitInstance& Hit);
 
 	static constexpr int32 AccuracyPenalty = -20;
 

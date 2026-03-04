@@ -49,8 +49,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitStatsModified, AUnit*, Unit,
  *   3. DamageApply — damage is written to target; modify FDamageResult to absorb/amplify
  *   4. EffectApplication — battle effects applied; cancel or add effects here
  */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitCombatCalculation, FAttackContext&, FHitInstance&);
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUnitDamageApply, FAttackContext&, FHitInstance&, FDamageResult&);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitCombatResolutionHook, FCombatContext&, FHitInstance&);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUnitCombatResultHook, FCombatContext&, FHitInstance&, FDamageResult&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitOrientationChanged, EUnitOrientation);
 
 UCLASS(meta=(ScriptName="TacUnit"))
@@ -103,24 +103,24 @@ public:
 	// Bind here instead of the subsystem to avoid per-hit owner checks.
 
 	/** Phase 1 — attacker side: fired before accuracy roll; context-level (whole attack). */
-	FOnUnitCombatCalculation OnStartingAttack;
+	FOnUnitCombatResolutionHook OnStartingCombatResolution;
 	/** Phase 1 — target side: fired before accuracy roll; per-hit. */
-	FOnUnitCombatCalculation OnBeingAttackedPrePhase;
+	FOnUnitCombatResolutionHook OnCombatResolutionCaptured;
 
 	/** Phase 2 — attacker side: fired during accuracy/damage calculation; modify attacker stats here. */
-	FOnUnitCombatCalculation OnAttackingInCalculation;
+	FOnUnitCombatResolutionHook OnResolutionCalculating;
 	/** Phase 2 — target side: fired during accuracy/damage calculation; modify attacker stats here. */
-	FOnUnitCombatCalculation OnBeingTargetedInCalculation;
+	FOnUnitCombatResolutionHook OnBeingTargetedInCalculation;
 
 	/** Phase 3 — attacker side: fired when damage result is being applied. */
-	FOnUnitDamageApply OnAttackingDamageApply;
+	FOnUnitCombatResultHook OnCombatResolutionResultApplication;
 	/** Phase 3 — target side: fired when damage result is being applied; modify FDamageResult to absorb. */
-	FOnUnitDamageApply OnBeingHitInDamageApply;
+	FOnUnitCombatResultHook OnCombatResolutionResultApplied;
 
 	/** Phase 4 — attacker side: fired during effect application. */
-	FOnUnitCombatCalculation OnAttackingEffectApplication;
+	FOnUnitCombatResolutionHook OnCombatResolutionEffectApplication;
 	/** Phase 4 — target side: fired during effect application; cancel or modify effects here. */
-	FOnUnitCombatCalculation OnBeingTargetedForEffects;
+	FOnUnitCombatResolutionHook OnCombatResolutionEffectApplied;
 
 	// --- Incoming Event Handlers ---
 	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton) override;
@@ -142,6 +142,12 @@ public:
 	bool ApplyEffect(UBattleEffect* Effect, bool Emits = true);
 	void NotifyEffectTriggered(UBattleEffect* Effect);
 	void HandleDeath(bool Emits = true);
+	
+	// --- Combat resolution phasing
+	void EnterCombatResolutionPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget);
+	void EnterCombatCalculationPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget);
+	void EnterCombatResultApplyPhase(FCombatContext& Context, FHitInstance& Hit, FDamageResult& DamageResult, bool IsTarget);
+	void EnterCombatEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget);
 
 	// --- Queries ---
 	FString GetLogName() const;
