@@ -2,44 +2,42 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 
 
-bool UUnitMovementAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UUnitMovementAbility::Execute(FTacCoordinates TargetCell)
 {
-	if (!Owner || RemainingCharges <= 0 || IsOutsideFocus()) return false;
-
+	check(Owner);
 	UTacGridMovementService* MovementService = GetMovementService();
-	if (!MovementService) return false;
-
+	check(MovementService);
+	
 	bool bMoveSuccess = MovementService->MoveUnit(Owner, TargetCell);
-
-	if (bMoveSuccess)
-	{
-		Owner->GetStats().Status.SetFocus();
-		ConsumeCharge();
-	}
-
-	return bMoveSuccess;
+	check(bMoveSuccess);
+	ConsumeCharge();
+	SetCompletionTag();
+	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
 bool UUnitMovementAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	if (!Owner || RemainingCharges <= 0 || IsOutsideFocus()) return false;
-
+	check(Owner);
+	if (RemainingCharges <= 0) return false;
+	if (!CanActByContext()) return false;
+	if (!Owner->GetStats().Status.CanMove()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
-	if (!TargetingService) return false;
-
+	check(TargetingService);
 	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(Owner, GetTargeting());
 	return ValidCells.Contains(TargetCell);
 }
 
 bool UUnitMovementAbility::CanExecute() const
 {
-	if (!Owner || RemainingCharges <= 0 || IsOutsideFocus()) return false;
-
+	check(Owner);
+	if (!RemainingCharges) return false;
+	if (!CanActByContext()) return false;
+	if (!Owner->GetStats().Status.CanMove()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
-	if (!TargetingService) return false;
-
+	check(TargetingService);
 	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(Owner, GetTargeting());
 	return ValidCells.Num() > 0;
 }

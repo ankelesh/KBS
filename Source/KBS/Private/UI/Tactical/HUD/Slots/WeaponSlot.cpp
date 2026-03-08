@@ -1,21 +1,21 @@
 #include "UI/Tactical/HUD/Slots/WeaponSlot.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
-#include "GameMechanics/Units/Weapons/WeaponDisplayData.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorDisplayData.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "UI/Tactical/HUD/Snapshots//BattleEffectSlotSnapshot.h"
 #include "Components/TextBlock.h"
 #include "Components/HorizontalBox.h"
 
-void UWeaponSlot::SetupFromWeapon(UWeapon* Weapon, AUnit* Owner)
+void UWeaponSlot::SetupFromWeapon(UCombatDescriptor* Weapon, AUnit* Owner)
 {
 	// Get display data
-	FWeaponDisplayData DisplayData = ConvertWeapon(Weapon);
+	FCombatDescriptorDisplayData DisplayData = ConvertWeapon(Weapon);
 
 	// Set weapon name
 	if (WeaponNameText)
 	{
-		WeaponNameText->SetText(FText::FromString(DisplayData.WeaponName));
+		WeaponNameText->SetText(FText::FromString(DisplayData.DescriptorName));
 	}
 
 	// Set damage

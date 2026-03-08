@@ -14,7 +14,7 @@ public:
 	virtual void OnTurnEnd() override;
 	virtual void OnApplied() override;
 	virtual void OnRemoved() override;
-	virtual bool HandleReapply(UBattleEffect* NewEffect) override;
+	virtual EReapplyDecision HandleReapply(UBattleEffect* NewEffect) override;
 protected:
 	UStatModBattleEffectDataAsset* GetStatModConfig() const { return Cast<UStatModBattleEffectDataAsset>(Config); }
 	void ApplyStatModifications();

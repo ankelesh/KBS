@@ -2,27 +2,23 @@
 #include "GameMechanics/Units/Unit.h"
 
 
-bool UUnitDefendAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UUnitDefendAbility::Execute(FTacCoordinates TargetCell)
 {
-	if (!Owner) return false;
-
+	check(Owner);
+	
 	Owner->GetStats().Status.SetDefending();
-	UE_LOG(LogTemp, Log, TEXT("%s is now defending - incoming damage will be halved"), *Owner->GetName());
-
-	// Set Focused status to end turn
-	Owner->GetStats().Status.SetFocus();
 	ConsumeCharge();
-
-	return true;
+	SetCompletionTag();
+	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
 bool UUnitDefendAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	return Owner && RemainingCharges > 0 || IsOutsideFocus();
+	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
 }
 
 bool UUnitDefendAbility::CanExecute() const
 {
-	return Owner && RemainingCharges > 0;
+	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
 }
 

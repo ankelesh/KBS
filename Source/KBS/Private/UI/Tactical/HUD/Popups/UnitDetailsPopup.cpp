@@ -5,7 +5,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "UI/Tactical/HUD/Snapshots/ActiveAbilitySlotSnapshot.h"
 #include "UI/Tactical/HUD/Snapshots/PassiveAbilitySlotSnapshot.h"
 #include "UI/Tactical/HUD/Snapshots/BattleEffectSlotSnapshot.h"
@@ -384,9 +384,9 @@ void UUnitDetailsPopup::PopulateWeapons(AUnit* Unit)
 {
 	if (!Unit) return;
 
-	const TArray<TObjectPtr<UWeapon>>& Weapons = Unit->GetWeapons();
+	const TArray<TObjectPtr<UCombatDescriptor>>& Weapons = Unit->GetWeapons();
 
-	for (UWeapon* Weapon : Weapons)
+	for (UCombatDescriptor* Weapon : Weapons)
 	{
 		UWeaponSlot* WeaponSlot = GetOrCreateWeaponSlot();
 		if (WeaponSlot)

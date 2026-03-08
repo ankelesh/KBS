@@ -5,7 +5,7 @@
 #include "BattleEffectSlot.generated.h"
 
 class UBattleEffect;
-enum class EEffectType : uint8;
+enum class EEffectPolarity : uint8;
 
 // Display widget for a single battle effect showing icon, duration, and frame
 // Max 5 slots per unit, listens to OnDurationChange delegate

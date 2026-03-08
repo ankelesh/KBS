@@ -49,6 +49,11 @@ void UUnitAbilityInstance::HandleTurnEnd()
 	RestoreCharges();
 }
 
+void UUnitAbilityInstance::ChangeSelection(bool bIsSelected)
+{
+	bIsCurrent = bIsSelected;
+}
+
 void UUnitAbilityInstance::ConsumeCharge()
 {
 	if (RemainingCharges > 0)
@@ -130,8 +135,36 @@ UTacTurnSubsystem* UUnitAbilityInstance::GetTurnSubsystem() const
 	return World->GetSubsystem<UTacTurnSubsystem>();
 }
 
-bool UUnitAbilityInstance::IsOutsideFocus() const
+FAbilityContext* UUnitAbilityInstance::GetContext() const
 {
-	if (!Owner) return false;
-	return (Owner->GetStats().Status.IsFocused() && !Owner->GetAbilityInventory()->IsFocusedOn(this));
+	if (!Owner) return nullptr;
+	if (const auto Inventory = Owner->GetAbilityInventory())
+		return Inventory->GetContext();
+	return nullptr;
 }
+
+EAbilityTurnReleasePolicy UUnitAbilityInstance::DecideTurnRelease() const
+{
+	return Config->DefaultReleasePolicy;
+}
+
+bool UUnitAbilityInstance::CanActByContext() const
+{
+	FAbilityContext* Context = GetContext();
+	checkf(Context, TEXT("Context empty on ability"));
+		return Context->CanConditionalAct(bIsCurrent, Config->LookupTag.ConditionalTag,
+		                                  Config->LookupTag.bIsPersistent);
+}
+
+bool UUnitAbilityInstance::OwnerCanAct() const
+{
+	return Owner->CanAct();
+}
+
+void UUnitAbilityInstance::SetCompletionTag() const
+{
+	if (Config->CompletionTag.IsValid())
+		if (auto Context = GetContext())
+			Context->AddTag(Config->CompletionTag.ConditionalTag, Config->CompletionTag.bIsPersistent);
+}
+

@@ -3,8 +3,8 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
-#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -32,6 +32,7 @@ void UUnitVisualsComponent::BeginPlay()
 	OwnerUnit->OnUnitEffectTriggered.AddDynamic(this, &UUnitVisualsComponent::OnOwnerEffectTriggered);
 	OwnerUnit->OnUnitMoved.AddDynamic(this, &UUnitVisualsComponent::OnOwnerMoved);
 	OwnerUnit->OnOrientationChanged.AddUObject(this, &UUnitVisualsComponent::OnOwnerOrientationChanged);
+	OwnerUnit->OnUnitFieldPresenceChange.AddDynamic(this, &UUnitVisualsComponent::OnOwnerFieldPresenceChanged);
 }
 
 void UUnitVisualsComponent::OnOwnerDied(AUnit* Unit)
@@ -105,6 +106,17 @@ void UUnitVisualsComponent::OnOwnerMoved(AUnit* Unit, const FTacMovementVisualDa
 
 	SetMovementSpeed(Unit->GetMovementSpeed());
 	SetIsMoving(true);
+}
+
+void UUnitVisualsComponent::ReverseExtraCellOffset()
+{
+	if (VisualsRoot && CachedUnitSize > 1)
+		VisualsRoot->SetRelativeLocation(FVector(0.f, CachedCellSize * 0.5f, 0.f));
+}
+
+void UUnitVisualsComponent::OnOwnerFieldPresenceChanged(AUnit* Unit, bool bIsOnField)
+{
+	VisualsRoot->SetVisibility(bIsOnField, true);
 }
 
 void UUnitVisualsComponent::CompleteMovementOperation()
@@ -388,7 +400,7 @@ void UUnitVisualsComponent::PlayAttackMontage(UAnimMontage* Montage, float PlayR
 	}
 }
 
-FBatchHandle UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* Target, UWeapon* Weapon)
+FBatchHandle UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* Target, UCombatDescriptor* Weapon)
 {
 	checkf(OwnerUnit && Target && Weapon, TEXT("PlayAttackSequence: all params must be valid"));
 
@@ -397,7 +409,7 @@ FBatchHandle UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* 
 		FString::Printf(TEXT("AttackSeq_%s"), *OwnerUnit->GetName())
 	);
 
-	const UWeaponDataAsset* WeaponConfig = Weapon->GetConfig();
+	const UCombatDescriptorDataAsset* WeaponConfig = Weapon->GetConfig();
 	UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
 
 	const FVector SourceLoc = OwnerUnit->GetActorLocation();

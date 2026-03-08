@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTypes/EffectTypes.h"
 #include "GameplayTypes/DamageTypes.h"
@@ -16,25 +17,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
 	FText Description;
 	
-	// Mechanics
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
+	// Classification
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Classification")
+	FGameplayTagContainer EffectTags;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Classification")
+	EEffectPolarity Polarity = EEffectPolarity::Neutral;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Classification")
 	EDamageSource DamageSource = EDamageSource::Physical;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
+
+	// Targeting
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting")
 	ETargetReach EffectTarget = ETargetReach::AnyEnemy;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	FName StackingId = NAME_None;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Targeting")
+	bool bIsAccuracyDependent = true;
+
+	
+	// Duration and stacking
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Duration")
 	int32 DefaultDuration = 3;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	/// No way to remove / never expires
-	bool isImmutable = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	/// Can be removed by abilities
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Duration")
 	bool bIsDispellable = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	EEffectType EffectType = EEffectType::Neutral;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	bool bIsAccuracyDependent = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Duration")
+	FName StackingId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Duration")
+	EEffectStackPolicy StackPolicy = EEffectStackPolicy::RefreshOld;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Duration",
+	meta = (EditCondition = "StackPolicy == EEffectStackPolicy::Stack", ClampMin = 1))
+	int32 MaxStacks = 1;
 	
 	// VFX
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visuals")

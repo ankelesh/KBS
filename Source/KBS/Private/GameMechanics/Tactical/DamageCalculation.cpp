@@ -1,60 +1,60 @@
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
 
 
-float FDamageCalculation::CalculateHitChance(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
+float FDamageCalculation::CalculateHitChance(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target)
 {
-	if (!Attacker || !Weapon || !Target)
+	if (!Attacker || !Descriptor || !Target)
 	{
 		return 0.0f;
 	}
 	const FUnitCoreStats& AttackerStats = Attacker->GetStats();
-	const FWeaponStats& WeaponStats = Weapon->GetStats();
-	float HitChance = AttackerStats.Accuracy.GetValue() * WeaponStats.AccuracyMultiplier / 100.0f;
+	const FCombatDescriptorStats& DescriptorStats = Descriptor->GetStats();
+	float HitChance = AttackerStats.Accuracy.GetValue() * DescriptorStats.AccuracyMultiplier / 100.0f;
 	return FMath::Clamp(HitChance, 0.0f, 100.0f);
 }
 
-FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
+FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target)
 {
 	FDamageResult Result;
-	if (!Attacker || !Weapon || !Target)
+	if (!Attacker || !Descriptor || !Target)
 	{
 		return Result;
 	}
-	const FWeaponStats& WeaponStats = Weapon->GetStats();
+	const FCombatDescriptorStats& DescriptorStats = Descriptor->GetStats();
 	const FUnitCoreStats& TargetStats = Target->GetStats();
 	const FUnitDefenseStats& Defense = TargetStats.Defense;
-	const bool bIsTargetDefending = Target->GetStats().Status.IsDefending(); 
-	EDamageSource BestSource = SelectBestDamageSource(WeaponStats.DamageSources.GetValue(), Target);
+	const bool bIsTargetDefending = Target->GetStats().Status.IsDefending();
+	EDamageSource BestSource = SelectBestDamageSource(DescriptorStats.DamageSources.GetValue(), Target);
 	Result.DamageSource = BestSource;
 	if (BestSource == EDamageSource::None)
 	{
 		return Result;
 	}
-	int32 BaseDamage = WeaponStats.BaseDamage.GetValue();
+	int32 BaseMagnitude = DescriptorStats.BaseMagnitude.GetValue();
 	if (Defense.Immunities.IsImmuneTo(BestSource))
 	{
 		Result.Damage = 0;
-		Result.DamageBlocked = BaseDamage;
+		Result.DamageBlocked = BaseMagnitude;
 		return Result;
 	}
 	if (Defense.Wards.HasWardFor(BestSource))
 	{
 		Result.Damage = 0;
-		Result.DamageBlocked = BaseDamage;
+		Result.DamageBlocked = BaseMagnitude;
 		Result.WardSpent = BestSource;
 		return Result;
 	}
 	int32 ArmorPercent = Defense.Armour.GetValue(BestSource);
 	float ArmorValue = ArmorPercent / 100.0f;
-	float DamageAfterArmor = BaseDamage * (1.0f - ArmorValue);
+	float DamageAfterArmor = BaseMagnitude * (1.0f - ArmorValue);
 	if (Attacker->GetGridMetadata().bOnFlank && !Attacker->GetStats().Status.IsFlankDelayed())
 	{
 		DamageAfterArmor *= FLANKING_DAMAGE_MULTIPLIER;
-		BaseDamage *= FLANKING_DAMAGE_MULTIPLIER;
+		BaseMagnitude *= FLANKING_DAMAGE_MULTIPLIER;
 	}
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
 	if (bIsTargetDefending)
@@ -62,7 +62,7 @@ FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UWeapon* Weap
 		FinalDamage *= DEFENSIVE_STANCE_MULTIPLIER;
 	}
 	Result.Damage = FMath::RoundToInt(FinalDamage);
-	Result.DamageBlocked = BaseDamage - Result.Damage;
+	Result.DamageBlocked = BaseMagnitude - Result.Damage;
 	return Result;
 }
 
@@ -87,7 +87,42 @@ float FDamageCalculation::CalculateEffectApplication(AUnit* Attacker, UBattleEff
 	return FMath::Clamp(ApplicationChance, 0.0f, 100.0f);
 }
 
-UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit, bool bAutoAttackOnly)
+FDamageResult FDamageCalculation::CalculateHeal(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target)
+{
+	if (!Attacker || !Descriptor || !Target) return FDamageResult();
+
+	const FUnitDefenseStats& Defense = Target->GetStats().Defense;
+	const TSet<EDamageSource>& Sources = Descriptor->GetStats().DamageSources.GetValue();
+
+	EDamageSource BestSource = EDamageSource::None;
+	EDamageSource ImmunityFallback = EDamageSource::None;
+	EDamageSource WardFallback = EDamageSource::None;
+
+	for (EDamageSource Source : Sources)
+	{
+		const bool bImmune = Defense.Immunities.IsImmuneTo(Source);
+		const bool bWarded = Defense.Wards.HasWardFor(Source);
+		if (!bImmune && !bWarded)
+		{
+			BestSource = Source;
+			break;
+		}
+		if (bImmune && ImmunityFallback == EDamageSource::None)
+			ImmunityFallback = Source;
+		else if (bWarded && WardFallback == EDamageSource::None)
+			WardFallback = Source;
+	}
+
+	if (BestSource == EDamageSource::None)
+		BestSource = (ImmunityFallback != EDamageSource::None) ? ImmunityFallback : WardFallback;
+
+	FDamageResult Result;
+	Result.DamageSource = BestSource;
+	Result.Damage = Descriptor->GetStats().BaseMagnitude.GetValue();
+	return Result;
+}
+
+UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, bool bAutoAttackOnly)
 {
 	if (!Unit)
 	{
@@ -119,52 +154,52 @@ UWeapon* FDamageCalculation::SelectMaxReachWeapon(AUnit* Unit, bool bAutoAttackO
 			default:                               return 0;
 			}
 		};
-	UWeapon* BestWeapon = nullptr;
+	UCombatDescriptor* BestDescriptor = nullptr;
 	int32 BestScore = -1;
-	for (UWeapon* Weapon : Weapons)
+	for (UCombatDescriptor* Descriptor : Weapons)
 	{
-		if (bAutoAttackOnly && !Weapon->IsUsableForAutoAttack()) continue;
-		const FWeaponStats& Stats = Weapon->GetStats();
+		if (bAutoAttackOnly && !Descriptor->IsUsableForAutoAttack()) continue;
+		const FCombatDescriptorStats& Stats = Descriptor->GetStats();
 		int32 Score = GetReachScore(Stats.TargetReach);
 		if (Score > BestScore)
 		{
 			BestScore = Score;
-			BestWeapon = Weapon;
+			BestDescriptor = Descriptor;
 		}
 	}
-	return BestWeapon;
+	return BestDescriptor;
 }
 
-UWeapon* FDamageCalculation::SelectSpellWeapon(AUnit* Unit)
+UCombatDescriptor* FDamageCalculation::SelectSpellDescriptor(AUnit* Unit)
 {
 	if (!Unit) return nullptr;
-	for (UWeapon* Weapon : Unit->GetWeapons())
+	for (UCombatDescriptor* Descriptor : Unit->GetWeapons())
 	{
-		if (Weapon && Weapon->IsUsableForSpells())
+		if (Descriptor && Descriptor->IsUsableForSpells())
 		{
-			return Weapon;
+			return Descriptor;
 		}
 	}
 	return nullptr;
 }
 
-void FDamageCalculation::ApplySpellScaling(UWeapon* EmbeddedWeapon, UWeapon* SpellWeapon, float Multiplier, int32 FlatBonus)
+void FDamageCalculation::ApplySpellScaling(UCombatDescriptor* EmbeddedDescriptor, UCombatDescriptor* SpellDescriptor, float Multiplier, int32 FlatBonus)
 {
-	int32 SpellDamage = SpellWeapon->GetStats().BaseDamage.GetValue();
+	int32 SpellDamage = SpellDescriptor->GetStats().BaseMagnitude.GetValue();
 	int32 NewBase = FMath::Max(0, FMath::RoundToInt(SpellDamage * Multiplier) + FlatBonus);
-	EmbeddedWeapon->GetMutableStats().BaseDamage.SetBase(NewBase);
+	EmbeddedDescriptor->SetMagnitudeBase(NewBase);
 }
 
-FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, UWeapon* Weapon, AUnit* Target)
+FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target)
 {
 	FPreviewHitResult Preview;
-	if (!Attacker || !Target || !Weapon)
+	if (!Attacker || !Target || !Descriptor)
 	{
 		return Preview;
 	}
-	Preview.HitProbability = CalculateHitChance(Attacker, Weapon, Target);
-	Preview.DamageResult = CalculateDamage(Attacker, Weapon, Target);
-	if (const TArray<UBattleEffect*>& Effects = Weapon->GetEffects(); Effects.Num() > 0)
+	Preview.HitProbability = CalculateHitChance(Attacker, Descriptor, Target);
+	Preview.DamageResult = CalculateDamage(Attacker, Descriptor, Target);
+	if (const TArray<UBattleEffect*>& Effects = Descriptor->GetEffects(); Effects.Num() > 0)
 	{
 		float TotalEffectChance = 0.0f;
 		for (UBattleEffect* Effect : Effects)
@@ -195,17 +230,17 @@ bool FDamageCalculation::IsFriendlyReach(ETargetReach Reach)
 		Reach == ETargetReach::FriendlyNonBlockedCorpse;
 }
 
-UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly)
+UCombatDescriptor* FDamageCalculation::SelectDescriptorForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly)
 {
 	check(Attacker && Target);
 
-	const TArray<UWeapon*>& Weapons = Attacker->GetWeapons();
+	const TArray<UCombatDescriptor*>& Weapons = Attacker->GetWeapons();
 	if (Weapons.Num() == 0) return nullptr;
 
 	const int32 Distance = Attacker->GetGridMetadata().DistanceTo(Target->GetGridMetadata());
 	const bool bIsFriendly = Attacker->GetGridMetadata().IsAlly(Target->GetGridMetadata());
 
-	// Returns whether a weapon with this reach can hit a target at Distance with the given affiliation.
+	// Returns whether a descriptor with this reach can hit a target at Distance with the given affiliation.
 	// Collapses all reach variants to two axes: affiliation (friendly/hostile) and range (melee/any).
 	auto CanReachTarget = [&](ETargetReach Reach) -> bool
 	{
@@ -236,21 +271,21 @@ UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Targe
 		}
 	};
 
-	UWeapon* BestWeapon = nullptr;
+	UCombatDescriptor* BestDescriptor = nullptr;
 	int32 BestDamage = -1;
-	for (UWeapon* Weapon : Weapons)
+	for (UCombatDescriptor* Descriptor : Weapons)
 	{
-		if (bAutoAttackOnly && !Weapon->IsUsableForAutoAttack()) continue;
-		if (!CanReachTarget(Weapon->GetStats().TargetReach)) continue;
+		if (bAutoAttackOnly && !Descriptor->IsUsableForAutoAttack()) continue;
+		if (!CanReachTarget(Descriptor->GetStats().TargetReach)) continue;
 
-		const int32 Dmg = CalculateDamage(Attacker, Weapon, Target).Damage;
+		const int32 Dmg = CalculateDamage(Attacker, Descriptor, Target).Damage;
 		if (Dmg > BestDamage)
 		{
 			BestDamage = Dmg;
-			BestWeapon = Weapon;
+			BestDescriptor = Descriptor;
 		}
 	}
-	return BestWeapon;
+	return BestDescriptor;
 }
 
 EDamageSource FDamageCalculation::SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target)

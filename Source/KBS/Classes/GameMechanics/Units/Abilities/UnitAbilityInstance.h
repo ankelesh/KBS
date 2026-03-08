@@ -31,7 +31,7 @@ public:
 	virtual void InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner);
 
 	// Clean signature - no context bloat
-	virtual bool Execute(FTacCoordinates TargetCell) { return true; };
+	virtual FAbilityExecutionResult Execute(FTacCoordinates TargetCell) { return FAbilityExecutionResult{true, DecideTurnRelease()}; };
 	virtual bool CanExecute(FTacCoordinates TargetCell) const { return false; };
 	virtual bool CanExecute() const { return false; };
 	virtual bool RefreshAvailability() const;
@@ -51,6 +51,7 @@ public:
 	int32 GetRemainingCharges() const { return RemainingCharges; }
 	AUnit* GetOwner() const { return Owner; }
 	void SetOwner(AUnit* NewOwner) { Owner = NewOwner; }
+	void ChangeSelection(bool bIsSelected);
 	virtual void ConsumeCharge();
 	virtual void RestoreCharges();
 	void BroadcastUsage() const;
@@ -70,8 +71,14 @@ protected:
 	UTacCombatSubsystem* GetCombatSubsystem() const;
 	UTacAbilityExecutorService* GetExecutorService() const;
 	UTacTurnSubsystem* GetTurnSubsystem() const;
+	FAbilityContext* GetContext() const;
 	
-	bool IsOutsideFocus() const;
+	// Behavior
+	virtual EAbilityTurnReleasePolicy DecideTurnRelease() const;
+	bool CanActByContext() const;
+	bool OwnerCanAct() const;
+	void SetCompletionTag() const;
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<UUnitAbilityDefinition> Config;
@@ -79,4 +86,6 @@ protected:
 	int32 RemainingCharges = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<AUnit> Owner;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
+	bool bIsCurrent = false;
 };

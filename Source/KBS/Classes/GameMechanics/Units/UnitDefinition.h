@@ -3,7 +3,7 @@
 #include "Engine/DataAsset.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "UnitDefinition.generated.h"
-class UWeaponDataAsset;
+class UCombatDescriptorDataAsset;
 class USkeletalMesh;
 class UStaticMesh;
 class UAnimBlueprintGeneratedClass;
@@ -18,7 +18,7 @@ struct FUnitWeaponEntry
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	TObjectPtr<UWeaponDataAsset> Weapon;
+	TObjectPtr<UCombatDescriptorDataAsset> Weapon;
 
 	// NoWeaponDamageOverride = use weapon asset's own BaseDamage
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -90,5 +90,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 UnitSize = 1; // 1 = single cell, 2 = two cells
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
-	int32 FlankArrivalDelay = 0; // turns unit must wait in a flank cell before it can act; 0 = no delay
+	int32 FlankEntranceArrivalDelay = 3; // turns unit must wait in a flank entrance before it can act; 0 = no delay
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
+	int32 FlankRearArrivalDelay = 3; // turns unit must wait in a flank rear before it can act; 0 = no delay
 };

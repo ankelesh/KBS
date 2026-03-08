@@ -24,11 +24,12 @@ public:
 
 	// Weak guarantee: attempts execution, reports input failure
 	FAbilityResult Execute(UUnitAbilityInstance* Ability, FTacCoordinates TargetCell);
-
+	
 	// Delegates
 	UPROPERTY(BlueprintAssignable)
 	FOnAbilityExecuting OnAbilityExecuting;   // Broadcast post-check, pre-exec
 
 	UPROPERTY(BlueprintAssignable)
 	FOnAbilityCompleted OnAbilityCompleted;   // Broadcast post-exec
+
 };

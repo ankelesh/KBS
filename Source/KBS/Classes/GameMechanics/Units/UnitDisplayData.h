@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameplayTypes/DamageTypes.h"
-#include "Weapons/WeaponDisplayData.h"
+#include "Combat/CombatDescriptorDisplayData.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "UnitDisplayData.generated.h"
 USTRUCT(BlueprintType)
@@ -29,7 +29,7 @@ struct KBS_API FUnitDisplayData
 	UPROPERTY(BlueprintReadWrite)
 	FString ActiveEffectNames;
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FWeaponDisplayData> Weapons;
+	TArray<FCombatDescriptorDisplayData> Weapons;
 	UPROPERTY(BlueprintReadWrite)
 	FString Immunities;
 	UPROPERTY(BlueprintReadWrite)
@@ -68,10 +68,10 @@ struct FUnitImmunities;
 struct FUnitWards;
 struct FUnitCoreStats;
 struct FDamageSourceSetStat;
-class UWeapon;
+class UCombatDescriptor;
 FString DamageSourceToString(EDamageSource Source);
 FString TargetReachToString(ETargetReach Reach);
-FWeaponDisplayData ConvertWeapon(UWeapon* Weapon);
+FCombatDescriptorDisplayData ConvertWeapon(UCombatDescriptor* Weapon);
 
 TArray<FString> ConvertActiveEffects(const TArray<TObjectPtr<UBattleEffect>>& Effects);
 FString ConvertArmourMap(const FUnitArmour& ArmourMap);
@@ -84,6 +84,6 @@ FUnitDisplayData BuildUnitDisplayData(
 	const FUnitCoreStats& Stats,
 	UTexture2D* PortraitTexture,
 	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects,
-	const TArray<TObjectPtr<UWeapon>>& Weapons,
+	const TArray<TObjectPtr<UCombatDescriptor>>& Weapons,
 	ETeamSide TeamSide
 );

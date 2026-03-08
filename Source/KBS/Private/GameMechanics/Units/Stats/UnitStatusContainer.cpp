@@ -28,12 +28,6 @@ bool FUnitStatusContainer::AddStatus(EUnitStatus Status, const FGuid& EffectId)
 			DisorientedModifiers.Add(EffectId);
 			return bWasInactive;
 		}
-	case EUnitStatus::Focused:
-		{
-			const bool bWasInactive = !bFocused;
-			bFocused = true;
-			return bWasInactive;
-		}
 	case EUnitStatus::Defending:
 		{
 			const bool bWasInactive = !bDefending;
@@ -81,12 +75,6 @@ bool FUnitStatusContainer::RemoveStatus(EUnitStatus Status, const FGuid& EffectI
 			DisorientedModifiers.Remove(EffectId);
 			return DisorientedModifiers.Num() == 0;
 		}
-	case EUnitStatus::Focused:
-		{
-			const bool bWasActive = bFocused;
-			bFocused = false;
-			return bWasActive;
-		}
 	case EUnitStatus::Fleeing:
 		{
 			const bool bWasActive = bFleeing;
@@ -126,9 +114,6 @@ void FUnitStatusContainer::ClearStatus(EUnitStatus Status)
 	case EUnitStatus::Disoriented:
 		DisorientedModifiers.Empty();
 		break;
-	case EUnitStatus::Focused:
-		bFocused = false;
-		break;
 	case EUnitStatus::Fleeing:
 		bFleeing = false;
 		break;
@@ -147,7 +132,6 @@ void FUnitStatusContainer::ClearAll()
 	PinnedModifiers.Empty();
 	SilencedModifiers.Empty();
 	DisorientedModifiers.Empty();
-	bFocused = false;
 	bFleeing = false;
 	bChanneling = false;
 	bDefending = false;
@@ -185,8 +169,6 @@ bool FUnitStatusContainer::IsStatusActive(EUnitStatus Status) const
 		return SilencedModifiers.Num() > 0;
 	case EUnitStatus::Disoriented:
 		return DisorientedModifiers.Num() > 0;
-	case EUnitStatus::Focused:
-		return bFocused;
 	case EUnitStatus::Fleeing:
 		return bFleeing;
 	case EUnitStatus::Channeling:

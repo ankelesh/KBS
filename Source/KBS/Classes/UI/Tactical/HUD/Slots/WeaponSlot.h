@@ -18,7 +18,7 @@ class KBS_API UWeaponSlot : public UUserWidget
 public:
 	// Setup from weapon data
 	UFUNCTION(BlueprintCallable, Category = "Weapon Slot")
-	void SetupFromWeapon(UWeapon* Weapon, class AUnit* Owner);
+	void SetupFromWeapon(UCombatDescriptor* Weapon, class AUnit* Owner);
 
 	// Clear and hide widget
 	UFUNCTION(BlueprintCallable, Category = "Weapon Slot")

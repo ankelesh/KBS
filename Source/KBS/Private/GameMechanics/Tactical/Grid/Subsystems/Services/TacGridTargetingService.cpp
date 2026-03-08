@@ -6,7 +6,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/FlankCellDefinitions.h"

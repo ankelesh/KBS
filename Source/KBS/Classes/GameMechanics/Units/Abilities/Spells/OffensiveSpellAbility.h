@@ -3,7 +3,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "OffensiveSpellAbility.generated.h"
 
-class UWeapon;
+class UCombatDescriptor;
 
 UCLASS(Blueprintable)
 class KBS_API UOffensiveSpellAbility : public UUnitAbilityInstance
@@ -14,16 +14,16 @@ public:
 
 	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const override;
 
-	virtual bool Execute(FTacCoordinates TargetCell) override;
+	virtual FAbilityExecutionResult Execute(FTacCoordinates TargetCell) override;
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
 
 	virtual ETargetReach GetTargeting() const override;
 
 private:
-	// Instantiated from SpellAbilityDefinition::EmbeddedWeaponAsset; base damage is scaled before each use
+	// Instantiated from SpellAbilityDefinition; base damage is scaled before each use
 	UPROPERTY()
-	TObjectPtr<UWeapon> EmbeddedWeapon;
+	TObjectPtr<UCombatDescriptor> EmbeddedDescriptor;
 
-	void ScaleEmbeddedWeapon() const;
+	void ScaleEmbeddedDescriptor() const;
 };

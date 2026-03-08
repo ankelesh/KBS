@@ -7,7 +7,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameplayTypes/AbilityTypes.h"
 #include "Kismet/GameplayStatics.h"
 

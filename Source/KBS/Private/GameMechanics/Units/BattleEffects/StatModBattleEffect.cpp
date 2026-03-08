@@ -46,23 +46,13 @@ void UStatModBattleEffect::OnRemoved()
 		*Config->Name.ToString());
 }
 
-bool UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect)
+EReapplyDecision UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 {
-	UStatModBattleEffectDataAsset* StatModConfig = GetStatModConfig();
-	UStatModBattleEffectDataAsset* NewStatModConfig = NewEffect ? Cast<UStatModBattleEffectDataAsset>(NewEffect->GetConfig()) : nullptr;
-	if (!NewEffect || !StatModConfig || !NewStatModConfig)
+	if (!NewEffect)
 	{
-		return false;
+		return EReapplyDecision::DoNothing;
 	}
-	RemoveStatModifications();
-	Config = NewStatModConfig;
-	Duration = NewStatModConfig->Duration;
-	ApplyStatModifications();
-	UE_LOG(LogTemp, Log, TEXT("%s: StatMod effect '%s' reapplied, duration reset to %d"),
-		*Owner->GetName(),
-		*Config->Name.ToString(),
-		Duration);
-	return true;
+	return EReapplyDecision::New;
 }
 
 void UStatModBattleEffect::ApplyStatModifications()

@@ -15,7 +15,6 @@ public:
 	virtual void Subscribe() override;
 	virtual void Unsubscribe() override;
 	virtual bool IsPassive() const override { return true; }
-	virtual bool CanExecute() const override { return false; }
 	// Called by AbilityInventory at turn end. Does NOT call Super (no charge restore).
 	virtual void HandleTurnEnd() override;
 

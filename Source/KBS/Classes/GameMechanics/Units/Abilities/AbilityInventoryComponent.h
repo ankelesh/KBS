@@ -18,14 +18,25 @@ class KBS_API UAbilityInventoryComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	// Lifecycle
 	UAbilityInventoryComponent();
 	virtual void BeginPlay() override;
 	void InitializeFromDefinition(const UUnitDefinition* Definition, AUnit* OwnerUnit);
+	void RegisterPassives();
+	void UnregisterPassives();
+	
+	
+	// Add-remove
 	void AddActiveAbility(UUnitAbilityInstance* Ability);
 	void AddPassiveAbility(UUnitAbilityInstance* Ability);
 	void RemovePassiveAbility(UUnitAbilityInstance* Ability);
-	void RegisterPassives();
-	void UnregisterPassives();
+	UFUNCTION(BlueprintCallable, Category = "Abilities|DefaultSlots")
+	void SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbilityInstance* Ability);
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
+	void AddSpellbookAbility(UUnitAbilityInstance* Ability);
+	
+	
+	// Getters
 	UFUNCTION(BlueprintPure, Category = "Abilities")
 	UUnitAbilityInstance* GetCurrentActiveAbility() const;
 	UFUNCTION(BlueprintPure, Category = "Abilities")
@@ -36,42 +47,28 @@ public:
 	TArray<FAbilityDisplayData> GetActiveAbilitiesDisplayData() const;
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
 	TArray<FAbilityDisplayData> GetPassiveAbilitiesDisplayData() const;
+	UFUNCTION(BlueprintPure, Category = "Abilities|DefaultSlots")
+	UUnitAbilityInstance* GetDefaultAbility(EDefaultAbilitySlot Slot) const;
+	UFUNCTION(BlueprintPure, Category = "Abilities|Spellbook")
+	TArray<UUnitAbilityInstance*> GetSpellbookAbilities() const;
+	
+	// Interface
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void EquipAbility(UUnitAbilityInstance* Ability);
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
-	void EquipDefaultAbility();
-	UFUNCTION(BlueprintCallable, Category = "Abilities|DefaultSlots")
-	void SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbilityInstance* Ability);
-	UFUNCTION(BlueprintPure, Category = "Abilities|DefaultSlots")
-	UUnitAbilityInstance* GetDefaultAbility(EDefaultAbilitySlot Slot) const;
-	UFUNCTION(BlueprintPure, Category = "Abilities|DefaultSlots")
-	TArray<UUnitAbilityInstance*> GetAllDefaultAbilities() const;
-	UFUNCTION(BlueprintCallable, Category = "Abilities")
-	void SelectAttackAbility();
-	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void EnsureValidAbility();
-
 	UFUNCTION(BlueprintPure, Category = "Abilities")
 	bool HasAnyAbilityAvailable() const;
-
-	// Spellbook functionality
-	UFUNCTION(BlueprintPure, Category = "Abilities|Spellbook")
-	TArray<UUnitAbilityInstance*> GetSpellbookAbilities() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook|Display")
-	TArray<FAbilityDisplayData> GetSpellbookDisplayData() const;
+	void RecheckContents();
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook|Display")
 	bool IsSpellbookAvailable() const;
+	FAbilityContext* GetContext();
+	void ProcessTurnPolicy(EAbilityTurnReleasePolicy Policy);
+	
 
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
-	void AddSpellbookAbility(UUnitAbilityInstance* Ability);
-
-	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
-	void ActivateSpellbookSpell(UUnitAbilityInstance* Spell);
-
-	bool IsFocusedOn(const UUnitAbilityInstance* Ability) const;
-
-	void RecheckContents();
+	// DisplayData getters
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook|Display")
+	TArray<FAbilityDisplayData> GetSpellbookDisplayData() const;
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
 	TObjectPtr<UUnitAbilityInstance> CurrentActiveAbility;
@@ -94,6 +91,7 @@ protected:
 
 private:
 
+	FAbilityContext AbilityContext;
 	bool IsDefaultAbility(UUnitAbilityInstance* Ability) const;
 	bool IsAbilityAvailable(UUnitAbilityInstance* Ability) const;
 	const FUnitStatusContainer* GetOwnerStatus() const;

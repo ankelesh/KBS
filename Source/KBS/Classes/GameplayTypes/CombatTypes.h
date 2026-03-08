@@ -1,12 +1,13 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTypes/CombatDescriptorTypes.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "CombatTypes.generated.h"
 
 class AUnit;
 class UBattleEffect;
 class UUnitAbilityInstance;
-class UWeapon;
+class UCombatDescriptor;
 
 USTRUCT(BlueprintType)
 struct FDamageResult
@@ -37,7 +38,7 @@ struct FHitInstance
 
 	void Reset();
 	FHitInstance() = default;
-	explicit FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UWeapon* Weapon);
+	explicit FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UCombatDescriptor* Descriptor);
 	void Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled = false);
 	void CheckCancellation();
 	~FHitInstance();
@@ -51,7 +52,8 @@ struct FCombatContext
 	AUnit* Attacker = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FHitInstance> Hits = TArray<FHitInstance>();
-	UWeapon* AttackerWeapon = nullptr;
+	UPROPERTY()
+	TObjectPtr<UCombatDescriptor> AttackerDescriptor = nullptr;
 	UPROPERTY()
 	TArray<UUnitAbilityInstance*> InterferingAbilities = TArray<UUnitAbilityInstance*>();
 	UPROPERTY()
@@ -59,16 +61,16 @@ struct FCombatContext
 	UPROPERTY()
 	bool bIsReactionHit = false;
 	UPROPERTY()
-	EAttackIntent Intent;
-	
+	ECombatIntent Intent = ECombatIntent::Attack;
+
 	void Reset();
 	FCombatContext() = default;
-	explicit FCombatContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction = false);
+	explicit FCombatContext(AUnit* AttackerUnit, UCombatDescriptor* Descriptor, TArray<AUnit*> Targets,
+	                        bool bIsReaction = false);
 	void Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled = false);
 	void CheckCancellation();
 	~FCombatContext();
 };
-
 
 
 UENUM(BlueprintType)
@@ -128,6 +130,7 @@ struct FCombatHitResult
 		Res.HitOutcome = EHitOutcome::Warded;
 		return Res;
 	}
+
 	static FCombatHitResult Cancelled(AUnit* Target)
 	{
 		FCombatHitResult Res;
@@ -172,10 +175,12 @@ struct FResolvedTargets
 		AllTargets.Append(SecondaryTargets);
 		return AllTargets;
 	}
+
 	bool IsCorpseBlocked() const
 	{
 		return ClickedCorpse && ClickedTarget;
 	}
+
 	static FResolvedTargets MakeEmpty()
 	{
 		return FResolvedTargets();

@@ -2,13 +2,29 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/AbilityTypes.h"
 #include "UnitAbilityDefinition.generated.h"
+
 class UBattleEffect;
 class UUnitAbilityInstance;
+
+USTRUCT(BlueprintType)
+struct FAbilityConditionalTag
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tag")
+	bool bIsPersistent = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tag")
+	FGameplayTag ConditionalTag;
+
+	bool IsValid() const { return ConditionalTag.IsValid(); }
+};
+
 UCLASS(BlueprintType)
 class KBS_API UUnitAbilityDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	TSubclassOf<UUnitAbilityInstance> AbilityClass;
@@ -24,4 +40,10 @@ public:
 	TArray<TSubclassOf<UBattleEffect>> BattleEffects;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	bool bIsPassive = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
+	EAbilityTurnReleasePolicy DefaultReleasePolicy = EAbilityTurnReleasePolicy::Released;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
+	FAbilityConditionalTag CompletionTag;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
+	FAbilityConditionalTag LookupTag;
 };

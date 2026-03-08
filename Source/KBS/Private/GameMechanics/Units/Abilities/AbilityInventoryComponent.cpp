@@ -54,7 +54,7 @@ void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition*
 		if (!NewAbility) continue;
 		AddSpellbookAbility(NewAbility);
 	}
-	EquipDefaultAbility();
+	EnsureValidAbility();
 	// Passives are already subscribed individually inside AddPassiveAbility().
 	// RegisterPassives() is reserved for re-registration after an explicit Unregister cycle.
 }
@@ -86,20 +86,9 @@ TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetPassiveAbilities() 
 void UAbilityInventoryComponent::EquipAbility(UUnitAbilityInstance* Ability)
 {
 	check(Ability);
+	if (CurrentActiveAbility) CurrentActiveAbility->ChangeSelection(false);
 	CurrentActiveAbility = Ability;
-}
-void UAbilityInventoryComponent::EquipDefaultAbility()
-{
-	if (DefaultAttackAbility)
-	{
-		CurrentActiveAbility = DefaultAttackAbility;
-		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Equipped Attack ability"));
-	}
-	else
-	{
-		CurrentActiveAbility = nullptr;
-		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: No Attack ability available to equip"));
-	}
+	CurrentActiveAbility->ChangeSelection(true);
 }
 void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
 {
@@ -193,6 +182,7 @@ void UAbilityInventoryComponent::OnOwnerTurnEnd(AUnit* Unit)
 		Notify(Ability);
 	for (UUnitAbilityInstance* Ability : PassiveAbilities)
 		Notify(Ability);
+	AbilityContext.ClearTurnData();
 }
 
 void UAbilityInventoryComponent::UnregisterPassives()
@@ -293,64 +283,36 @@ UUnitAbilityInstance* UAbilityInventoryComponent::GetDefaultAbility(EDefaultAbil
 		return nullptr;
 	}
 }
-TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAllDefaultAbilities() const
-{
-	TArray<UUnitAbilityInstance*> Result;
-	if (DefaultAttackAbility)
-	{
-		Result.Add(DefaultAttackAbility);
-	}
-	if (DefaultMoveAbility)
-	{
-		Result.Add(DefaultMoveAbility);
-	}
-	if (DefaultWaitAbility)
-	{
-		Result.Add(DefaultWaitAbility);
-	}
-	if (DefaultDefendAbility)
-	{
-		Result.Add(DefaultDefendAbility);
-	}
-	if (DefaultFleeAbility)
-	{
-		Result.Add(DefaultFleeAbility);
-	}
-	return Result;
-}
-void UAbilityInventoryComponent::SelectAttackAbility()
-{
-	if (DefaultAttackAbility)
-	{
-		CurrentActiveAbility = DefaultAttackAbility;
-		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Auto-selected Attack ability for turn start"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityInventory: No Attack ability to auto-select"));
-	}
-}
 
 void UAbilityInventoryComponent::EnsureValidAbility()
 {
-	if (!CurrentActiveAbility)
+	if (CurrentActiveAbility && IsAbilityAvailable(CurrentActiveAbility))
 	{
-		EquipDefaultAbility();
-		checkf(CurrentActiveAbility, TEXT("AbilityInventory: No valid ability after EquipDefaultAbility()"));
 		return;
 	}
 
-	if (!CurrentActiveAbility->CanExecute())
+	// Prefer default attack slot, then remaining defaults, then extras; spellbook excluded
+	for (UUnitAbilityInstance* Candidate : {
+		DefaultAttackAbility.Get(),
+		DefaultMoveAbility.Get(),
+		DefaultWaitAbility.Get(),
+		DefaultDefendAbility.Get(),
+		DefaultFleeAbility.Get() })
 	{
-		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Current ability '%s' not available, falling back to default attack"),
-			*CurrentActiveAbility->GetConfig()->AbilityName);
-		EquipDefaultAbility();
-		checkf(CurrentActiveAbility, TEXT("AbilityInventory: No valid ability after EquipDefaultAbility()"));
+		if (Candidate)
+		{
+			EquipAbility(Candidate);
+			return;
+		}
 	}
-	else
+
+	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
 	{
-		UE_LOG(LogTemp, Log, TEXT("AbilityInventory: Re-equipped last ability '%s'"),
-			*CurrentActiveAbility->GetConfig()->AbilityName);
+		if (Ability)
+		{
+			EquipAbility(Ability);
+			return;
+		}
 	}
 }
 
@@ -450,17 +412,6 @@ void UAbilityInventoryComponent::AddSpellbookAbility(UUnitAbilityInstance* Abili
 	Ability->Subscribe();
 }
 
-void UAbilityInventoryComponent::ActivateSpellbookSpell(UUnitAbilityInstance* Spell)
-{
-	checkf(Spell, TEXT("AbilityInventory: Attempted to activate null spell"));
-	if (Spell->CanExecute())
-		EquipAbility(Spell);
-}
-
-bool UAbilityInventoryComponent::IsFocusedOn(const UUnitAbilityInstance* Ability) const
-{
-	return CurrentActiveAbility == Ability;
-}
 
 void UAbilityInventoryComponent::RecheckContents()
 {
@@ -473,6 +424,29 @@ void UAbilityInventoryComponent::RecheckContents()
 	DefaultWaitAbility->RefreshAvailability();
 	DefaultDefendAbility->RefreshAvailability();
 	DefaultFleeAbility->RefreshAvailability();
+}
+
+FAbilityContext* UAbilityInventoryComponent::GetContext()
+{
+	return &AbilityContext;
+}
+
+void UAbilityInventoryComponent::ProcessTurnPolicy(EAbilityTurnReleasePolicy Policy)
+{
+	switch (Policy)
+	{
+	case EAbilityTurnReleasePolicy::Free:
+		if (AbilityContext.TurnState == EAbilityTurnReleasePolicy::Locked)
+			AbilityContext.Unlock();
+		break;
+	case EAbilityTurnReleasePolicy::Locked:
+		if (AbilityContext.TurnState != EAbilityTurnReleasePolicy::Locked)
+			AbilityContext.Lock();
+		break;
+	case EAbilityTurnReleasePolicy::Conditional:
+	case EAbilityTurnReleasePolicy::Released:
+		AbilityContext.TurnState = Policy;
+	}
 }
 
 const FUnitStatusContainer* UAbilityInventoryComponent::GetOwnerStatus() const
@@ -508,17 +482,6 @@ bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbilityInstance* Abilit
 	if (!Status->CanAct() || Status->IsFleeing())
 	{
 		return false;
-	}
-
-	// Focused: only current ability available
-	if (Status->IsFocused())
-	{
-		if (!CurrentActiveAbility)
-		{
-			UE_LOG(LogTemp, Error, TEXT("AbilityInventory: Unit is Focused but no ability equipped"));
-			return false;
-		}
-		return Ability == CurrentActiveAbility && Ability->CanExecute();
 	}
 
 	// Disoriented: only default abilities available

@@ -94,20 +94,18 @@ UBattleTeam* UTacGridSubsystem::GetPlayerTeam()
 bool UTacGridSubsystem::IsBothTeamsAnyUnitAlive()
 {
 	if (!DataManager) return false;
-	return DataManager->GetAttackerTeam()->IsAnyUnitAlive() && DataManager->GetDefenderTeam()->IsAnyUnitAlive();
+	return DataManager->GetAttackerTeam()->CanContinueFight() && DataManager->GetDefenderTeam()->CanContinueFight();
 }
 
 UBattleTeam* UTacGridSubsystem::GetWinnerTeam()
 {
-	
-
 	UBattleTeam* AttackerTeam = DataManager->GetAttackerTeam();
 	UBattleTeam* DefenderTeam = DataManager->GetDefenderTeam();
 
 	if (!AttackerTeam || !DefenderTeam) return nullptr;
 
-	bool bAttackerAlive = AttackerTeam->IsAnyUnitAlive();
-	bool bDefenderAlive = DefenderTeam->IsAnyUnitAlive();
+	bool bAttackerAlive = AttackerTeam->CanContinueFight();
+	bool bDefenderAlive = DefenderTeam->CanContinueFight();
 
 	if (bAttackerAlive && !bDefenderAlive)
 	{

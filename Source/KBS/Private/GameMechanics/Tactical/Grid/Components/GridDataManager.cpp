@@ -112,7 +112,7 @@ bool UGridDataManager::PlaceUnit(AUnit* Unit, FTacCoordinates Coords)
 	FTacCoordinates ExtraCell = FTacCoordinates::Invalid();
 	if (UnitSize > 1 && !bOnFlank)
 	{
-		const FTacCoordinates Candidate = GetExtraCellCoords(Coords, OppositeOrientation(Orientation));
+		const FTacCoordinates Candidate = GetExtraCellCoords(Coords, Orientation);
 		if (Candidate.IsValidCell()
 			&& Candidate.Row < LayerArray.Num()
 			&& Candidate.Col < LayerArray[Candidate.Row].Cells.Num()
@@ -502,6 +502,7 @@ void UGridDataManager::PlaceUnitOffField(AUnit* Unit, bool bClearEffects, bool b
 	}
 
 	OffFieldUnits.Add(Unit->GetUnitID(), Unit);
+	Unit->HandleFieldPresenceChange(false);
 	UE_LOG(LogTacGrid, Log, TEXT("PlaceUnitOffField: %s"), *Unit->GetLogName());
 }
 

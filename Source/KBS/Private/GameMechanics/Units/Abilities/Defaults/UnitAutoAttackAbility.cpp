@@ -2,7 +2,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
@@ -26,7 +26,7 @@ TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(F
 	{
 		if (!Target) continue;
 
-		UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, Target, true);
+		UCombatDescriptor* Weapon = FDamageCalculation::SelectDescriptorForTarget(Owner, Target, true);
 		if (!Weapon) continue;
 
 		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, Weapon, Target);
@@ -37,24 +37,22 @@ TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(F
 	return Results;
 }
 
-bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 {
-	if (!Owner) return false;
-
+	check(Owner);
 	UTacCombatSubsystem* CombatSubsystem = GetCombatSubsystem();
-	if (!CombatSubsystem) return false;
-
 	UTacGridTargetingService* TargetingService = GetTargetingService();
-	if (!TargetingService) return false;
+	check(TargetingService);
+	check(CombatSubsystem);
 
 	// Resolve targets
 	ETargetReach Reach = GetTargeting();
 	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, Reach);
-	if (!ResolvedTargets.ClickedTarget) return false;
+	if (!ResolvedTargets.ClickedTarget) return FAbilityExecutionResult::MakeFail();
 
 	// Select weapon for primary target
-	UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, ResolvedTargets.ClickedTarget, true);
-	if (!Weapon) return false;
+	UCombatDescriptor* Weapon = FDamageCalculation::SelectDescriptorForTarget(Owner, ResolvedTargets.ClickedTarget, true);
+	check(Weapon);
 
 	UPresentationSubsystem::FScopedBatch AttackBatch(
 		UPresentationSubsystem::Get(Owner),
@@ -71,44 +69,36 @@ bool UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon);
 
-	bool bProcessingSucceeded = true;
-	bool bAnyHitLanded = false;
-	for (const FCombatHitResult& HitResult : HitResults)
-	{
-		if (!HitResult.bProcessingSucceeded)
-		{
-			bProcessingSucceeded = false;
-		}
-		if (HitResult.HitOutcome == EHitOutcome::Hit)
-		{
-			bAnyHitLanded = true;
-		}
-	}
-
-	Owner->GetStats().Status.SetFocus();
 	ConsumeCharge();
+	SetCompletionTag();
 
-	return bProcessingSucceeded;
+	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
 bool UUnitAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	if (!Owner || RemainingCharges <= 0 || IsOutsideFocus()) return false;
+	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
-	if (!TargetingService) return false;
-
+	check(TargetingService);
 	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, GetTargeting());
 }
 
 bool UUnitAutoAttackAbility::CanExecute() const
 {
-	if (!Owner || RemainingCharges <= 0 || IsOutsideFocus()) return false;
+	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	if (!TargetingService) return false;
 
 	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
+}
+
+EAbilityTurnReleasePolicy UUnitAutoAttackAbility::DecideTurnRelease() const
+{
+	if (RemainingCharges > 0)
+		return EAbilityTurnReleasePolicy::Locked;
+	return Super::DecideTurnRelease();
 }
 
 ETargetReach UUnitAutoAttackAbility::GetTargeting() const
@@ -119,7 +109,7 @@ ETargetReach UUnitAutoAttackAbility::GetTargeting() const
 	}
 	else
 	{
-		if (UWeapon* Weapon = FDamageCalculation::SelectMaxReachWeapon(Owner, true))
+		if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
 		{
 			return Weapon->GetReach();
 		}

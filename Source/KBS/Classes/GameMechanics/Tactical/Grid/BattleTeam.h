@@ -21,6 +21,8 @@ public:
 	bool IsAnyUnitOnField() const;
 	bool IsOtherUnitAlive(AUnit* Unit) const;
 	bool IsOtherUnitOnField(AUnit* Unit) const;
+	// win condition check
+	bool CanContinueFight() const;
 	static ETeamSide ReverseTeamSide(ETeamSide Side);
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Team")

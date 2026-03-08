@@ -263,7 +263,7 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 	AUnit* TargetOccupant = DataManager->GetUnit(EffectiveTarget);
 
 	// Swaps are only valid between two 1-cell units
-	const bool bIsSwap = (TargetOccupant != nullptr);
+	const bool bIsSwap = (TargetOccupant != nullptr && TargetOccupant != Unit);
 	if (bIsSwap && (Unit->GetGridMetadata().IsMultiCell() || TargetOccupant->GetGridMetadata().IsMultiCell()))
 	{
 		UE_LOG(LogTacGrid, Error, TEXT("UTacGridMovementService: Swap not allowed when either unit is 2-cell"));
@@ -322,7 +322,7 @@ bool UTacGridMovementService::MoveUnit(AUnit* Unit, FTacCoordinates Where)
 	// Ground → flank cell: apply per-definition arrival delay (air landings are exempt)
 	if (bTargetIsFlank && CurrentPos.Layer == ETacGridLayer::Ground)
 	{
-		const int32 Delay = Unit->GetFlankArrivalDelay();
+		const int32 Delay = Unit->GetFlankArrivalDelay(!FFlankCellDefinitions::IsEntranceCell(CurrentPos));
 		if (Delay > 0)
 		{
 			Unit->GetStats().Status.SetFlankDelay(Delay);

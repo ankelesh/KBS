@@ -1,13 +1,13 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameplayTypes/DamageTypes.h"
-#include "WeaponDisplayData.generated.h"
+#include "CombatDescriptorDisplayData.generated.h"
 USTRUCT(BlueprintType)
-struct KBS_API FWeaponDisplayData
+struct KBS_API FCombatDescriptorDisplayData
 {
     GENERATED_BODY()
     UPROPERTY(BlueprintReadWrite)
-    FString WeaponName;
+    FString DescriptorName;
     UPROPERTY(BlueprintReadWrite)
     FString DamageTypes;
     UPROPERTY(BlueprintReadWrite)

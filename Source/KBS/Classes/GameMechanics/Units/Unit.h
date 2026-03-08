@@ -6,7 +6,6 @@
 #include "UnitDisplayData.h"
 #include "UnitGridMetadata.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/TacMovementTypes.h"
 #include "Unit.generated.h"
@@ -19,18 +18,33 @@ class UAbilityInventoryComponent;
 class UUnitVisualsComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitClicked, AUnit*, ClickedUnit, FKey, ButtonPressed);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttacked, AUnit*, Victim, AUnit*, Attacker);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitDamaged, AUnit*, Victim, AUnit*, Attacker);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAttackStarted, AUnit*, Attacker, AUnit*, Target);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, Unit);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnStarted, AUnit*, Unit);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitTurnEnded, AUnit*, Unit);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitMoved, AUnit*, Unit, const FTacMovementVisualData&, MovementData);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitFieldPresenceChange, AUnit*, Unit, bool, bIsOnField);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitHealthChanged, AUnit*, Unit, int32, NewHealth);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitEffectApplied, AUnit*, Unit, UBattleEffect*, AppliedEffect);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitEffectTriggered, AUnit*, Owner, UBattleEffect*, Effect);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAbilityUsed, AUnit*, Unit, UUnitAbilityInstance*, Ability);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitStatusChanged, AUnit*, Unit, EUnitStatus, Status);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitStatsModified, AUnit*, Unit, FUnitCoreStats&, Stats);
 
 /**
@@ -58,6 +72,7 @@ class KBS_API AUnit : public APawn
 {
 	GENERATED_BODY()
 	friend class UGridDataManager;
+
 public:
 	// --- Lifecycle ---
 	AUnit();
@@ -94,6 +109,8 @@ public:
 	FOnUnitStatsModified OnUnitStatsModified;
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnUnitEffectTriggered OnUnitEffectTriggered;
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitFieldPresenceChange OnUnitFieldPresenceChange;
 
 	// Subscribe only — broadcast exclusively via NotifyOrientationChanged() (DataManager-owned).
 	FOnUnitOrientationChanged OnOrientationChanged;
@@ -134,6 +151,7 @@ public:
 	void HandleAttacks(AUnit* Target, bool Emits = true);
 	UFUNCTION()
 	void HandleMoved(const FTacMovementVisualData& MovementData);
+	void HandleFieldPresenceChange(bool bIsOnField);
 
 	// --- Combat ---
 	void HandleHit(const FDamageResult& Result, AUnit* Attacker, bool Emits = true);
@@ -142,11 +160,12 @@ public:
 	bool ApplyEffect(UBattleEffect* Effect, bool Emits = true);
 	void NotifyEffectTriggered(UBattleEffect* Effect);
 	void HandleDeath(bool Emits = true);
-	
+
 	// --- Combat resolution phasing
 	void EnterCombatResolutionPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget);
 	void EnterCombatCalculationPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget);
-	void EnterCombatResultApplyPhase(FCombatContext& Context, FHitInstance& Hit, FDamageResult& DamageResult, bool IsTarget);
+	void EnterCombatResultApplyPhase(FCombatContext& Context, FHitInstance& Hit, FDamageResult& DamageResult,
+	                                 bool IsTarget);
 	void EnterCombatEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit, bool IsTarget);
 
 	// --- Queries ---
@@ -154,26 +173,37 @@ public:
 	const FGuid& GetUnitID() const { return UnitID; }
 	FUnitCoreStats& GetStats() { return BaseStats; }
 	const FUnitCoreStats& GetStats() const { return BaseStats; }
-	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
+	const TArray<TObjectPtr<UCombatDescriptor>>& GetWeapons() const { return Weapons; }
 	float GetMovementSpeed() const;
-	int32 GetFlankArrivalDelay() const { return UnitDefinition->FlankArrivalDelay; }
+
+	int32 GetFlankArrivalDelay(bool IsRear) const
+	{
+		if (IsRear) return UnitDefinition->FlankRearArrivalDelay;
+		else return UnitDefinition->FlankEntranceArrivalDelay;
+	}
+
 	UFUNCTION(BlueprintCallable)
 	ETeamSide GetTeamSide() const { return GridMetadata.Team; }
+
 	UFUNCTION(BlueprintCallable)
 	void SetTeamSide(ETeamSide Side) { GridMetadata.Team = Side; }
+
 	UFUNCTION(BlueprintCallable, Category = "Display")
 	FUnitDisplayData GetDisplayData() const;
 	const FUnitGridMetadata& GetGridMetadata() const { return GridMetadata; }
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	FUnitGridMetadata GetGridMetadataCopy() const { return GridMetadata; }
+
 	UFUNCTION(BlueprintPure, Category = "Unit")
 	UUnitDefinition* GetUnitDefinition() const { return UnitDefinition; }
-	bool IsDead() const {return BaseStats.Status.IsDead();}
+
+	bool IsDead() const { return BaseStats.Status.IsDead(); }
 	bool CanAct() const { return BaseStats.Status.CanAct(); }
 
 	// --- Components ---
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UAbilityInventoryComponent* GetAbilityInventory() const { return AbilityInventory; }
+
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UUnitVisualsComponent* GetVisualsComponent() { return VisualsComponent; }
 
@@ -193,11 +223,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStats;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	TArray<TObjectPtr<UWeapon>> Weapons;
+	TArray<TObjectPtr<UCombatDescriptor>> Weapons;
+
 private:
 	// Grid positioning metadata (modified by UTacGridMovementService via friend access)
 	FUnitGridMetadata GridMetadata;
-	void NotifyOrientationChanged();  // Only UGridDataManager (friend) may call this.
+	void NotifyOrientationChanged(); // Only UGridDataManager (friend) may call this.
 	void InitializeWeapons(const UUnitDefinition* Definition);
 };
 

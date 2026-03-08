@@ -12,7 +12,7 @@ class KBS_API USummonSpellAbility : public UUnitAbilityInstance
 public:
 	virtual void InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner) override;
 
-	virtual bool Execute(FTacCoordinates TargetCell) override;
+	virtual FAbilityExecutionResult Execute(FTacCoordinates TargetCell) override;
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
 	virtual ETargetReach GetTargeting() const override;

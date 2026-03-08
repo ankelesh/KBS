@@ -14,10 +14,10 @@ class UGridDataManager;
 class UTacAbilityExecutorService;
 class UTacCombatStatisticsService;
 class AUnit;
-class UWeapon;
+class UCombatDescriptor;
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreUnitAttackPhase, FCombatContext&, Context);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreResolutionPhase, FCombatContext&, Context);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCalculationPhase, FCombatContext&, Context, FHitInstance&, HitContext);
 
@@ -37,11 +37,9 @@ public:
 	UTacAbilityExecutorService* GetAbilityExecutorService() const { return AbilityExecutorService; }
 	UTacCombatStatisticsService* GetCombatStatisticsService() const { return CombatStatisticsService; }
 
-	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
-	TArray<FCombatHitResult> ResolveHealing(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
-	TArray<FCombatHitResult> ResolveEffectApplication(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
-	
-	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, UWeapon*Weapon);
+	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UCombatDescriptor* Descriptor);
+
+	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, UCombatDescriptor* Descriptor);
 	
 	bool ExecutePreResolutionPhase(FCombatContext& Context);
 	void ExecuteCalculationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult);
@@ -50,7 +48,7 @@ public:
 
 	// Events
 	UPROPERTY(BlueprintAssignable)
-	FOnPreUnitAttackPhase OnPreResolutionPhase;
+	FOnPreResolutionPhase OnPreResolutionPhase;
 	UPROPERTY(BlueprintAssignable)
 	FOnCalculationPhase OnCalculationPhase;
 	UPROPERTY(BlueprintAssignable)
@@ -60,7 +58,7 @@ public:
 
 private:
 	TArray<FCombatHitResult> ResolveAttackInternal(FCombatContext& Context);
-	void LogAttackStart(FCombatContext& Context);
+	void LogResolutionStart(FCombatContext& Context);
 
 	UPROPERTY()
 	UTacAbilityExecutorService* AbilityExecutorService;

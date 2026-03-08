@@ -24,9 +24,9 @@ ETargetReach UBattleEffect::GetEffectTargetReach() const
 {
 	return Config ? Config->EffectTarget : ETargetReach::AnyEnemy;
 }
-bool UBattleEffect::HandleReapply(UBattleEffect* NewEffect)
+EReapplyDecision UBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 {
-	return false;
+	return EReapplyDecision::OverrideDuration;
 }
 void UBattleEffect::OnRemoved()
 {

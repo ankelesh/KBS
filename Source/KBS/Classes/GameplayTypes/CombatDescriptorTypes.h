@@ -1,9 +1,9 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "WeaponTypes.generated.h"
+#include "CombatDescriptorTypes.generated.h"
 
 UENUM(BlueprintType)
-enum class EWeaponDesignation : uint8
+enum class ECombatDescriptorDesignation : uint8
 {
 	AllPurpose  UMETA(DisplayName = "All Purpose"),
 	AutoAttacks UMETA(DisplayName = "Auto Attacks Only"),
@@ -11,7 +11,7 @@ enum class EWeaponDesignation : uint8
 };
 
 UENUM(BlueprintType)
-enum class EAttackIntent : uint8
+enum class ECombatIntent : uint8
 {
 	// implicitly guess from damage, targeting, source and effect list
 	Auto     UMETA(DisplayName = "Auto deduction"),

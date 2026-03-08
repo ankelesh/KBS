@@ -52,19 +52,16 @@ void UBattleEffectSlotSnapshot::SetupFromEffect(UBattleEffect* Effect)
 	{
 		FLinearColor FrameColor = NeutralFrameColor;
 
-		switch (Config->EffectType)
+		switch (Effect->GetPolarity())
 		{
-			case EEffectType::Positive:
+			case EEffectPolarity::Positive:
 				FrameColor = PositiveFrameColor;
 				break;
-			case EEffectType::Negative:
+			case EEffectPolarity::Negative:
 				FrameColor = NegativeFrameColor;
 				break;
-			case EEffectType::Neutral:
+			case EEffectPolarity::Neutral:
 				FrameColor = NeutralFrameColor;
-				break;
-			case EEffectType::Immutable:
-				FrameColor = ImmutableFrameColor;
 				break;
 		}
 

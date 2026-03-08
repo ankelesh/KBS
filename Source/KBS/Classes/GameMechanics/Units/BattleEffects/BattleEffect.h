@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/EffectTypes.h"
 #include "BattleEffectDataAsset.h"
 #include "BattleEffect.generated.h"
 class AUnit;
@@ -20,7 +21,7 @@ public:
 	void SetOwner(AUnit* InOwner) { Owner = InOwner; }
 	// Lifetime
 	virtual void PrepareForApply(AUnit* Source, AUnit* Target) {}
-	virtual bool HandleReapply(UBattleEffect* NewEffect);
+	virtual EReapplyDecision HandleReapply(UBattleEffect* NewEffect);
 	
 	// Triggers
 	virtual void OnApplied() {}
@@ -31,18 +32,27 @@ public:
 	virtual void OnUnitAttacks(AUnit* Target) {}
 	virtual void OnUnitMoved() {}
 	virtual void OnUnitDied() {}
-	EDamageSource GetDamageSource() const;
 	
 	// Getters
 	ETargetReach GetEffectTargetReach() const;
+	EDamageSource GetDamageSource() const;
 	FText GetEffectName() const { return Config->Name; }
 	int32 GetDuration() const { return Duration; }
+	EEffectStackPolicy GetStackingPolicy() const { return Config->StackPolicy; }
+	void RefreshDuration(int32 InDuration) { Duration = FMath::Max(InDuration, Duration); }
 	bool IsExpired() const { return Duration <= 0; }
 	FName GetStackingId() const { return Config ? Config->StackingId : NAME_None; }
+	EEffectStackPolicy GetStackPolicy() const { return Config->StackPolicy; }
+	int32 GetStackLimit() const { return Config ? Config->MaxStacks : 0; }
 	UBattleEffectDataAsset* GetConfig() const { return Config; }
-	bool IsRequringRoll() const { return bIsAccuracyDependent; }
+	bool IsRequringRoll() const { return Config->bIsAccuracyDependent; }
+	bool IsDispellable() const { return Config->bIsDispellable; }
+	EEffectPolarity GetPolarity() const { return Config->Polarity; }
 	AUnit* GetOwner() const { return Owner; }
 	const FGuid& GetEffectId() const { return EffectId; }
+	bool HasTag(const FGameplayTag& Tag) const { return Config && Config->EffectTags.HasTag(Tag); }
+	bool HasAnyTag(const FGameplayTagContainer& Tags) const { return Config && Config->EffectTags.HasAny(Tags); }
+	
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnEffectDurationChange OnDurationChange;
@@ -60,22 +70,4 @@ protected:
 	TObjectPtr<AUnit> Owner;
 	UPROPERTY(SaveGame)
 	FGuid EffectId;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	EDamageSource DamageSource = EDamageSource::Physical;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	ETargetReach EffectTarget = ETargetReach::AnyEnemy;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	FName StackingId = NAME_None;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	int32 DefaultDuration = 3;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	/// No way to remove / never expires
-	bool isImmutable = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	/// Can be removed by abilities
-	bool bIsDispellable = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	bool bIsAccuracyDependent = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
-	EEffectType EffectType = EEffectType::Neutral;
 };

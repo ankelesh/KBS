@@ -6,6 +6,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
+#include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
 FAbilityResult UTacAbilityExecutorService::CheckAndExecute(UUnitAbilityInstance* Ability, FTacCoordinates TargetCell)
@@ -28,14 +29,19 @@ FAbilityResult UTacAbilityExecutorService::Execute(UUnitAbilityInstance* Ability
 	check(Ability);
 	AUnit* Owner = Ability->GetOwner();
 	check(Owner);
-
+	auto Context = Owner->GetAbilityInventory()->GetContext();
+	check(Context);
 	FAbilityResult Result;
 
-	bool bExecuted = Ability->Execute(TargetCell);
-	if (!bExecuted)
+	FAbilityExecutionResult ExecutionResult = Ability->Execute(TargetCell);
+	if (!ExecutionResult.IsOk())
 	{
 		Result.bInvalidInput = true;
 		return Result;
+	}
+	else
+	{
+		Owner->GetAbilityInventory()->ProcessTurnPolicy(ExecutionResult.Policy);
 	}
 
 	// Check win condition
@@ -50,6 +56,7 @@ FAbilityResult UTacAbilityExecutorService::Execute(UUnitAbilityInstance* Ability
 		Result.bPresentationRunning = !PresentationSys->IsIdle();
 	}
 
+	
 	OnAbilityCompleted.Broadcast(Ability, TargetCell, Result);
 	Ability->BroadcastUsage();
 	return Result;

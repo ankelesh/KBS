@@ -7,7 +7,7 @@
 #include "UnitVisualsComponent.generated.h"
 class UUnitDefinition;
 class USkeletalMeshComponent;
-class UWeapon;
+class UCombatDescriptor;
 class UStaticMesh;
 class UAnimMontage;
 class UNiagaraSystem;
@@ -40,7 +40,8 @@ public:
 	bool IsRotating() const { return bIsRotating; }
 	void SetCellSize(float InCellSize) { CachedCellSize = InCellSize; }
 	UNiagaraComponent* SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration);
-	FBatchHandle PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, UWeapon* Weapon);
+	void ReverseExtraCellOffset();
+	FBatchHandle PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, UCombatDescriptor* Weapon);
 	void ShowBattleEffect(UBattleEffect* Effect);
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UPROPERTY(BlueprintAssignable, Category = "Animation")
@@ -66,6 +67,7 @@ private:
 	UFUNCTION() void OnOwnerDamaged(AUnit* Victim, AUnit* Attacker);
 	UFUNCTION() void OnOwnerEffectTriggered(AUnit* OwnerUnit, UBattleEffect* Effect);
 	UFUNCTION() void OnOwnerMoved(AUnit* Unit, const FTacMovementVisualData& MovementData);
+	UFUNCTION() void OnOwnerFieldPresenceChanged(AUnit* Unit, bool bIsOnField);
 	void OnOwnerOrientationChanged(EUnitOrientation NewOrientation);
 	static FRotator OrientationToRotation(EUnitOrientation Orientation);
 

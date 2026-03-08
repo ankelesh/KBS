@@ -1,7 +1,7 @@
 #include "GameMechanics/Units/UnitDisplayData.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
-#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
@@ -57,21 +57,21 @@ FString TargetReachToString(ETargetReach Reach)
 		default: return TEXT("Unknown");
 	}
 }
-FWeaponDisplayData ConvertWeapon(UWeapon* Weapon)
+FCombatDescriptorDisplayData ConvertWeapon(UCombatDescriptor* Weapon)
 {
-	FWeaponDisplayData DisplayData;
+	FCombatDescriptorDisplayData DisplayData;
 	if (!Weapon)
 	{
 		return DisplayData;
 	}
-	const UWeaponDataAsset* Config = Weapon->GetConfig();
+	const UCombatDescriptorDataAsset* Config = Weapon->GetConfig();
 	if (Config)
 	{
-		DisplayData.WeaponName = Config->Name.ToString();
+		DisplayData.DescriptorName = Config->Name.ToString();
 	}
-	const FWeaponStats& Stats = Weapon->GetStats();
+	const FCombatDescriptorStats& Stats = Weapon->GetStats();
 	DisplayData.TargetType = TargetReachToString(Stats.TargetReach);
-	DisplayData.Damage = Stats.BaseDamage.GetValue();
+	DisplayData.Damage = Stats.BaseMagnitude.GetValue();
 	TArray<FString> DamageTypeArray = ConvertDamageSourceSet(Stats.DamageSources);
 	DisplayData.DamageTypes = FString::Join(DamageTypeArray, TEXT(" + "));
 	return DisplayData;
@@ -107,7 +107,7 @@ FUnitDisplayData BuildUnitDisplayData(
 	const FUnitCoreStats& Stats,
 	UTexture2D* PortraitTexture,
 	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects,
-	const TArray<TObjectPtr<UWeapon>>& Weapons,
+	const TArray<TObjectPtr<UCombatDescriptor>>& Weapons,
 	ETeamSide TeamSide
 )
 {

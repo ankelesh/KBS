@@ -47,37 +47,21 @@ void UTargetDOTBattleEffect::OnRemoved()
 		*Owner->GetName(),
 		*Config->Name.ToString());
 }
-bool UTargetDOTBattleEffect::HandleReapply(UBattleEffect* NewEffect)
+EReapplyDecision UTargetDOTBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 {
 	UDOTBattleEffectDataAsset* DOTConfig = GetDOTConfig();
 	UDOTBattleEffectDataAsset* NewDOTConfig = NewEffect ? Cast<UDOTBattleEffectDataAsset>(NewEffect->GetConfig()) : nullptr;
 	if (!NewEffect || !DOTConfig || !NewDOTConfig)
 	{
-		return false;
+		return EReapplyDecision::DoNothing;
 	}
 	checkf(Owner, TEXT("TargetDOTBattleEffect::HandleReapply called without Owner set"));
 	float NewMagnitude = NewDOTConfig->EffectMagnitude;
 	float CurrentMagnitude = DOTConfig->EffectMagnitude;
 	if (NewMagnitude > CurrentMagnitude)
 	{
-		Config = NewDOTConfig;
-		Duration = NewDOTConfig->Duration;
-		NotifyOnTriggered();
-		UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' replaced (new magnitude %.1f > old %.1f), duration reset to %d"),
-			*Owner->GetName(),
-			*Config->Name.ToString(),
-			NewMagnitude,
-			CurrentMagnitude,
-			Duration);
-		return true;
+		return EReapplyDecision::New;
 	}
-	Duration = DOTConfig->Duration;
-	NotifyOnTriggered();
-	UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' refreshed (magnitude %.1f <= %.1f), duration reset to %d"),
-		*Owner->GetName(),
-		*Config->Name.ToString(),
-		NewMagnitude,
-		CurrentMagnitude,
-		Duration);
-	return true;
+	else
+		return EReapplyDecision::OverrideDuration;
 }

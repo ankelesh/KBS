@@ -1,6 +1,6 @@
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/Weapons/Weapon.h"
-#include "GameMechanics/Units/Weapons/WeaponDataAsset.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
@@ -89,7 +89,7 @@ void AUnit::InitializeWeapons(const UUnitDefinition* Definition)
 	for (const FUnitWeaponEntry& Entry : Definition->DefaultWeapons)
 	{
 		if (!Entry.Weapon) continue;
-		TObjectPtr<UWeapon> NewWeapon = NewObject<UWeapon>();
+		TObjectPtr<UCombatDescriptor> NewWeapon = NewObject<UCombatDescriptor>();
 		NewWeapon->Initialize(this, Entry.Weapon, Entry.BaseDamageOverride);
 		Weapons.Add(NewWeapon);
 	}
@@ -198,7 +198,6 @@ void AUnit::HandleTurnStart(bool Emits)
 {
 	if (IsDead()) return;
 	BaseStats.Status.ClearStatus(EUnitStatus::Defending);
-	BaseStats.Status.ClearStatus(EUnitStatus::Focused);
 	if (Emits) OnUnitTurnStart.Broadcast(this);
 }
 
@@ -223,13 +222,19 @@ void AUnit::HandleAttacks(AUnit* Target, bool Emits)
 	if (Emits) OnUnitAttacks.Broadcast(this, Target);
 }
 
-void AUnit::NotifyOrientationChanged()
-{
-	OnOrientationChanged.Broadcast(GridMetadata.Orientation);
-}
-
 void AUnit::HandleMoved(const FTacMovementVisualData& MovementData)
 {
 	if (IsDead()) return;
 	OnUnitMoved.Broadcast(this, MovementData);
+}
+
+void AUnit::HandleFieldPresenceChange(bool bIsOnField)
+{
+	if (IsDead()) return;
+	OnUnitFieldPresenceChange.Broadcast(this, bIsOnField);
+}
+
+void AUnit::NotifyOrientationChanged()
+{
+	OnOrientationChanged.Broadcast(GridMetadata.Orientation);
 }

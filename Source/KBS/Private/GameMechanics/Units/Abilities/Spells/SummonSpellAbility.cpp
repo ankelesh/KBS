@@ -14,8 +14,9 @@ void USummonSpellAbility::InitializeFromDefinition(UUnitAbilityDefinition* InDef
 	checkf(SummonConfig, TEXT("USummonSpellAbility requires a USummonSpellAbilityDefinition asset"));
 }
 
-bool USummonSpellAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult USummonSpellAbility::Execute(FTacCoordinates TargetCell)
 {
+	check(Owner);
 	if (SummonConfig->bReplacePreviousSummon && ActiveSummon.IsValid())
 	{
 		DespawnActiveSummon();
@@ -34,7 +35,7 @@ bool USummonSpellAbility::Execute(FTacCoordinates TargetCell)
 		TargetCell,
 		OwnerTeam
 	);
-	if (!NewUnit) return false;
+	if (!NewUnit) return FAbilityExecutionResult::MakeFail();
 
 	USummonedPassiveAbility* Passive = NewObject<USummonedPassiveAbility>(this);
 	Passive->InitAsSummonedPassive(NewUnit, Owner,
@@ -42,24 +43,24 @@ bool USummonSpellAbility::Execute(FTacCoordinates TargetCell)
 	NewUnit->GetAbilityInventory()->AddPassiveAbility(Passive);
 
 	ActiveSummon = NewUnit;
-	Owner->GetStats().Status.SetFocus();
 	ConsumeCharge();
-	return true;
+	SetCompletionTag();
+	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
 bool USummonSpellAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	if (RemainingCharges <= 0 || IsOutsideFocus()) return false;
+	if (RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
-	if (!TargetingService) return false;
+	check(TargetingService);
 	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, ETargetReach::EmptyCell);
 }
 
 bool USummonSpellAbility::CanExecute() const
 {
-	if (RemainingCharges <= 0 || IsOutsideFocus()) return false;
+	if (RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
-	if (!TargetingService) return false;
+	check(TargetingService);
 	return TargetingService->HasAnyValidTargets(Owner, ETargetReach::EmptyCell);
 }
 

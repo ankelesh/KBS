@@ -80,6 +80,18 @@ bool UBattleTeam::IsOtherUnitOnField(AUnit* OtherUnit) const
 	return false;
 }
 
+bool UBattleTeam::CanContinueFight() const
+{
+	for (auto Unit : Units)
+	{
+		if (Unit->IsDead())
+			continue;
+		if (Unit->GetGridMetadata().IsOnField())
+			return true;
+	}
+	return false;
+}
+
 ETeamSide UBattleTeam::ReverseTeamSide(ETeamSide Side)
 {
 	switch (Side)

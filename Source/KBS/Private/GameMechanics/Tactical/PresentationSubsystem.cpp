@@ -5,7 +5,7 @@
 void UPresentationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Initialized"));
+	//UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Initialized"));
 
 	// Create a default batch for operations without explicit batch
 	DefaultBatch = BeginBatch("DefaultBatch");
@@ -15,7 +15,7 @@ void UPresentationSubsystem::Deinitialize()
 {
 	ActiveBatches.Empty();
 	PendingOperations.Empty();
-	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Deinitialized"));
+	//UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Deinitialized"));
 	Super::Deinitialize();
 }
 
@@ -23,14 +23,14 @@ UPresentationSubsystem* UPresentationSubsystem::Get(const UObject* WorldContextO
 {
 	if (!WorldContextObject)
 	{
-		UE_LOG(LogTemp, Error, TEXT("PresentationSubsystem::Get - WorldContextObject is null"));
+		//UE_LOG(LogTemp, Error, TEXT("PresentationSubsystem::Get - WorldContextObject is null"));
 		return nullptr;
 	}
 
 	UWorld* World = WorldContextObject->GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("PresentationSubsystem::Get - World is null"));
+		//UE_LOG(LogTemp, Error, TEXT("PresentationSubsystem::Get - World is null"));
 		return nullptr;
 	}
 
@@ -46,8 +46,8 @@ FBatchHandle UPresentationSubsystem::BeginBatch(const FString& BatchName)
 	Batch.Name = BatchName;
 	Batch.bEnded = false;
 
-	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Begin batch '%s' [%s] (Active batches: %d)"),
-		*BatchName, *NewGuid.ToString(), ActiveBatches.Num());
+//	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Begin batch '%s' [%s] (Active batches: %d)"),
+//		*BatchName, *NewGuid.ToString(), ActiveBatches.Num());
 
 	return Handle;
 }
@@ -56,20 +56,20 @@ void UPresentationSubsystem::EndBatch(FBatchHandle BatchHandle)
 {
 	if (!BatchHandle.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Attempted to end invalid batch"));
+		//UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Attempted to end invalid batch"));
 		return;
 	}
 
 	FPresentationBatch* Batch = ActiveBatches.Find(BatchHandle.ID);
 	if (!Batch)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Batch not found [%s]"), *BatchHandle.ID.ToString());
+		//UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Batch not found [%s]"), *BatchHandle.ID.ToString());
 		return;
 	}
 
 	Batch->bEnded = true;
-	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: End batch '%s' (Pending ops: %d)"),
-		*Batch->Name, Batch->PendingOperations.Num());
+	//UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: End batch '%s' (Pending ops: %d)"),
+	//	*Batch->Name, Batch->PendingOperations.Num());
 
 	// Check if batch is immediately complete
 	if (Batch->IsComplete())
@@ -97,8 +97,8 @@ FOperationHandle UPresentationSubsystem::RegisterOperation(const FString& DebugL
 	FPresentationBatch* Batch = ActiveBatches.Find(BatchHandle.ID);
 	if (!Batch)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Cannot register operation - batch not found [%s]"),
-			*BatchHandle.ID.ToString());
+		//UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Cannot register operation - batch not found [%s]"),
+		//	*BatchHandle.ID.ToString());
 		return FOperationHandle();
 	}
 
@@ -111,8 +111,8 @@ FOperationHandle UPresentationSubsystem::RegisterOperation(const FString& DebugL
 
 	Batch->PendingOperations.Add(Handle);
 
-	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Registered operation '%s' [%s] in batch '%s' (Total ops: %d)"),
-		*DebugLabel, *NewGuid.ToString(), *Batch->Name, PendingOperations.Num());
+	//UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Registered operation '%s' [%s] in batch '%s' (Total ops: %d)"),
+	//	*DebugLabel, *NewGuid.ToString(), *Batch->Name, PendingOperations.Num());
 
 	return Handle;
 }
@@ -121,14 +121,14 @@ void UPresentationSubsystem::UnregisterOperation(FOperationHandle Handle)
 {
 	if (!Handle.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Attempted to unregister invalid handle"));
+		//UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Attempted to unregister invalid handle"));
 		return;
 	}
 
 	FPresentationOperation* Operation = PendingOperations.Find(Handle.ID);
 	if (!Operation)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Handle not found [%s]"), *Handle.ID.ToString());
+		//UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: Handle not found [%s]"), *Handle.ID.ToString());
 		return;
 	}
 
@@ -145,8 +145,8 @@ void UPresentationSubsystem::UnregisterOperation(FOperationHandle Handle)
 	// Remove operation
 	PendingOperations.Remove(Handle.ID);
 
-	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Unregistered operation '%s' [%s] (Remaining ops: %d)"),
-		*DebugLabel, *Handle.ID.ToString(), PendingOperations.Num());
+	//UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Unregistered operation '%s' [%s] (Remaining ops: %d)"),
+	//	*DebugLabel, *Handle.ID.ToString(), PendingOperations.Num());
 
 	// Check if batch is now complete, or check global idle for persistent batches that never end
 	if (Batch && Batch->IsComplete())
@@ -206,7 +206,7 @@ void UPresentationSubsystem::CheckAndBroadcastIdle()
 	if (IsIdle())
 	{
 		StopSanityTimer();
-		UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: All presentations complete, broadcasting event"));
+		//UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: All presentations complete, broadcasting event"));
 		OnAllPresentationsComplete.Broadcast();
 	}
 }
@@ -237,7 +237,7 @@ void UPresentationSubsystem::StopSanityTimer()
 
 void UPresentationSubsystem::OnSanityTimerFired()
 {
-	UE_LOG(LogTemp, Warning, TEXT("PresentationSubsystem: *** SANITY TIMEOUT *** Stuck for 10s. Active batches: %d | Pending ops: %d"),
+	UE_LOG(LogTemp, Error, TEXT("PresentationSubsystem: *** SANITY TIMEOUT *** Stuck for 10s. Active batches: %d | Pending ops: %d"),
 		ActiveBatches.Num(), PendingOperations.Num());
 
 	for (const auto& BatchPair : ActiveBatches)
@@ -248,7 +248,7 @@ void UPresentationSubsystem::OnSanityTimerFired()
 			continue;
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("  [Batch] '%s' ID=%s | Ended=%s | Pending=%d"),
+		UE_LOG(LogTemp, Error, TEXT("  [Batch] '%s' ID=%s | Ended=%s | Pending=%d"),
 			*Batch.Name,
 			*BatchPair.Key.ToString(),
 			Batch.bEnded ? TEXT("yes") : TEXT("no"),
@@ -257,7 +257,7 @@ void UPresentationSubsystem::OnSanityTimerFired()
 		for (const FOperationHandle& OpHandle : Batch.PendingOperations)
 		{
 			const FPresentationOperation* Op = PendingOperations.Find(OpHandle.ID);
-			UE_LOG(LogTemp, Warning, TEXT("    [Op] '%s' ID=%s"),
+			UE_LOG(LogTemp, Error, TEXT("    [Op] '%s' ID=%s"),
 				Op ? *Op->DebugLabel : TEXT("<missing>"),
 				*OpHandle.ID.ToString());
 		}
@@ -293,7 +293,7 @@ void UPresentationSubsystem::OnBatchCompleted(FBatchHandle BatchHandle)
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Batch '%s' completed"), *Batch->Name);
+	//UE_LOG(LogTemp, Log, TEXT("PresentationSubsystem: Batch '%s' completed"), *Batch->Name);
 
 	// Remove completed batch
 	ActiveBatches.Remove(BatchHandle.ID);

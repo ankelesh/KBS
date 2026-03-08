@@ -10,7 +10,7 @@
 
 class AUnit;
 class UGridDataManager;
-class UWeapon;
+class UCombatDescriptor;
 enum class ETeamSide : uint8;
 
 enum class ETargetReach : uint8;

@@ -9,7 +9,6 @@ enum class EUnitStatus : uint8
 	Pinned,
 	Silenced,
 	Disoriented,
-	Focused,
 	Fleeing,
 	Channeling,
 	Defending,
@@ -25,7 +24,6 @@ struct FUnitStatusContainer
 
 	// Returns true if status was newly activated (went from 0 modifiers to 1, or bool flipped)
 	bool AddStatus(EUnitStatus Status, const FGuid& EffectId);
-	void SetFocus() {bFocused = true;}
 	void SetFleeing() {bFleeing = true;}
 	void SetChanneling() {bChanneling = true;}
 	void SetDefending() {bDefending = true;}
@@ -49,7 +47,6 @@ struct FUnitStatusContainer
 	bool CanUseSpellbook() const;
 	bool CanUseNonBasicAbilities() const;
 
-	bool IsFocused() const { return bFocused; }
 	bool IsFleeing() const { return bFleeing; }
 	bool IsChanneling() const { return bChanneling; }
 	bool IsDefending() const { return bDefending; }
@@ -81,9 +78,6 @@ private:
 	int32 FlankDelay = 0;
 
 	// Bool statuses
-	UPROPERTY()
-	bool bFocused = false;
-
 	UPROPERTY()
 	bool bFleeing = false;
 

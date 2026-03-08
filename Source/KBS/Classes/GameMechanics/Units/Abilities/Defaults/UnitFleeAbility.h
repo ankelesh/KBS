@@ -8,7 +8,7 @@ class KBS_API UUnitFleeAbility : public UUnitAbilityInstance
 {
 	GENERATED_BODY()
 public:
-	virtual bool Execute(FTacCoordinates TargetCell) override;
+	virtual FAbilityExecutionResult Execute(FTacCoordinates TargetCell) override;
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
 	virtual void HandleTurnEnd() override {}
@@ -16,4 +16,5 @@ public:
 private:
 	UFUNCTION()
 	void HandleTurnStarted(AUnit* Unit);
+	void OnFleeRotationCompleted();
 };

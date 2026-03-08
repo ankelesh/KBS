@@ -1,6 +1,8 @@
 #include "GameplayTypes/CombatTypes.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameplayTypes/CombatDescriptorTypes.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 
 void FHitInstance::Reset()
 {
@@ -13,7 +15,7 @@ void FHitInstance::Reset()
 	Target = nullptr;
 }
 
-FHitInstance::FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UWeapon* Weapon)
+FHitInstance::FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UCombatDescriptor* Descriptor)
 	: Attacker(AttackerUnit), Target(TargetUnit), bIsHitCancelled(false), InterferingAbilities()
 {
 }
@@ -48,13 +50,13 @@ void FCombatContext::Reset()
 }
 
 
-FCombatContext::FCombatContext(AUnit* AttackerUnit, UWeapon* Weapon, TArray<AUnit*> Targets, bool bIsReaction)
+FCombatContext::FCombatContext(AUnit* AttackerUnit, UCombatDescriptor* Descriptor, TArray<AUnit*> Targets, bool bIsReaction)
 	:
-	  Attacker(AttackerUnit), Hits(), AttackerWeapon(Weapon), InterferingAbilities(), bIsAttackCancelled(false), bIsReactionHit(bIsReaction)
+	  Attacker(AttackerUnit), Hits(), AttackerDescriptor(Descriptor), InterferingAbilities(), bIsAttackCancelled(false), bIsReactionHit(bIsReaction), Intent(Descriptor->GetIntent())
 {
 	for (auto Target: Targets)
 	{
-		Hits.Add(FHitInstance(Target,AttackerUnit, Weapon));
+		Hits.Add(FHitInstance(Target, AttackerUnit, Descriptor));
 	}
 }
 

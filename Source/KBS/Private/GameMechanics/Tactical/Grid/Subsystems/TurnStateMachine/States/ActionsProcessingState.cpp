@@ -170,7 +170,7 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 		return;
 	}
 
-	if (bool res = Inventory->HasAnyAbilityAvailable())
+	if (Inventory->HasAnyAbilityAvailable())
 	{
 		Inventory->EnsureValidAbility();
 		UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();

@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "DamageTypes.generated.h"
 UENUM(BlueprintType)
 enum class EDamageSource : uint8
 {
@@ -42,4 +43,13 @@ enum class EShapeLayering : uint8
 	GroundArea UMETA(DisplayName = "Ground Area"),
 	AirArea UMETA(DisplayName = "Air Area"),
 	BothLayerArea UMETA(DisplayName = "Both Layers Area"),
+};
+USTRUCT(BlueprintType)
+struct FAreaShape
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Area")
+	TArray<FIntPoint> RelativeCells;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Area")
+	EShapeLayering ShapeLayering = EShapeLayering::BothLayerArea;
 };

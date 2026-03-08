@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameplayTypes/CombatTypes.h"
 
 namespace KbsAlgo
 {
