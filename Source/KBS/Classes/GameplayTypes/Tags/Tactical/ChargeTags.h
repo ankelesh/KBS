@@ -1,0 +1,6 @@
+#pragma once
+#include "CoreMinimal.h"
+#include "GameplayTagsManager.h"
+
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_CHARGE_DEMONIC)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_CHARGE_GUNPOWDER)
