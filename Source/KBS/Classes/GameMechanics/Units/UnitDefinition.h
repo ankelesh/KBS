@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
+#include "GameMechanics/Units/Components/UnitComponentEntry.h"
 #include "UnitDefinition.generated.h"
 class UCombatDescriptorDataAsset;
 class USkeletalMesh;
@@ -93,4 +94,6 @@ public:
 	int32 FlankEntranceArrivalDelay = 3; // turns unit must wait in a flank entrance before it can act; 0 = no delay
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 FlankRearArrivalDelay = 3; // turns unit must wait in a flank rear before it can act; 0 = no delay
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TArray<FUnitComponentEntry> ComponentEntries;
 };
