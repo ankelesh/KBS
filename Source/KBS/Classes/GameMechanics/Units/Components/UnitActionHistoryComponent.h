@@ -7,6 +7,9 @@
 struct FUnitActionHistoryCmpConfig;
 class AUnit;
 class UUnitAbilityInstance;
+class UCombatDescriptorDataAsset;
+class UTacCombatSubsystem;
+class UTacGridTargetingService;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class KBS_API UUnitActionHistoryComponent : public UActorComponent
@@ -35,4 +38,11 @@ private:
 
 	TArray<FGameplayTag> ExampleSequence;
 	TArray<FGameplayTag> CurrentSequence;
+
+	TMap<FGameplayTag, TObjectPtr<UCombatDescriptorDataAsset>> TagToDescriptorMap;
+
+	UPROPERTY()
+	TObjectPtr<UTacCombatSubsystem> CombatSubsystem;
+	UPROPERTY()
+	TObjectPtr<UTacGridTargetingService> TargetingService;
 };

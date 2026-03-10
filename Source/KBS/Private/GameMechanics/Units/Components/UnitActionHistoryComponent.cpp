@@ -2,6 +2,10 @@
 #include "GameMechanics/Units/Components/Config/UnitActionHistoryCmpConfig.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 
 void UUnitActionHistoryComponent::BeginPlay()
 {
@@ -9,11 +13,19 @@ void UUnitActionHistoryComponent::BeginPlay()
 	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
 	checkf(OwnerUnit, TEXT("UUnitActionHistoryComponent must be attached to AUnit"));
 	OwnerUnit->OnUnitAbilityUsed.AddDynamic(this, &UUnitActionHistoryComponent::OnAbilityUsed);
+
+	CombatSubsystem = GetWorld()->GetSubsystem<UTacCombatSubsystem>();
+	checkf(CombatSubsystem, TEXT("UTacCombatSubsystem not found"));
+
+	UTacGridSubsystem* GridSubsystem = GetWorld()->GetSubsystem<UTacGridSubsystem>();
+	checkf(GridSubsystem, TEXT("UTacGridSubsystem not found"));
+	TargetingService = GridSubsystem->GetGridTargetingService();
 }
 
 void UUnitActionHistoryComponent::InitializeFromConfig(const FUnitActionHistoryCmpConfig& Config)
 {
 	ExampleSequence = Config.TargetSequence;
+	TagToDescriptorMap = Config.TagToDescriptorMap;
 }
 
 bool UUnitActionHistoryComponent::LastActionHasTag(const FGameplayTag& Tag) const
@@ -43,6 +55,27 @@ void UUnitActionHistoryComponent::ResetSequence()
 void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbilityInstance* Ability)
 {
 	LastActionTags = Ability->GetTags();
+
+	for (auto It = LastActionTags.CreateConstIterator(); It; ++It)
+	{
+		if (const TObjectPtr<UCombatDescriptorDataAsset>* Asset = TagToDescriptorMap.Find(*It))
+		{
+			UCombatDescriptor* Descriptor = nullptr;
+			for (UCombatDescriptor* W : Unit->GetWeapons())
+			{
+				if (W->GetConfig() == *Asset)
+				{
+					Descriptor = W;
+					break;
+				}
+			}
+			checkf(Descriptor, TEXT("Tag '%s' mapped to a descriptor not owned by unit"), *It->ToString());
+
+			TArray<AUnit*> Targets = TargetingService->GetValidTargetUnits(Unit, Descriptor->GetReach());
+			CombatSubsystem->ResolveReactionAttack(Unit, Targets, Descriptor);
+			break;
+		}
+	}
 
 	if (IsSequenceComplete()) return;
 
