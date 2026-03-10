@@ -25,7 +25,13 @@ void UUnitActionHistoryComponent::BeginPlay()
 void UUnitActionHistoryComponent::InitializeFromConfig(const FUnitActionHistoryCmpConfig& Config)
 {
 	ExampleSequence = Config.TargetSequence;
-	TagToDescriptorMap = Config.TagToDescriptorMap;
+
+	for (const auto& [Tag, Asset] : Config.TagToDescriptorMap)
+	{
+		UCombatDescriptor* Descriptor = NewObject<UCombatDescriptor>(this);
+		Descriptor->Initialize(this, Asset);
+		TagToDescriptorMap.Add(Tag, Descriptor);
+	}
 }
 
 bool UUnitActionHistoryComponent::LastActionHasTag(const FGameplayTag& Tag) const
@@ -58,13 +64,10 @@ void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbilityInstanc
 
 	for (auto It = LastActionTags.CreateConstIterator(); It; ++It)
 	{
-		if (const TObjectPtr<UCombatDescriptorDataAsset>* Asset = TagToDescriptorMap.Find(*It))
+		if (UCombatDescriptor* const* Descriptor = TagToDescriptorMap.Find(*It))
 		{
-			UCombatDescriptor* Descriptor = NewObject<UCombatDescriptor>(Unit);
-			Descriptor->Initialize(Unit, *Asset);
-
-			TArray<AUnit*> Targets = TargetingService->GetValidTargetUnits(Unit, Descriptor->GetReach());
-			CombatSubsystem->ResolveReactionAttack(Unit, Targets, Descriptor);
+			TArray<AUnit*> Targets = TargetingService->GetValidTargetUnits(Unit, (*Descriptor)->GetReach());
+			CombatSubsystem->ResolveReactionAttack(Unit, Targets, *Descriptor);
 			break;
 		}
 	}

@@ -7,7 +7,7 @@
 struct FUnitActionHistoryCmpConfig;
 class AUnit;
 class UUnitAbilityInstance;
-class UCombatDescriptorDataAsset;
+class UCombatDescriptor;
 class UTacCombatSubsystem;
 class UTacGridTargetingService;
 
@@ -39,7 +39,8 @@ private:
 	TArray<FGameplayTag> ExampleSequence;
 	TArray<FGameplayTag> CurrentSequence;
 
-	TMap<FGameplayTag, TObjectPtr<UCombatDescriptorDataAsset>> TagToDescriptorMap;
+	UPROPERTY()
+	TMap<FGameplayTag, TObjectPtr<UCombatDescriptor>> TagToDescriptorMap;
 
 	UPROPERTY()
 	TObjectPtr<UTacCombatSubsystem> CombatSubsystem;
