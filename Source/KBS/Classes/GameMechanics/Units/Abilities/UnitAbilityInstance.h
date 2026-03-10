@@ -46,6 +46,7 @@ public:
 	virtual void Unsubscribe() {};
 	virtual void AttackTriggerCleanup(FCombatContext& Context) {};
 	virtual void HitTriggerCleanup(FHitInstance& Hit) {};
+	virtual FGameplayTagContainer GetTags() const { return FGameplayTagContainer{}; }
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }

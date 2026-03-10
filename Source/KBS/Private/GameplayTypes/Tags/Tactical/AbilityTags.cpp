@@ -1,0 +1,7 @@
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
+
+UE_DEFINE_GAMEPLAY_TAG(TAG_ABILITY_AUTOATTACK, "Ability.AutoAttack")
+UE_DEFINE_GAMEPLAY_TAG(TAG_ABILITY_MOVEMENT,   "Ability.Movement")
+UE_DEFINE_GAMEPLAY_TAG(TAG_ABILITY_WAIT,       "Ability.Wait")
+UE_DEFINE_GAMEPLAY_TAG(TAG_ABILITY_DEFEND,     "Ability.Defend")
+UE_DEFINE_GAMEPLAY_TAG(TAG_ABILITY_FLEE,       "Ability.Flee")
