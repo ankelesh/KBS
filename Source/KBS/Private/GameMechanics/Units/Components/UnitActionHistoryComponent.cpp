@@ -60,16 +60,8 @@ void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbilityInstanc
 	{
 		if (const TObjectPtr<UCombatDescriptorDataAsset>* Asset = TagToDescriptorMap.Find(*It))
 		{
-			UCombatDescriptor* Descriptor = nullptr;
-			for (UCombatDescriptor* W : Unit->GetWeapons())
-			{
-				if (W->GetConfig() == *Asset)
-				{
-					Descriptor = W;
-					break;
-				}
-			}
-			checkf(Descriptor, TEXT("Tag '%s' mapped to a descriptor not owned by unit"), *It->ToString());
+			UCombatDescriptor* Descriptor = NewObject<UCombatDescriptor>(Unit);
+			Descriptor->Initialize(Unit, *Asset);
 
 			TArray<AUnit*> Targets = TargetingService->GetValidTargetUnits(Unit, Descriptor->GetReach());
 			CombatSubsystem->ResolveReactionAttack(Unit, Targets, Descriptor);
