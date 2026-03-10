@@ -2,13 +2,8 @@
 #include "CoreMinimal.h"
 #include "StructUtils/InstancedStruct.h"
 #include "Components/ActorComponent.h"
-#include "UnitComponentConfig.generated.h"
-
-USTRUCT(BlueprintType)
-struct KBS_API FUnitComponentConfig
-{
-	GENERATED_BODY()
-};
+#include "GameMechanics/Units/Components/Config/UnitComponentConfig.h"
+#include "UnitComponentEntry.generated.h"
 
 USTRUCT(BlueprintType)
 struct KBS_API FUnitComponentEntry

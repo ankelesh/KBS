@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
-#include "GameMechanics/Units/Components/UnitComponentConfig.h"
+#include "GameMechanics/Units/Components/UnitComponentEntry.h"
 #include "UnitDefinition.generated.h"
 class UCombatDescriptorDataAsset;
 class USkeletalMesh;
