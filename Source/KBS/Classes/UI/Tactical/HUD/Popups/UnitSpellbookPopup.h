@@ -64,6 +64,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pool Settings")
 	int32 InitialAbilitySlots = 10;
 
+	// Padding applied around each ability slot in the WrapBox
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Settings")
+	FMargin AbilitySlotPadding = FMargin(6.f);
+
 	// Default title text
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Settings")
 	FText DefaultTitleText = FText::FromString(TEXT("Spellbook"));

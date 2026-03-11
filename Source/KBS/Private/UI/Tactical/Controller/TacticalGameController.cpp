@@ -3,6 +3,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "Blueprint/UserWidget.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacSubsystemControl.h"
+#include "GameMechanics/Units/Unit.h"
 
 void ATacticalGameController::BeginPlay()
 {
@@ -19,6 +20,26 @@ void ATacticalGameController::BeginPlay()
 		{
 			Control->ReadyForStart.AddDynamic(this, &ATacticalGameController::OnSubsystemInitComplete);
 		}
+	}
+}
+
+void ATacticalGameController::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!TacticalHUD)
+	{
+		return;
+	}
+
+	FHitResult HitResult;
+	GetHitResultUnderCursor(ECC_Pawn, false, HitResult);
+	AUnit* NewHovered = Cast<AUnit>(HitResult.GetActor());
+
+	if (NewHovered && NewHovered != LastHoveredUnit)
+	{
+		LastHoveredUnit = NewHovered;
+		TacticalHUD->SetHoveredUnit(NewHovered);
 	}
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTags.h"
+#include "NativeGameplayTags.h"
 #include "GameplayTagsManager.h"
 
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_ABILITY_AUTOATTACK)

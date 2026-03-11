@@ -123,6 +123,7 @@ void UActiveAbilitySlot::SetAbility(UUnitAbilityInstance* NewAbility)
 	}
 
 	UpdateChargesDisplay();
+	UpdateNameDisplay();
 }
 
 void UActiveAbilitySlot::BindToAbility(UUnitAbilityInstance* Ability)
@@ -162,6 +163,11 @@ void UActiveAbilitySlot::Clean()
 	if (Charges)
 	{
 		Charges->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (AbilityNameText)
+	{
+		AbilityNameText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	// Reset to hidden state
@@ -267,6 +273,22 @@ void UActiveAbilitySlot::ApplyHiddenVisuals()
 
 	// Call BP hook for custom styling
 	BP_OnApplyHiddenVisuals();
+}
+
+void UActiveAbilitySlot::UpdateNameDisplay()
+{
+	if (!bExpandedView || !AbilityNameText) return;
+
+	if (BoundAbility)
+	{
+		FAbilityDisplayData DisplayData = BoundAbility->GetAbilityDisplayData();
+		AbilityNameText->SetText(FText::FromString(DisplayData.AbilityName));
+		AbilityNameText->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		AbilityNameText->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UActiveAbilitySlot::UpdateChargesDisplay()

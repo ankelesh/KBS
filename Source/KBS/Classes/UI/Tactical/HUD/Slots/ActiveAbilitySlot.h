@@ -60,7 +60,15 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, meta=(BindWidget))
 	class UButton* SlotButton;
-	
+
+	// Optional — when present and bExpandedView is true, displays ability name below icon
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidgetOptional))
+	class UTextBlock* AbilityNameText;
+
+	// Shows ability name if AbilityNameText widget exists; false by default for compact slots
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Display")
+	bool bExpandedView = false;
+
 	UPROPERTY(BlueprintReadWrite)
 	FLinearColor SelectedColor;
 		
@@ -84,6 +92,7 @@ private:
 	void OnAbilityUsed(int32 ChargesLeft, bool bAvailable);
 
 	void UpdateChargesDisplay(); // Shows charges if Ability->HasExplicitCharges() is true
+	void UpdateNameDisplay();   // Shows ability name if bExpandedView && AbilityNameText
 
 	// Visual state application - C++ handles essential state, calls BP hooks for styling
 	void ApplySelectedVisuals();

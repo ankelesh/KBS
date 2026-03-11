@@ -6,6 +6,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/WrapBox.h"
+#include "Components/WrapBoxSlot.h"
 
 DEFINE_LOG_CATEGORY(LogKBSUI);
 
@@ -65,8 +66,12 @@ void UUnitSpellbookPopup::InitializePools()
 			UActiveAbilitySlot* NewSlot = CreateWidget<UActiveAbilitySlot>(this, AbilitySlotClass);
 			if (NewSlot)
 			{
+				NewSlot->bExpandedView = true;
 				NewSlot->SetVisibility(ESlateVisibility::Collapsed);
-				AbilityListContainer->AddChild(NewSlot);
+				if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot>(AbilityListContainer->AddChild(NewSlot)))
+				{
+					WrapSlot->SetPadding(AbilitySlotPadding);
+				}
 				AbilitySlotPool.Add(NewSlot);
 			}
 		}
@@ -87,8 +92,12 @@ UActiveAbilitySlot* UUnitSpellbookPopup::GetOrCreateAbilitySlot()
 		UActiveAbilitySlot* NewSlot = CreateWidget<UActiveAbilitySlot>(this, AbilitySlotClass);
 		if (NewSlot)
 		{
+			NewSlot->bExpandedView = true;
 			NewSlot->SetVisibility(ESlateVisibility::Collapsed);
-			AbilityListContainer->AddChild(NewSlot);
+			if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot>(AbilityListContainer->AddChild(NewSlot)))
+			{
+				WrapSlot->SetPadding(AbilitySlotPadding);
+			}
 			AbilitySlotPool.Add(NewSlot);
 			AbilitySlotsInUse++;
 			return NewSlot;
