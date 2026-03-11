@@ -26,8 +26,7 @@ bool UUnitMovementAbility::CanExecute(FTacCoordinates TargetCell) const
 	if (!Owner->GetStats().Status.CanMove()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
-	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(Owner, GetTargeting());
-	return ValidCells.Contains(TargetCell);
+	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, GetTargeting());
 }
 
 bool UUnitMovementAbility::CanExecute() const
@@ -38,8 +37,7 @@ bool UUnitMovementAbility::CanExecute() const
 	if (!Owner->GetStats().Status.CanMove()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
-	TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(Owner, GetTargeting());
-	return ValidCells.Num() > 0;
+	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
 }
 
 

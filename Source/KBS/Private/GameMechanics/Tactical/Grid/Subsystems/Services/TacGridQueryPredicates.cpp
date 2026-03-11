@@ -35,9 +35,12 @@ namespace TargetingPredicates
 		return !Occupant && !Cell.IsFlankCell();
 	}
 
-	QueryPredicates::FCellFilterPredicate AffiliationPredicateFactory(EAffiliationFilter Filter, bool bAllowEmpty,
-	                                                                  bool bAllowFlank, bool bAllowDelayed)
+	QueryPredicates::FCellFilterPredicate AffiliationPredicateFactory(const FTargetingDescriptor& Desc)
 	{
+		const ETargetAffiliation Filter = Desc.Affiliation;
+		const bool bAllowEmpty = Desc.bAllowEmpty;
+		const bool bAllowFlank = Desc.bAllowFlank;
+		const bool bAllowDelayed = (Desc.Strategy != ETargetingStrategy::Closest);
 		return [=](const AUnit* SourceUnit, const AUnit* Occupant, const FTacCoordinates& Cell)
 		{
 			if (Cell.IsFlankCell() && !bAllowFlank)
@@ -48,11 +51,11 @@ namespace TargetingPredicates
 					return false;
 				switch (Filter)
 				{
-				case EAffiliationFilter::Enemy:
+				case ETargetAffiliation::Enemy:
 					return Occupant->GetGridMetadata().IsEnemy(SourceUnit->GetGridMetadata());
-				case EAffiliationFilter::Friendly:
+				case ETargetAffiliation::Friendly:
 					return !Occupant->GetGridMetadata().IsEnemy(SourceUnit->GetGridMetadata());
-				case EAffiliationFilter::Any:
+				case ETargetAffiliation::Any:
 				default:
 					return true;
 				}
@@ -63,8 +66,10 @@ namespace TargetingPredicates
 	}
 
 	QueryPredicates::FCorpseFilterPredicate CorpseAffiliationPredicateFactory(
-		AUnit* SourceUnit, EAffiliationFilter Filter, bool bAllowBlocked)
+		AUnit* SourceUnit, const FTargetingDescriptor& Desc)
 	{
+		const ETargetAffiliation Filter = Desc.Affiliation;
+		const bool bAllowBlocked = Desc.bAllowCoveredCorpse;
 		return [=](const FTacCoordinates& Coords, bool bIsBlocked, const AUnit* TopCorpse,
 		           int32 CorpseNum) -> bool
 		{
@@ -74,11 +79,11 @@ namespace TargetingPredicates
 			{
 				switch (Filter)
 				{
-				case EAffiliationFilter::Enemy:
+				case ETargetAffiliation::Enemy:
 					return SourceUnit->GetGridMetadata().IsEnemy(TopCorpse->GetGridMetadata());
-				case EAffiliationFilter::Friendly:
+				case ETargetAffiliation::Friendly:
 					return !SourceUnit->GetGridMetadata().IsEnemy(TopCorpse->GetGridMetadata());
-				case EAffiliationFilter::Any:
+				case ETargetAffiliation::Any:
 				default:
 					return true;
 				}

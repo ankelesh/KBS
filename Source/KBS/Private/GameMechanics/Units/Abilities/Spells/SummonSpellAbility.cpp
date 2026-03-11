@@ -53,7 +53,7 @@ bool USummonSpellAbility::CanExecute(FTacCoordinates TargetCell) const
 	if (RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
-	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, ETargetReach::EmptyCell);
+	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, GetTargeting());
 }
 
 bool USummonSpellAbility::CanExecute() const
@@ -61,12 +61,12 @@ bool USummonSpellAbility::CanExecute() const
 	if (RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
-	return TargetingService->HasAnyValidTargets(Owner, ETargetReach::EmptyCell);
+	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
 }
 
-ETargetReach USummonSpellAbility::GetTargeting() const
+FTargetingDescriptor USummonSpellAbility::GetTargeting() const
 {
-	return ETargetReach::EmptyCell;
+	return FTargetingDescriptor::FromReach(ETargetReach::EmptyCell);
 }
 
 void USummonSpellAbility::DespawnActiveSummon()

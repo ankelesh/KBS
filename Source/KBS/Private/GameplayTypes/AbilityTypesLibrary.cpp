@@ -1,4 +1,5 @@
 #include "GameplayTypes/AbilityTypesLibrary.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 
 FString UAbilityTypesLibrary::TargetReachToString(ETargetReach Reach)
@@ -19,11 +20,27 @@ FString UAbilityTypesLibrary::TargetReachToString(ETargetReach Reach)
 	return Found ? *Found : TEXT("Unknown");
 }
 
+EHighlightType UAbilityTypesLibrary::TargetingToHighlightType(FTargetingDescriptor Desc)
+{
+	if (Desc.Strategy == ETargetingStrategy::Movement || Desc.Strategy == ETargetingStrategy::EmptyCell)
+		return EHighlightType::Movement;
+	if (Desc.Strategy == ETargetingStrategy::Self)
+		return EHighlightType::CurrentSelected;
+	if (Desc.Affiliation == ETargetAffiliation::Friendly)
+		return EHighlightType::Friendly;
+	return EHighlightType::Attack;
+}
+
 EHighlightType UAbilityTypesLibrary::TargetReachToHighlightType(ETargetReach Reach)
 {
 	switch (Reach)
 	{
-	case ETargetReach::Movement:
+	case ETargetReach::GroundMove:
+	case ETargetReach::TeleportMovement:
+	case ETargetReach::Fly:
+	case ETargetReach::FlyChangeLayer:
+	case ETargetReach::RestrictedFly:
+	case ETargetReach::RestrictedFlyChangeLayer:
 		return EHighlightType::Movement;
 
 	case ETargetReach::AnyFriendly:

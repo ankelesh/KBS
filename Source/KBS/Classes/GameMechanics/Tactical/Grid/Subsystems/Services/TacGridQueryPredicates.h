@@ -1,5 +1,5 @@
 #pragma once
-#include "TargetingTypes.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 
 class AUnit;
 struct FTacCoordinates;
@@ -20,11 +20,10 @@ namespace TargetingPredicates
 	bool EmptyCellPredicate(const AUnit* SourceUnit, const AUnit* Occupant, const FTacCoordinates& Cell);
 	bool EmptyNotFlankPredicate(const AUnit* SourceUnit, const AUnit* Occupant, const FTacCoordinates& Cell);
 
-	QueryPredicates::FCellFilterPredicate AffiliationPredicateFactory(EAffiliationFilter Filter, bool bAllowEmpty,
-	                                                                  bool bAllowFlank, bool bAllowDelayed=true);
+	QueryPredicates::FCellFilterPredicate AffiliationPredicateFactory(const FTargetingDescriptor& Desc);
 
 	QueryPredicates::FCorpseFilterPredicate CorpseAffiliationPredicateFactory(
-		AUnit* SourceUnit, EAffiliationFilter Filter, bool bAllowBlocked);
+		AUnit* SourceUnit, const FTargetingDescriptor& Desc);
 
 	extern QueryPredicates::FCellFilterPredicate AirMovePredicate;
 }

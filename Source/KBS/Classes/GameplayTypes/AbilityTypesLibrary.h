@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "AbilityTypesLibrary.generated.h"
 
 enum class EHighlightType : uint8;
@@ -16,4 +17,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Ability|Types")
 	static EHighlightType TargetReachToHighlightType(ETargetReach Reach);
+
+	static EHighlightType TargetingToHighlightType(FTargetingDescriptor Desc);
 };

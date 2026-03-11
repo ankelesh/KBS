@@ -18,7 +18,7 @@ public:
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
 
-	virtual ETargetReach GetTargeting() const override;
+	virtual FTargetingDescriptor GetTargeting() const override;
 
 private:
 	// Instantiated from SpellAbilityDefinition; base damage is scaled before each use

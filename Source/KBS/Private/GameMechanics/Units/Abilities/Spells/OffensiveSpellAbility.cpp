@@ -107,11 +107,11 @@ bool UOffensiveSpellAbility::CanExecute() const
 	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
 }
 
-ETargetReach UOffensiveSpellAbility::GetTargeting() const
+FTargetingDescriptor UOffensiveSpellAbility::GetTargeting() const
 {
 	if (Config->Targeting != ETargetReach::None)
 	{
-		return Config->Targeting;
+		return FTargetingDescriptor::FromReach(Config->Targeting);
 	}
-	return EmbeddedDescriptor->GetReach();
+	return EmbeddedDescriptor->GetTargeting();
 }
