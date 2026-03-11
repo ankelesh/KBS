@@ -1,5 +1,6 @@
 #include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
@@ -26,13 +27,9 @@ bool UUnitAbilityInstance::RefreshAvailability() const
 	return bResult;
 }
 
-ETargetReach UUnitAbilityInstance::GetTargeting() const
+FTargetingDescriptor UUnitAbilityInstance::GetTargeting() const
 {
-	if (Config)
-	{
-		return Config->Targeting;
-	}
-	return ETargetReach::None;
+	return FTargetingDescriptor::FromReach(Config->Targeting);
 }
 
 bool UUnitAbilityInstance::IsPassive() const

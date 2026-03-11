@@ -19,6 +19,6 @@ private:
 	GENERATED_BODY()
 	virtual EAbilityTurnReleasePolicy DecideTurnRelease() const override;
 public:
-	virtual ETargetReach GetTargeting() const override;
+	virtual FTargetingDescriptor GetTargeting() const override;
 };
 

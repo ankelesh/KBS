@@ -29,13 +29,22 @@ enum class ETargetReach : uint8
 	AllFriendlies UMETA(DisplayName = "All Friendlies"),
 	EmptyCell UMETA(DisplayName = "Empty Cell"),
 	EmptyCellOrFriendly UMETA(DisplayName = "Empty Cell Or Friendly"),
-	Movement UMETA(DisplayName = "Movement"),
+	GroundMove             UMETA(DisplayName = "Ground Move"),
+	TeleportMovement       UMETA(DisplayName = "Teleport Movement"),
+	Fly                    UMETA(DisplayName = "Fly"),
+	FlyChangeLayer         UMETA(DisplayName = "Fly Change Layer"),
+	RestrictedFly          UMETA(DisplayName = "Restricted Fly"),
+	RestrictedFlyChangeLayer UMETA(DisplayName = "Restricted Fly Change Layer"),
 	AnyCorpse UMETA(DisplayName = "Any Corpse"),
 	FriendlyCorpse UMETA(DisplayName = "Friendly Corpse"),
 	EnemyCorpse UMETA(DisplayName = "Enemy Corpse"),
 	AnyNonBlockedCorpse UMETA(DisplayName = "Any Non-Blocked Corpse"),
 	FriendlyNonBlockedCorpse UMETA(DisplayName = "Friendly Non-Blocked Corpse"),
-	EnemyNonBlockedCorpse UMETA(DisplayName = "Enemy Non-Blocked Corpse")
+	EnemyNonBlockedCorpse UMETA(DisplayName = "Enemy Non-Blocked Corpse"),
+	AnyUnit UMETA(DisplayName = "Any Unit"),
+	AllUnits UMETA(DisplayName = "All Units"),
+	ClosestFriendly UMETA(DisplayName = "Closest Friendly"),
+	EmptyCellOrEnemy UMETA(DisplayName = "Empty Cell Or Enemy")
 };
 UENUM(BlueprintType)
 enum class EShapeLayering : uint8
