@@ -10,6 +10,21 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 
+FGameplayTagContainer UUnitAbilityInstance::GetTags() const
+{
+	if (!bTagsCached)
+	{
+		CachedTags = BuildTags();
+		bTagsCached = true;
+	}
+	return CachedTags;
+}
+
+FGameplayTagContainer UUnitAbilityInstance::BuildTags() const
+{
+	return Config ? Config->ExtraTags : FGameplayTagContainer{};
+}
+
 void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
 {
 	Config = InDefinition;

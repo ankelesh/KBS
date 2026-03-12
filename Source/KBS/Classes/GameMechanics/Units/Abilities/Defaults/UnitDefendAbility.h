@@ -12,6 +12,6 @@ public:
 	virtual FAbilityExecutionResult Execute(FTacCoordinates TargetCell) override;
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
-
+	virtual FGameplayTagContainer BuildTags() const override;
 };
 

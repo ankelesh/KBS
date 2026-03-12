@@ -6,6 +6,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 void USummonSpellAbility::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
 {
@@ -67,6 +68,14 @@ bool USummonSpellAbility::CanExecute() const
 FTargetingDescriptor USummonSpellAbility::GetTargeting() const
 {
 	return FTargetingDescriptor::FromReach(ETargetReach::EmptyCell);
+}
+
+FGameplayTagContainer USummonSpellAbility::BuildTags() const
+{
+	FGameplayTagContainer Tags = Super::BuildTags();
+	Tags.AddTag(TAG_ABILITY_SPELL);
+	Tags.AddTag(TAG_ABILITY_SPELL_SUMMON);
+	return Tags;
 }
 
 void USummonSpellAbility::DespawnActiveSummon()

@@ -47,7 +47,8 @@ public:
 	virtual void Unsubscribe() {};
 	virtual void AttackTriggerCleanup(FCombatContext& Context) {};
 	virtual void HitTriggerCleanup(FHitInstance& Hit) {};
-	virtual FGameplayTagContainer GetTags() const { return FGameplayTagContainer{}; }
+	FGameplayTagContainer GetTags() const; // caches BuildTags() on first call
+	virtual FGameplayTagContainer BuildTags() const; // override per ability class
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }
@@ -90,4 +91,7 @@ protected:
 	TObjectPtr<AUnit> Owner;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	bool bIsCurrent = false;
+
+	mutable FGameplayTagContainer CachedTags;
+	mutable bool bTagsCached = false;
 };

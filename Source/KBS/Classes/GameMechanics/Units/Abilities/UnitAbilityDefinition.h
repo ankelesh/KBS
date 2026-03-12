@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTags.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/AbilityTypes.h"
 #include "UnitAbilityDefinition.generated.h"
@@ -46,4 +47,6 @@ public:
 	FAbilityConditionalTag CompletionTag;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	FAbilityConditionalTag LookupTag;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability|Tags")
+	FGameplayTagContainer ExtraTags;
 };

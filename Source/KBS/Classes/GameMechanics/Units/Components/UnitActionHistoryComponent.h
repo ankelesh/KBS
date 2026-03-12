@@ -19,8 +19,6 @@ public:
 
 	// --- Last Action ---
 	bool LastActionHasTag(const FGameplayTag& Tag) const;
-	// Returns first tag in the last action container, or an invalid tag if empty.
-	FGameplayTag GetLastActionTag() const;
 	const FGameplayTagContainer& GetLastActionTags() const { return LastActionTags; }
 
 	// --- Sequence ---
@@ -34,5 +32,5 @@ private:
 	FGameplayTagContainer LastActionTags;
 
 	TArray<FGameplayTag> ExampleSequence;
-	TArray<FGameplayTag> CurrentSequence;
+	int32 CurrentSequenceStep = 0;
 };

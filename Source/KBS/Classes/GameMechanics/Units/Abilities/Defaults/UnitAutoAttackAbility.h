@@ -20,5 +20,6 @@ private:
 	virtual EAbilityTurnReleasePolicy DecideTurnRelease() const override;
 public:
 	virtual FTargetingDescriptor GetTargeting() const override;
+	virtual FGameplayTagContainer BuildTags() const override;
 };
 

@@ -9,7 +9,7 @@ struct KBS_API FUnitActionHistoryCmpConfig : public FUnitComponentConfig
 {
 	GENERATED_BODY()
 
-	// Ordered sequence of tags to track; completion is checked index-by-index.
+	// Ordered sequence of tags to track; each step matches when the used ability has that tag.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "History")
 	TArray<FGameplayTag> TargetSequence;
 };

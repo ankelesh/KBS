@@ -21,23 +21,14 @@ bool UUnitActionHistoryComponent::LastActionHasTag(const FGameplayTag& Tag) cons
 	return LastActionTags.HasTag(Tag);
 }
 
-FGameplayTag UUnitActionHistoryComponent::GetLastActionTag() const
-{
-	for (auto It = LastActionTags.CreateConstIterator(); It; ++It)
-	{
-		return *It;
-	}
-	return FGameplayTag{};
-}
-
 bool UUnitActionHistoryComponent::IsSequenceComplete() const
 {
-	return ExampleSequence.Num() > 0 && CurrentSequence.Num() == ExampleSequence.Num();
+	return ExampleSequence.Num() > 0 && CurrentSequenceStep == ExampleSequence.Num();
 }
 
 void UUnitActionHistoryComponent::ResetSequence()
 {
-	CurrentSequence.Reset();
+	CurrentSequenceStep = 0;
 }
 
 void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbilityInstance* Ability)
@@ -45,16 +36,8 @@ void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbilityInstanc
 	LastActionTags = Ability->GetTags();
 
 	if (IsSequenceComplete()) return;
+	if (CurrentSequenceStep >= ExampleSequence.Num()) return;
 
-	const int32 NextIdx = CurrentSequence.Num();
-	if (NextIdx >= ExampleSequence.Num()) return;
-
-	for (auto It = LastActionTags.CreateConstIterator(); It; ++It)
-	{
-		if (*It == ExampleSequence[NextIdx])
-		{
-			CurrentSequence.Add(*It);
-			break;
-		}
-	}
+	if (LastActionTags.HasTag(ExampleSequence[CurrentSequenceStep]))
+		CurrentSequenceStep++;
 }

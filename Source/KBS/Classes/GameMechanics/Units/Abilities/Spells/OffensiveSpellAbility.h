@@ -19,6 +19,7 @@ public:
 	virtual bool CanExecute() const override;
 
 	virtual FTargetingDescriptor GetTargeting() const override;
+	virtual FGameplayTagContainer BuildTags() const override;
 
 private:
 	// Instantiated from SpellAbilityDefinition; base damage is scaled before each use

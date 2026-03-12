@@ -8,6 +8,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 
 TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(FTacCoordinates TargetCell) const
@@ -112,6 +113,21 @@ FTargetingDescriptor UUnitAutoAttackAbility::GetTargeting() const
 		return Weapon->GetTargeting();
 	}
 	return FTargetingDescriptor{};
+}
+
+FGameplayTagContainer UUnitAutoAttackAbility::BuildTags() const
+{
+	FGameplayTagContainer Tags = Super::BuildTags();
+	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
+	{
+		const ECombatIntent Intent = UCombatDescriptor::DeduceAttackIntent(Weapon);
+		// AutoAttack alters Attack intent to its own class tag; other intents map generically
+		if (Intent == ECombatIntent::Attack)
+			Tags.AddTag(TAG_ABILITY_AUTOATTACK);
+		else if (FGameplayTag IntentTag = AbilityTagUtils::TagFromIntent(Intent); IntentTag.IsValid())
+			Tags.AddTag(IntentTag);
+	}
+	return Tags;
 }
 
 
