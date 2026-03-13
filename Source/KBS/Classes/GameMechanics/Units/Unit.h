@@ -16,6 +16,7 @@ class UBattleEffectComponent;
 class UBattleEffect;
 class UAbilityInventoryComponent;
 class UUnitVisualsComponent;
+class UWeapon;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitClicked, AUnit*, ClickedUnit, FKey, ButtonPressed);
 
@@ -173,7 +174,7 @@ public:
 	const FGuid& GetUnitID() const { return UnitID; }
 	FUnitCoreStats& GetStats() { return BaseStats; }
 	const FUnitCoreStats& GetStats() const { return BaseStats; }
-	const TArray<TObjectPtr<UCombatDescriptor>>& GetWeapons() const { return Weapons; }
+	const TArray<TObjectPtr<UWeapon>>& GetWeapons() const { return Weapons; }
 	float GetMovementSpeed() const;
 
 	int32 GetFlankArrivalDelay(bool IsRear) const
@@ -223,7 +224,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStats;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	TArray<TObjectPtr<UCombatDescriptor>> Weapons;
+	TArray<TObjectPtr<UWeapon>> Weapons;
 
 private:
 	// Grid positioning metadata (modified by UTacGridMovementService via friend access)

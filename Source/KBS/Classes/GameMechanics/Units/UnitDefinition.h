@@ -4,27 +4,13 @@
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "GameMechanics/Units/Components/UnitComponentEntry.h"
 #include "UnitDefinition.generated.h"
-class UCombatDescriptorDataAsset;
+class UWeaponDataAsset;
 class USkeletalMesh;
 class UStaticMesh;
 class UAnimBlueprintGeneratedClass;
 class UMaterialInterface;
 class UAnimMontage;
 class UUnitAbilityDefinition;
-constexpr int32 NoWeaponDamageOverride = -1;
-
-USTRUCT(BlueprintType)
-struct FUnitWeaponEntry
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	TObjectPtr<UCombatDescriptorDataAsset> Weapon;
-
-	// NoWeaponDamageOverride = use weapon asset's own BaseDamage
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	int32 BaseDamageOverride = NoWeaponDamageOverride;
-};
 
 UENUM(BlueprintType)
 enum class EUnitMeshType : uint8
@@ -67,7 +53,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStatsTemplate;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	TArray<FUnitWeaponEntry> DefaultWeapons;
+	TArray<TObjectPtr<UWeaponDataAsset>> DefaultWeapons;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Attack"))
 	TObjectPtr<UUnitAbilityDefinition> DefaultAttackAbility;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Move"))
