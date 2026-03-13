@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTypes/CombatDescriptorTypes.h"
 #include "WeaponDataAsset.generated.h"
 
 class UCombatDescriptorDataAsset;
@@ -22,6 +23,9 @@ public:
 	// NoWeaponDamageOverride = use Descriptor's BaseMagnitude
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	int32 DamageOverride = NoWeaponDamageOverride;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FText Description;

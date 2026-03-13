@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTypes/CombatDescriptorTypes.h"
 #include "Weapon.generated.h"
 
 class UWeaponDataAsset;
@@ -15,6 +16,8 @@ public:
 	UCombatDescriptor* GetDescriptor() const { return Descriptor; }
 	FText GetDisplayName() const;
 	const FText& GetDescription() const;
+	bool IsUsableForAutoAttack() const { return Config->Designation != ECombatDescriptorDesignation::Spells; }
+	bool IsUsableForSpells() const { return Config->Designation != ECombatDescriptorDesignation::AutoAttacks; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")

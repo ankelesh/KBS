@@ -28,8 +28,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor Effects")
 	TArray<FDescriptorEffectConfig> Effects;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
-	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	EMagnitudePolicy MagnitudePolicy = EMagnitudePolicy::Damage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
 	bool bIsImmutable = false;

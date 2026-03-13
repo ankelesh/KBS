@@ -53,18 +53,12 @@ public:
 	FText GetEffectsTooltips(AUnit* Owner);
 	FTargetingDescriptor GetTargeting() const { return FTargetingDescriptor::FromReach(Stats.TargetReach); }
 	const UCombatDescriptorDataAsset* GetConfig() const { return Config; }
-	ECombatDescriptorDesignation GetDesignation() const { return Designation; }
-	bool IsUsableForAutoAttack() const { return Designation != ECombatDescriptorDesignation::Spells; }
-	bool IsUsableForSpells() const { return Designation != ECombatDescriptorDesignation::AutoAttacks; }
 	const FDescriptorSideEffects& GetSideEffects() const { return SideEffects; }
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	TObjectPtr<UCombatDescriptorDataAsset> Config;
 
 	// Single stats instance - stat wrappers handle Base/Modified internally
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Descriptor")
-	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	EMagnitudePolicy MagnitudePolicy = EMagnitudePolicy::Damage;
 

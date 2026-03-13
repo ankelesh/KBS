@@ -22,7 +22,6 @@ void UOffensiveSpellAbility::InitializeFromDefinition(UUnitAbilityDefinition* In
 	TransientWeapon->BaseStats = SpellConfig->EmbeddedStats;
 	TransientWeapon->Effects = SpellConfig->EmbeddedEffects;
 	TransientWeapon->AttackMontage = SpellConfig->AttackMontage;
-	TransientWeapon->Designation = ECombatDescriptorDesignation::Spells;
 
 	EmbeddedDescriptor = NewObject<UCombatDescriptor>(this);
 	EmbeddedDescriptor->Initialize(this, TransientWeapon);

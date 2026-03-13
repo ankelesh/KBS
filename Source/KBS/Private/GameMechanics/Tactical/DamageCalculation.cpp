@@ -159,8 +159,8 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 	int32 BestScore = -1;
 	for (UWeapon* W : Weapons)
 	{
+		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
 		UCombatDescriptor* Descriptor = W->GetDescriptor();
-		if (bAutoAttackOnly && !Descriptor->IsUsableForAutoAttack()) continue;
 		const FCombatDescriptorStats& Stats = Descriptor->GetStats();
 		int32 Score = GetReachScore(Stats.TargetReach);
 		if (Score > BestScore)
@@ -177,10 +177,9 @@ UCombatDescriptor* FDamageCalculation::SelectSpellDescriptor(AUnit* Unit)
 	if (!Unit) return nullptr;
 	for (UWeapon* W : Unit->GetWeapons())
 	{
-		UCombatDescriptor* Descriptor = W->GetDescriptor();
-		if (Descriptor && Descriptor->IsUsableForSpells())
+		if (W->IsUsableForSpells())
 		{
-			return Descriptor;
+			return W->GetDescriptor();
 		}
 	}
 	return nullptr;
@@ -278,8 +277,8 @@ UCombatDescriptor* FDamageCalculation::SelectDescriptorForTarget(AUnit* Attacker
 	int32 BestDamage = -1;
 	for (UWeapon* W : Weapons)
 	{
+		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
 		UCombatDescriptor* Descriptor = W->GetDescriptor();
-		if (bAutoAttackOnly && !Descriptor->IsUsableForAutoAttack()) continue;
 		if (!CanReachTarget(Descriptor->GetStats().TargetReach)) continue;
 
 		const int32 Dmg = CalculateDamage(Attacker, Descriptor, Target).Damage;
