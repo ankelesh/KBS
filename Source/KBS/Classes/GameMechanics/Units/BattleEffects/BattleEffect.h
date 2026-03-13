@@ -3,6 +3,7 @@
 #include "UObject/NoExportTypes.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/EffectTypes.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "BattleEffectDataAsset.h"
 #include "BattleEffect.generated.h"
 class AUnit;
@@ -34,7 +35,7 @@ public:
 	virtual void OnUnitDied() {}
 	
 	// Getters
-	ETargetReach GetEffectTargetReach() const;
+	FTargetingDescriptor GetEffectTargeting() const;
 	EDamageSource GetDamageSource() const;
 	FText GetEffectName() const { return Config->Name; }
 	int32 GetDuration() const { return Duration; }

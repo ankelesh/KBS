@@ -6,6 +6,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 void USummonSpellAbility::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
 {
@@ -53,7 +54,7 @@ bool USummonSpellAbility::CanExecute(FTacCoordinates TargetCell) const
 	if (RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
-	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, ETargetReach::EmptyCell);
+	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, GetTargeting());
 }
 
 bool USummonSpellAbility::CanExecute() const
@@ -61,12 +62,20 @@ bool USummonSpellAbility::CanExecute() const
 	if (RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
-	return TargetingService->HasAnyValidTargets(Owner, ETargetReach::EmptyCell);
+	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
 }
 
-ETargetReach USummonSpellAbility::GetTargeting() const
+FTargetingDescriptor USummonSpellAbility::GetTargeting() const
 {
-	return ETargetReach::EmptyCell;
+	return FTargetingDescriptor::FromReach(ETargetReach::EmptyCell);
+}
+
+FGameplayTagContainer USummonSpellAbility::BuildTags() const
+{
+	FGameplayTagContainer Tags = Super::BuildTags();
+	Tags.AddTag(TAG_ABILITY_SPELL);
+	Tags.AddTag(TAG_ABILITY_SPELL_SUMMON);
+	return Tags;
 }
 
 void USummonSpellAbility::DespawnActiveSummon()

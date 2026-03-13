@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
 #include "GameMechanics/Units/Stats/BaseUnitStatTypes.h"
 #include "CombatDescriptor.generated.h"
@@ -51,7 +52,7 @@ public:
 	const FCombatDescriptorStats& GetStats() const { return Stats; }
 	const TArray<UBattleEffect*>& GetEffects() const { return ActiveEffects; }
 	FText GetEffectsTooltips(AUnit* Owner);
-	ETargetReach GetReach() const { return Stats.TargetReach; }
+	FTargetingDescriptor GetTargeting() const { return FTargetingDescriptor::FromReach(Stats.TargetReach); }
 	const UCombatDescriptorDataAsset* GetConfig() const { return Config; }
 	ECombatDescriptorDesignation GetDesignation() const { return Designation; }
 	bool IsUsableForAutoAttack() const { return Designation != ECombatDescriptorDesignation::Spells; }

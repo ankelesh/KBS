@@ -8,6 +8,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 
 void UOffensiveSpellAbility::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
@@ -107,11 +108,23 @@ bool UOffensiveSpellAbility::CanExecute() const
 	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
 }
 
-ETargetReach UOffensiveSpellAbility::GetTargeting() const
+FTargetingDescriptor UOffensiveSpellAbility::GetTargeting() const
 {
 	if (Config->Targeting != ETargetReach::None)
 	{
-		return Config->Targeting;
+		return FTargetingDescriptor::FromReach(Config->Targeting);
 	}
-	return EmbeddedDescriptor->GetReach();
+	return EmbeddedDescriptor->GetTargeting();
+}
+
+FGameplayTagContainer UOffensiveSpellAbility::BuildTags() const
+{
+	FGameplayTagContainer Tags = Super::BuildTags();
+	Tags.AddTag(TAG_ABILITY_SPELL);
+	if (EmbeddedDescriptor)
+	{
+		if (FGameplayTag IntentTag = AbilityTagUtils::TagFromIntent(UCombatDescriptor::DeduceAttackIntent(EmbeddedDescriptor)); IntentTag.IsValid())
+			Tags.AddTag(IntentTag);
+	}
+	return Tags;
 }

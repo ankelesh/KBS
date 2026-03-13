@@ -3,6 +3,7 @@
 #include "UObject/NoExportTypes.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/AbilityTypes.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
 #include "GameplayTypes/CombatTypes.h"
@@ -36,7 +37,7 @@ public:
 	virtual bool CanExecute() const { return false; };
 	virtual bool RefreshAvailability() const;
 
-	virtual ETargetReach GetTargeting() const;
+	virtual FTargetingDescriptor GetTargeting() const;
 	virtual bool IsPassive() const;
 	virtual bool HasExplicitCharges() const { return false; }
 	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const {return {};};
@@ -46,7 +47,8 @@ public:
 	virtual void Unsubscribe() {};
 	virtual void AttackTriggerCleanup(FCombatContext& Context) {};
 	virtual void HitTriggerCleanup(FHitInstance& Hit) {};
-	virtual FGameplayTagContainer GetTags() const { return FGameplayTagContainer{}; }
+	FGameplayTagContainer GetTags() const; // caches BuildTags() on first call
+	virtual FGameplayTagContainer BuildTags() const; // override per ability class
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }
@@ -89,4 +91,7 @@ protected:
 	TObjectPtr<AUnit> Owner;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	bool bIsCurrent = false;
+
+	mutable FGameplayTagContainer CachedTags;
+	mutable bool bTagsCached = false;
 };

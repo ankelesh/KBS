@@ -8,6 +8,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 
 TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(FTacCoordinates TargetCell) const
@@ -18,8 +19,8 @@ TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(F
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	if (!TargetingService) return Results;
 
-	ETargetReach Reach = GetTargeting();
-	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, Reach);
+	FTargetingDescriptor Targeting = GetTargeting();
+	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, Targeting);
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 
 	for (AUnit* Target : AllTargets)
@@ -46,8 +47,8 @@ FAbilityExecutionResult UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCe
 	check(CombatSubsystem);
 
 	// Resolve targets
-	ETargetReach Reach = GetTargeting();
-	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, Reach);
+	FTargetingDescriptor Targeting = GetTargeting();
+	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, Targeting);
 	if (!ResolvedTargets.ClickedTarget) return FAbilityExecutionResult::MakeFail();
 
 	// Select weapon for primary target
@@ -101,20 +102,32 @@ EAbilityTurnReleasePolicy UUnitAutoAttackAbility::DecideTurnRelease() const
 	return Super::DecideTurnRelease();
 }
 
-ETargetReach UUnitAutoAttackAbility::GetTargeting() const
+FTargetingDescriptor UUnitAutoAttackAbility::GetTargeting() const
 {
 	if (Config->Targeting != ETargetReach::None)
 	{
-		return Config->Targeting;
+		return FTargetingDescriptor::FromReach(Config->Targeting);
 	}
-	else
+	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
 	{
-		if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
-		{
-			return Weapon->GetReach();
-		}
+		return Weapon->GetTargeting();
 	}
-	return ETargetReach::None;
+	return FTargetingDescriptor{};
+}
+
+FGameplayTagContainer UUnitAutoAttackAbility::BuildTags() const
+{
+	FGameplayTagContainer Tags = Super::BuildTags();
+	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
+	{
+		const ECombatIntent Intent = UCombatDescriptor::DeduceAttackIntent(Weapon);
+		// AutoAttack alters Attack intent to its own class tag; other intents map generically
+		if (Intent == ECombatIntent::Attack)
+			Tags.AddTag(TAG_ABILITY_AUTOATTACK);
+		else if (FGameplayTag IntentTag = AbilityTagUtils::TagFromIntent(Intent); IntentTag.IsValid())
+			Tags.AddTag(IntentTag);
+	}
+	return Tags;
 }
 
 

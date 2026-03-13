@@ -1,6 +1,7 @@
 #include "GameMechanics/Units/Abilities/Defaults/UnitWaitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 
 FAbilityExecutionResult UUnitWaitAbility::Execute(FTacCoordinates TargetCell)
@@ -45,5 +46,12 @@ void UUnitWaitAbility::Unsubscribe()
 void UUnitWaitAbility::HandleRoundEnd(int32)
 {
 	RestoreCharges();
+}
+
+FGameplayTagContainer UUnitWaitAbility::BuildTags() const
+{
+	FGameplayTagContainer Tags = Super::BuildTags();
+	Tags.AddTag(TAG_ABILITY_WAIT);
+	return Tags;
 }
 

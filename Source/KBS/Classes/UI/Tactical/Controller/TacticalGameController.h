@@ -4,6 +4,7 @@
 
 class UTacticalHUD;
 class UTacGridSubsystem;
+class AUnit;
 
 UCLASS()
 class KBS_API ATacticalGameController : public AKbsBaseController
@@ -15,6 +16,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD")
 	TSubclassOf<UTacticalHUD> TacticalHUDClass;
@@ -25,4 +27,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UTacticalHUD> TacticalHUD;
+
+	UPROPERTY()
+	TObjectPtr<AUnit> LastHoveredUnit;
 };

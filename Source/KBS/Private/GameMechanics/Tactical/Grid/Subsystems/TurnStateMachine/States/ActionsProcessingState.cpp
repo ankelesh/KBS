@@ -9,6 +9,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAbilityExecutorService.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 #include "GameplayTypes/AbilityTypes.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAICombatService.h"
@@ -179,9 +180,9 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 		       *CurrentUnit->GetLogName(), *CurrentAbility->GetAbilityDisplayData().AbilityName);
 
 		UTacGridTargetingService* TargetingService = GridSubsystem->GetGridTargetingService();
-		ETargetReach AbilityTargeting = CurrentAbility->GetTargeting();
+		FTargetingDescriptor AbilityTargeting = CurrentAbility->GetTargeting();
 		TArray<FTacCoordinates> ValidCells = TargetingService->GetValidTargetCells(CurrentUnit, AbilityTargeting);
-		EHighlightType HighlightType = UAbilityTypesLibrary::TargetReachToHighlightType(AbilityTargeting);
+		EHighlightType HighlightType = UAbilityTypesLibrary::TargetingToHighlightType(AbilityTargeting);
 
 		GridSubsystem->ShowHighlights(ValidCells, HighlightType);
 		TurnProcessing = ETurnProcessingSubstate::EAwaitingInputState;

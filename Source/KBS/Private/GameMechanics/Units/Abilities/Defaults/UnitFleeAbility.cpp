@@ -1,5 +1,6 @@
 #include "GameMechanics/Units/Abilities/Defaults/UnitFleeAbility.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameplayTypes/TacticalMovementConstants.h"
@@ -50,4 +51,11 @@ void UUnitFleeAbility::HandleTurnStarted(AUnit* Unit)
 
 	// 5) One-shot — unsubscribe regardless of whether removal happened
 	Owner->OnUnitTurnStart.RemoveDynamic(this, &UUnitFleeAbility::HandleTurnStarted);
+}
+
+FGameplayTagContainer UUnitFleeAbility::BuildTags() const
+{
+	FGameplayTagContainer Tags = Super::BuildTags();
+	Tags.AddTag(TAG_ABILITY_FLEE);
+	return Tags;
 }

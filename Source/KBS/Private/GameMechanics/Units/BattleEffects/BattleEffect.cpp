@@ -1,5 +1,6 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
+#include "GameplayTypes/TargetingDescriptor.h"
 #include "GameMechanics/Units/Unit.h"
 #include "NiagaraSystem.h"
 void UBattleEffect::Initialize(UBattleEffectDataAsset* InConfig)
@@ -20,9 +21,9 @@ EDamageSource UBattleEffect::GetDamageSource() const
 {
 	return Config ? Config->DamageSource : EDamageSource::Physical;
 }
-ETargetReach UBattleEffect::GetEffectTargetReach() const
+FTargetingDescriptor UBattleEffect::GetEffectTargeting() const
 {
-	return Config ? Config->EffectTarget : ETargetReach::AnyEnemy;
+	return FTargetingDescriptor::FromReach(Config->EffectTarget);
 }
 EReapplyDecision UBattleEffect::HandleReapply(UBattleEffect* NewEffect)
 {
