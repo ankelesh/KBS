@@ -4,6 +4,8 @@
 #include "NativeGameplayTags.h"
 #include "GameplayTagsManager.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
+#include "GameplayTypes/EffectTypes.h"
+class UBattleEffect;
 
 // Class tags
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_ABILITY_AUTOATTACK)
@@ -31,6 +33,21 @@ namespace AbilityTagUtils
 		case EMagnitudePolicy::Damage: return TAG_ABILITY_ATTACK;
 		case EMagnitudePolicy::Heal:   return TAG_ABILITY_HEAL;
 		default:                       return FGameplayTag::EmptyTag;
+		}
+	}
+
+	// Adds TAG_ABILITY_EFFECT for any effect; additionally TAG_ABILITY_BUFF/DEBUFF based on polarity.
+	inline void AddEffectTags(FGameplayTagContainer& Tags, const TArray<UBattleEffect*>& Effects)
+	{
+		for (const UBattleEffect* Effect : Effects)
+		{
+			Tags.AddTag(TAG_ABILITY_EFFECT);
+			switch (Effect->GetPolarity())
+			{
+			case EEffectPolarity::Positive: Tags.AddTag(TAG_ABILITY_BUFF);   break;
+			case EEffectPolarity::Negative: Tags.AddTag(TAG_ABILITY_DEBUFF); break;
+			default: break;
+			}
 		}
 	}
 }

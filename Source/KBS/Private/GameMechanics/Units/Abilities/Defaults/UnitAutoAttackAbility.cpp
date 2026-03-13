@@ -126,6 +126,7 @@ FGameplayTagContainer UUnitAutoAttackAbility::BuildTags() const
 			Tags.AddTag(TAG_ABILITY_AUTOATTACK);
 		else if (FGameplayTag PolicyTag = AbilityTagUtils::TagFromPolicy(Policy); PolicyTag.IsValid())
 			Tags.AddTag(PolicyTag);
+		AbilityTagUtils::AddEffectTags(Tags, Weapon->GetEffects());
 	}
 	return Tags;
 }

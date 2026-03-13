@@ -125,6 +125,7 @@ FGameplayTagContainer UOffensiveSpellAbility::BuildTags() const
 	{
 		if (FGameplayTag PolicyTag = AbilityTagUtils::TagFromPolicy(EmbeddedDescriptor->GetMagnitudePolicy()); PolicyTag.IsValid())
 			Tags.AddTag(PolicyTag);
+		AbilityTagUtils::AddEffectTags(Tags, EmbeddedDescriptor->GetEffects());
 	}
 	return Tags;
 }
