@@ -23,9 +23,13 @@ enum class EWardApplicationPolicy : uint8
 UENUM(BlueprintType)
 enum class EDispelPolarityFilter : uint8
 {
-	Any      UMETA(DisplayName = "Any"),
-	Positive UMETA(DisplayName = "Positive"),
-	Negative UMETA(DisplayName = "Negative"),
+	None        UMETA(DisplayName = "None"),
+	Any         UMETA(DisplayName = "Any"),
+	Positive    UMETA(DisplayName = "Positive"),
+	Negative    UMETA(DisplayName = "Negative"),
+	Neutral     UMETA(DisplayName = "Neutral"),
+	NonPositive UMETA(DisplayName = "Non-Positive"),
+	NonNegative UMETA(DisplayName = "Non-Negative"),
 };
 
 USTRUCT(BlueprintType)
@@ -49,7 +53,7 @@ struct FDescriptorSideEffects
 	bool IsActive() const
 	{
 		return WardPolicy != EWardApplicationPolicy::None
-			|| DispelTags.Num() > 0
+			|| DispelPolarity != EDispelPolarityFilter::None
 			|| bRemovesDefensiveStance;
 	}
 };
