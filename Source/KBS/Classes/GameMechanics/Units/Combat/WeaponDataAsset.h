@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
 #include "WeaponDataAsset.generated.h"
 
@@ -29,4 +30,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FText Description;
+
+	// Tag used to request animation from the unit's UUnitAnimationSet (e.g. Animation.Attack.Slash)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	FGameplayTag AnimTag;
 };

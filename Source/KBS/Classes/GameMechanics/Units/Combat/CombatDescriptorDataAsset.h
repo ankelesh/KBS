@@ -6,7 +6,6 @@
 #include "CombatDescriptorDataAsset.generated.h"
 class UBattleEffect;
 class UBattleEffectDataAsset;
-class UAnimMontage;
 USTRUCT(BlueprintType)
 struct FDescriptorEffectConfig
 {
@@ -35,7 +34,4 @@ public:
 	bool bGuaranteedHit = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Side Effects")
 	FDescriptorSideEffects SideEffects;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor Animation")
-	TObjectPtr<UAnimMontage> AttackMontage;
 };

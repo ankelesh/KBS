@@ -11,6 +11,7 @@ class UAnimBlueprintGeneratedClass;
 class UMaterialInterface;
 class UAnimMontage;
 class UUnitAbilityDefinition;
+class UUnitAnimationSet;
 
 UENUM(BlueprintType)
 enum class EUnitMeshType : uint8
@@ -68,6 +69,8 @@ public:
 	TArray<TObjectPtr<UUnitAbilityDefinition>> AdditionalAbilities;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|Spellbook")
 	TArray<TObjectPtr<UUnitAbilityDefinition>> SpellbookAbilities;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UUnitAnimationSet> AnimationSet;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
