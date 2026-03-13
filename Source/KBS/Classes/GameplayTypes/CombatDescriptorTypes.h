@@ -1,5 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTags.h"
+#include "GameplayTypes/DamageTypes.h"
 #include "CombatDescriptorTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -16,6 +18,40 @@ enum class EWardApplicationPolicy : uint8
 	None UMETA(DisplayName = "None"),
 	Give UMETA(DisplayName = "Give"),
 	Take UMETA(DisplayName = "Take"),
+};
+
+UENUM(BlueprintType)
+enum class EDispelPolarityFilter : uint8
+{
+	Any      UMETA(DisplayName = "Any"),
+	Positive UMETA(DisplayName = "Positive"),
+	Negative UMETA(DisplayName = "Negative"),
+};
+
+USTRUCT(BlueprintType)
+struct FDescriptorSideEffects
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wards")
+	TSet<EDamageSource> WardSources;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wards")
+	EWardApplicationPolicy WardPolicy = EWardApplicationPolicy::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dispel")
+	TArray<FGameplayTag> DispelTags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dispel")
+	EDispelPolarityFilter DispelPolarity = EDispelPolarityFilter::Any;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stance")
+	bool bRemovesDefensiveStance = false;
+
+	bool IsActive() const
+	{
+		return WardPolicy != EWardApplicationPolicy::None
+			|| DispelTags.Num() > 0
+			|| bRemovesDefensiveStance;
+	}
 };
 
 UENUM(BlueprintType)

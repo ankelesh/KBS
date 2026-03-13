@@ -37,10 +37,8 @@ public:
 	bool bIsImmutable = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
 	bool bGuaranteedHit = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wards")
-	TSet<EDamageSource> WardSources;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wards")
-	EWardApplicationPolicy WardApplicationPolicy = EWardApplicationPolicy::None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Side Effects")
+	FDescriptorSideEffects SideEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor Animation")
 	TObjectPtr<UAnimMontage> AttackMontage;
