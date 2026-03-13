@@ -56,6 +56,8 @@ public:
 	ECombatDescriptorDesignation GetDesignation() const { return Designation; }
 	bool IsUsableForAutoAttack() const { return Designation != ECombatDescriptorDesignation::Spells; }
 	bool IsUsableForSpells() const { return Designation != ECombatDescriptorDesignation::AutoAttacks; }
+	const TSet<EDamageSource>& GetWardSources() const { return WardSources; }
+	EWardApplicationPolicy GetWardApplicationPolicy() const { return WardApplicationPolicy; }
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	TObjectPtr<UCombatDescriptorDataAsset> Config;
@@ -76,6 +78,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	bool bGuaranteedHit;
 		
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wards")
+	TSet<EDamageSource> WardSources;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wards")
+	EWardApplicationPolicy WardApplicationPolicy = EWardApplicationPolicy::None;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	TArray<TObjectPtr<UBattleEffect>> ActiveEffects;
 };

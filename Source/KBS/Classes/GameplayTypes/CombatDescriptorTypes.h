@@ -11,6 +11,14 @@ enum class ECombatDescriptorDesignation : uint8
 };
 
 UENUM(BlueprintType)
+enum class EWardApplicationPolicy : uint8
+{
+	None UMETA(DisplayName = "None"),
+	Give UMETA(DisplayName = "Give"),
+	Take UMETA(DisplayName = "Take"),
+};
+
+UENUM(BlueprintType)
 enum class EMagnitudePolicy : uint8
 {
 	// Runs damage calculation and application phase
