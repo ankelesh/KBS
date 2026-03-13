@@ -198,6 +198,9 @@ void UTacCombatSubsystem::ExecuteSideEffectApplicationPhase(FCombatContext& Cont
 		for (EDamageSource Source : SideEffects.WardSources)
 			Hit.Target->GetStats().Defense.Wards.Add(Source);
 	}
+
+	if (SideEffects.bRemovesDefensiveStance)
+		Hit.Target->GetStats().Status.ClearStatus(EUnitStatus::Defending);
 }
 
 void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit,
