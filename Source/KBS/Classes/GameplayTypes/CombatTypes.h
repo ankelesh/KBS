@@ -61,7 +61,7 @@ struct FCombatContext
 	UPROPERTY()
 	bool bIsReactionHit = false;
 	UPROPERTY()
-	ECombatIntent Intent = ECombatIntent::Attack;
+	EMagnitudePolicy MagnitudePolicy = EMagnitudePolicy::Damage;
 
 	void Reset();
 	FCombatContext() = default;

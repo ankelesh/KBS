@@ -38,17 +38,16 @@ public:
 	void Initialize(UObject* Outer, UCombatDescriptorDataAsset* Data, int32 BaseMagnitudeOverride = -1);
 
 	
-	static ECombatIntent DeduceAttackIntent(const UCombatDescriptor* Descriptor);
 	// Add enchantments/buffs to descriptor stats (e.g., Stats.BaseMagnitude.AddFlatModifier(...))
 	void ModifyMagnitude(int32 Magnitude, FGuid ModificatorGuid, bool bIsFlat);
 	void RemoveMagnitudeModifier(int32 Magnitude, FGuid ModificatorGuid, bool bIsFlat);
 	void ModifySource(const TSet<EDamageSource>& Sources, FGuid ModificatorGuid);
 	void RemoveSourceModifier(FGuid ModificatorGuid);
-	
+
 	bool IsMutable() const;
 	void SetMagnitudeBase(int32 Magnitude);
 	bool IsRequiringAccuracyRoll() const { return bGuaranteedHit;};
-	ECombatIntent GetIntent() const;
+	EMagnitudePolicy GetMagnitudePolicy() const { return MagnitudePolicy; }
 	const FCombatDescriptorStats& GetStats() const { return Stats; }
 	const TArray<UBattleEffect*>& GetEffects() const { return ActiveEffects; }
 	FText GetEffectsTooltips(AUnit* Owner);
@@ -66,7 +65,7 @@ protected:
 	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
-	ECombatIntent Intent = ECombatIntent::Auto;
+	EMagnitudePolicy MagnitudePolicy = EMagnitudePolicy::Damage;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	FCombatDescriptorStats Stats;
