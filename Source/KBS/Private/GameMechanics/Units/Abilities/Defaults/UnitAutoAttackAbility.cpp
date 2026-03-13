@@ -63,7 +63,7 @@ FAbilityExecutionResult UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCe
 	// Play attack visuals
 	if (Owner->VisualsComponent)
 	{
-		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, Weapon);
+		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, Weapon->GetAnimTag());
 	}
 
 	// Execute attack through combat subsystem

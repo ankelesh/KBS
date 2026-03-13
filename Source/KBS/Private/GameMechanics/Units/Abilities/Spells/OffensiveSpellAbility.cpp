@@ -77,7 +77,7 @@ FAbilityExecutionResult UOffensiveSpellAbility::Execute(FTacCoordinates TargetCe
 
 	if (Owner->VisualsComponent)
 	{
-		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, EmbeddedDescriptor);
+		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, EmbeddedDescriptor->GetAnimTag());
 	}
 
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();

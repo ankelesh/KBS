@@ -10,6 +10,7 @@ void UWeapon::Initialize(UObject* Outer, UWeaponDataAsset* Data)
 	Config = Data;
 	Descriptor = NewObject<UCombatDescriptor>(Outer);
 	Descriptor->Initialize(Outer, Data->Descriptor, Data->DamageOverride);
+	Descriptor->SetAnimTag(Data->AnimTag);
 }
 
 FText UWeapon::GetDisplayName() const

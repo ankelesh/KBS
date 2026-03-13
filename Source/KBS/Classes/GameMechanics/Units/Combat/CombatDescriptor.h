@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/TargetingDescriptor.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
@@ -54,6 +55,8 @@ public:
 	FTargetingDescriptor GetTargeting() const { return FTargetingDescriptor::FromReach(Stats.TargetReach); }
 	const UCombatDescriptorDataAsset* GetConfig() const { return Config; }
 	const FDescriptorSideEffects& GetSideEffects() const { return SideEffects; }
+	FGameplayTag GetAnimTag() const { return AnimTag; }
+	void SetAnimTag(FGameplayTag Tag) { AnimTag = Tag; }
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	TObjectPtr<UCombatDescriptorDataAsset> Config;
@@ -76,5 +79,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	TArray<TObjectPtr<UBattleEffect>> ActiveEffects;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Visuals")
+	FGameplayTag AnimTag;
 };
 
