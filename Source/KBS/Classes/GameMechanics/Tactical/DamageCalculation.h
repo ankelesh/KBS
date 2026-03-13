@@ -3,7 +3,7 @@
 #include "GameplayTypes/CombatTypes.h"
 
 class AUnit;
-
+class UWeapon;
 class UBattleEffect;
 enum class ETargetReach : uint8;
 
@@ -23,7 +23,7 @@ public:
 	// Descriptor selection
 	static UCombatDescriptor* SelectMaxReachDescriptor(AUnit* Unit, bool bAutoAttackOnly = false);
 	static UCombatDescriptor* SelectSpellDescriptor(AUnit* Unit);
-	static UCombatDescriptor* SelectDescriptorForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly = false);
+	static UWeapon* SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly = false);
 
 	// Spell scaling: sets embedded descriptor's base damage from spell descriptor's modified damage
 	static void ApplySpellScaling(UCombatDescriptor* EmbeddedDescriptor, UCombatDescriptor* SpellDescriptor, float Multiplier, int32 FlatBonus);

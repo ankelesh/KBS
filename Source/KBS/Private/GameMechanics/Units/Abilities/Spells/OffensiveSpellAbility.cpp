@@ -21,7 +21,6 @@ void UOffensiveSpellAbility::InitializeFromDefinition(UUnitAbilityDefinition* In
 	UCombatDescriptorDataAsset* TransientWeapon = NewObject<UCombatDescriptorDataAsset>(this);
 	TransientWeapon->BaseStats = SpellConfig->EmbeddedStats;
 	TransientWeapon->Effects = SpellConfig->EmbeddedEffects;
-	TransientWeapon->AttackMontage = SpellConfig->AttackMontage;
 
 	EmbeddedDescriptor = NewObject<UCombatDescriptor>(this);
 	EmbeddedDescriptor->Initialize(this, TransientWeapon);
@@ -77,7 +76,8 @@ FAbilityExecutionResult UOffensiveSpellAbility::Execute(FTacCoordinates TargetCe
 
 	if (Owner->VisualsComponent)
 	{
-		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, EmbeddedDescriptor->GetAnimTag());
+		const UOffensiveSpellAbilityDefinition* SpellDef = CastChecked<UOffensiveSpellAbilityDefinition>(Config);
+		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, SpellDef->AnimTag);
 	}
 
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();

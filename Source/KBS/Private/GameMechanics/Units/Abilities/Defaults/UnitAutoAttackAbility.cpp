@@ -2,6 +2,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
@@ -27,10 +28,10 @@ TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(F
 	{
 		if (!Target) continue;
 
-		UCombatDescriptor* Weapon = FDamageCalculation::SelectDescriptorForTarget(Owner, Target, true);
+		UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, Target, true);
 		if (!Weapon) continue;
 
-		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, Weapon, Target);
+		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, Weapon->GetDescriptor(), Target);
 		FTacCoordinates TargetCoords = Target->GetGridMetadata().Coords;
 		Results.Add(TargetCoords, Preview);
 	}
@@ -52,7 +53,7 @@ FAbilityExecutionResult UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCe
 	if (!ResolvedTargets.ClickedTarget) return FAbilityExecutionResult::MakeFail();
 
 	// Select weapon for primary target
-	UCombatDescriptor* Weapon = FDamageCalculation::SelectDescriptorForTarget(Owner, ResolvedTargets.ClickedTarget, true);
+	UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, ResolvedTargets.ClickedTarget, true);
 	check(Weapon);
 
 	UPresentationSubsystem::FScopedBatch AttackBatch(
@@ -68,7 +69,7 @@ FAbilityExecutionResult UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCe
 
 	// Execute attack through combat subsystem
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
-	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon);
+	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon->GetDescriptor());
 
 	ConsumeCharge();
 	SetCompletionTag();
