@@ -56,6 +56,7 @@ public:
 	ECombatDescriptorDesignation GetDesignation() const { return Designation; }
 	bool IsUsableForAutoAttack() const { return Designation != ECombatDescriptorDesignation::Spells; }
 	bool IsUsableForSpells() const { return Designation != ECombatDescriptorDesignation::AutoAttacks; }
+	const FDescriptorSideEffects& GetSideEffects() const { return SideEffects; }
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	TObjectPtr<UCombatDescriptorDataAsset> Config;
@@ -76,6 +77,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	bool bGuaranteedHit;
 		
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Side Effects")
+	FDescriptorSideEffects SideEffects;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	TArray<TObjectPtr<UBattleEffect>> ActiveEffects;
 };

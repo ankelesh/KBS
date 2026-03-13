@@ -18,6 +18,7 @@ void UCombatDescriptor::Initialize(UObject* Outer, UCombatDescriptorDataAsset* D
 	bIsImmutable = Data->bIsImmutable;
 	bGuaranteedHit = Data->bGuaranteedHit;
 	MagnitudePolicy = Data->MagnitudePolicy;
+	SideEffects = Data->SideEffects;
 	ActiveEffects.Empty();
 	for (const FDescriptorEffectConfig& EffectConfig : Data->Effects)
 	{

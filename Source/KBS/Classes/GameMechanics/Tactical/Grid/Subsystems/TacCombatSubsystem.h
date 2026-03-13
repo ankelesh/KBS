@@ -24,6 +24,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCalculationPhase, FCombatContext
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDamageApplicationPhase, FCombatContext&, Context, FHitInstance&,
                                                HitContext, FDamageResult&, Damage);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSideEffectApplicationPhase, FCombatContext&, Context, FHitInstance&,
+                                             HitContext);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEffectApplicationPhase, FCombatContext&, Context, FHitInstance&,
                                              HitContext);
 
@@ -44,6 +47,7 @@ public:
 	bool ExecutePreResolutionPhase(FCombatContext& Context);
 	void ExecuteCalculationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult);
 	void ExecuteResultApplyPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& ToApply);
+	void ExecuteSideEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& Result);
 	void ExecuteEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& Result);
 
 	// Events
@@ -53,6 +57,8 @@ public:
 	FOnCalculationPhase OnCalculationPhase;
 	UPROPERTY(BlueprintAssignable)
 	FOnDamageApplicationPhase OnResultApplicationPhase;
+	UPROPERTY(BlueprintAssignable)
+	FOnSideEffectApplicationPhase OnSideEffectApplicationPhase;
 	UPROPERTY(BlueprintAssignable)
 	FOnEffectApplicationPhase OnEffectApplicationPhase;
 

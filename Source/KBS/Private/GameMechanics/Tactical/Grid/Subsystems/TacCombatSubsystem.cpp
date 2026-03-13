@@ -106,6 +106,7 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FCombatConte
 		ExecuteResultApplyPhase(Context, Hit, Result);
 		if (Result.bHit && !Result.TargetUnit->IsDead())
 		{
+			ExecuteSideEffectApplicationPhase(Context, Hit, Result);
 			ExecuteEffectApplicationPhase(Context, Hit, Result);
 		}
 		Results.Add(Result);
@@ -173,6 +174,33 @@ void UTacCombatSubsystem::ExecuteCalculationPhase(FCombatContext& Context, FHitI
 		OutResult.DamageResult =
 			FDamageCalculation::CalculateHeal(Context.Attacker, Context.AttackerDescriptor, Hit.Target);
 	}
+}
+
+void UTacCombatSubsystem::ExecuteSideEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit,
+                                                            FCombatHitResult& Result)
+{
+	const FDescriptorSideEffects& SideEffects = Context.AttackerDescriptor->GetSideEffects();
+	if (!SideEffects.IsActive())
+		return;
+
+	OnSideEffectApplicationPhase.Broadcast(Context, Hit);
+	Hit.CheckCancellation();
+	if (Hit.bIsHitCancelled || Context.bIsAttackCancelled)
+		return;
+
+	if (SideEffects.WardPolicy == EWardApplicationPolicy::Take)
+	{
+		for (EDamageSource Source : SideEffects.WardSources)
+			Hit.Target->GetStats().Defense.Wards.Remove(Source);
+	}
+	else if (SideEffects.WardPolicy == EWardApplicationPolicy::Give)
+	{
+		for (EDamageSource Source : SideEffects.WardSources)
+			Hit.Target->GetStats().Defense.Wards.Add(Source);
+	}
+
+	if (SideEffects.bRemovesDefensiveStance)
+		Hit.Target->GetStats().Status.ClearStatus(EUnitStatus::Defending);
 }
 
 void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit,
