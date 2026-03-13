@@ -163,16 +163,12 @@ void UTacCombatSubsystem::ExecuteCalculationPhase(FCombatContext& Context, FHitI
 		OutResult.bHit = true;
 	}
 
-	UE_CLOG(Context.Intent == ECombatIntent::Auto, LogKBSCombat, Error,
-		TEXT("[CALCULATION] %s descriptor intent is still Auto after recalculation — damage calc skipped"),
-		*Context.Attacker->GetName());
-
-	if (OutResult.bHit && Context.Intent == ECombatIntent::Attack)
+	if (OutResult.bHit && Context.MagnitudePolicy == EMagnitudePolicy::Damage)
 	{
 		OutResult.DamageResult = FDamageCalculation::CalculateDamage(Context.Attacker, Context.AttackerDescriptor,
 		                                                             Hit.Target);
 	}
-	else if (OutResult.bHit && Context.Intent == ECombatIntent::Heal)
+	else if (OutResult.bHit && Context.MagnitudePolicy == EMagnitudePolicy::Heal)
 	{
 		OutResult.DamageResult =
 			FDamageCalculation::CalculateHeal(Context.Attacker, Context.AttackerDescriptor, Hit.Target);
@@ -226,12 +222,10 @@ void UTacCombatSubsystem::ExecuteResultApplyPhase(FCombatContext& Context, FHitI
 	}
 	else
 	{
-		if (Context.Intent == ECombatIntent::Attack)
+		if (Context.MagnitudePolicy == EMagnitudePolicy::Damage)
 			Hit.Target->HandleHit(ToApply.DamageResult, Context.Attacker);
-		else if (Context.Intent == ECombatIntent::Heal)
-		{
+		else if (Context.MagnitudePolicy == EMagnitudePolicy::Heal)
 			Hit.Target->ChangeUnitHP(ToApply.DamageResult.Damage);
-		}
 	}
 }
 

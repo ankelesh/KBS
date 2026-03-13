@@ -11,23 +11,12 @@ enum class ECombatDescriptorDesignation : uint8
 };
 
 UENUM(BlueprintType)
-enum class ECombatIntent : uint8
+enum class EMagnitudePolicy : uint8
 {
-	// implicitly guess from damage, targeting, source and effect list
-	Auto     UMETA(DisplayName = "Auto deduction"),
-	// deduced as damage < 0 && DamageSource = life
-	// represents always-hitting no-roll heal amount
-	Heal     UMETA(DisplayName = "Heal action"),
-	// deduced as damage > 0 && DamageSource != life
-	// represents normal flow
-	Attack UMETA(DisplayName= "Normal Attack action"),
-	// deduced as damage == 0 && effect.num() > 0
-	// represents usual flow without damage calculations and applications phases
-	EffectApplication UMETA(DisplayName = "Effect Application"),
-	// deduced as damage == 0 && effect.num() > 0 && damage == immutable
-	// represents always-hitting no-roll damage-phase-less effect application
-	BuffApplication UMETA(DisplayName= "Buff Application"),
-	// copy of EffectApplication to be better expressed
-	DebuffApplication UMETA(DisplayName= "Debuff Application"),
-	
+	// Runs damage calculation and application phase
+	Damage UMETA(DisplayName = "Damage"),
+	// Runs heal calculation and application phase
+	Heal   UMETA(DisplayName = "Heal"),
+	// Skips damage calculation and application phase entirely
+	None   UMETA(DisplayName = "None"),
 };

@@ -32,7 +32,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
-	ECombatIntent Intent = ECombatIntent::Auto;
+	EMagnitudePolicy MagnitudePolicy = EMagnitudePolicy::Damage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
 	bool bIsImmutable = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")

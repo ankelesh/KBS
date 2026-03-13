@@ -17,7 +17,7 @@ void UCombatDescriptor::Initialize(UObject* Outer, UCombatDescriptorDataAsset* D
 		Stats.BaseMagnitude.SetBase(BaseMagnitudeOverride);
 	bIsImmutable = Data->bIsImmutable;
 	bGuaranteedHit = Data->bGuaranteedHit;
-	Intent = Data->Intent;
+	MagnitudePolicy = Data->MagnitudePolicy;
 	ActiveEffects.Empty();
 	for (const FDescriptorEffectConfig& EffectConfig : Data->Effects)
 	{
@@ -33,16 +33,6 @@ void UCombatDescriptor::Initialize(UObject* Outer, UCombatDescriptorDataAsset* D
 	}
 }
 
-ECombatIntent UCombatDescriptor::DeduceAttackIntent(const UCombatDescriptor* Descriptor)
-{
-	if (Descriptor->Intent == ECombatIntent::Auto)
-	{
-		if (!Descriptor->IsMutable() && Descriptor->Stats.BaseMagnitude.GetBase() == 0 && Descriptor->ActiveEffects.Num() > 0)
-			return ECombatIntent::EffectApplication;
-		return ECombatIntent::Attack;
-	}
-	return Descriptor->GetIntent();
-}
 
 void UCombatDescriptor::ModifyMagnitude(int32 Magnitude, FGuid ModificatorGuid, bool bIsFlat)
 {
@@ -89,12 +79,6 @@ void UCombatDescriptor::SetMagnitudeBase(int32 Magnitude)
 		Stats.BaseMagnitude.SetBase(Magnitude);
 }
 
-ECombatIntent UCombatDescriptor::GetIntent() const
-{
-	if (Intent == ECombatIntent::Auto)
-		return DeduceAttackIntent(this);
-	return Intent;
-}
 
 FText UCombatDescriptor::GetEffectsTooltips(AUnit* Owner)
 {

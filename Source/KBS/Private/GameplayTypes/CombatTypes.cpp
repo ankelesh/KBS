@@ -52,7 +52,7 @@ void FCombatContext::Reset()
 
 FCombatContext::FCombatContext(AUnit* AttackerUnit, UCombatDescriptor* Descriptor, TArray<AUnit*> Targets, bool bIsReaction)
 	:
-	  Attacker(AttackerUnit), Hits(), AttackerDescriptor(Descriptor), InterferingAbilities(), bIsAttackCancelled(false), bIsReactionHit(bIsReaction), Intent(Descriptor->GetIntent())
+	  Attacker(AttackerUnit), Hits(), AttackerDescriptor(Descriptor), InterferingAbilities(), bIsAttackCancelled(false), bIsReactionHit(bIsReaction), MagnitudePolicy(Descriptor->GetMagnitudePolicy())
 {
 	for (auto Target: Targets)
 	{

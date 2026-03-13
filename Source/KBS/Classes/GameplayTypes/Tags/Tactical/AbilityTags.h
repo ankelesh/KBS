@@ -23,17 +23,14 @@ UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_ABILITY_EFFECT)
 
 namespace AbilityTagUtils
 {
-	// Pure intent-to-tag mapping, no class context. Returns EmptyTag for Auto/unknown.
-	inline FGameplayTag TagFromIntent(ECombatIntent Intent)
+	// Pure policy-to-tag mapping, no class context. Returns EmptyTag for None/unknown.
+	inline FGameplayTag TagFromPolicy(EMagnitudePolicy Policy)
 	{
-		switch (Intent)
+		switch (Policy)
 		{
-		case ECombatIntent::Attack:            return TAG_ABILITY_ATTACK;
-		case ECombatIntent::Heal:              return TAG_ABILITY_HEAL;
-		case ECombatIntent::BuffApplication:   return TAG_ABILITY_BUFF;
-		case ECombatIntent::DebuffApplication: return TAG_ABILITY_DEBUFF;
-		case ECombatIntent::EffectApplication: return TAG_ABILITY_EFFECT;
-		default:                               return FGameplayTag::EmptyTag;
+		case EMagnitudePolicy::Damage: return TAG_ABILITY_ATTACK;
+		case EMagnitudePolicy::Heal:   return TAG_ABILITY_HEAL;
+		default:                       return FGameplayTag::EmptyTag;
 		}
 	}
 }

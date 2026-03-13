@@ -120,12 +120,12 @@ FGameplayTagContainer UUnitAutoAttackAbility::BuildTags() const
 	FGameplayTagContainer Tags = Super::BuildTags();
 	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
 	{
-		const ECombatIntent Intent = UCombatDescriptor::DeduceAttackIntent(Weapon);
-		// AutoAttack alters Attack intent to its own class tag; other intents map generically
-		if (Intent == ECombatIntent::Attack)
+		const EMagnitudePolicy Policy = Weapon->GetMagnitudePolicy();
+		// AutoAttack alters Damage policy to its own class tag; other policies map generically
+		if (Policy == EMagnitudePolicy::Damage)
 			Tags.AddTag(TAG_ABILITY_AUTOATTACK);
-		else if (FGameplayTag IntentTag = AbilityTagUtils::TagFromIntent(Intent); IntentTag.IsValid())
-			Tags.AddTag(IntentTag);
+		else if (FGameplayTag PolicyTag = AbilityTagUtils::TagFromPolicy(Policy); PolicyTag.IsValid())
+			Tags.AddTag(PolicyTag);
 	}
 	return Tags;
 }
