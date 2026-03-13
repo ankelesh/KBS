@@ -11,7 +11,6 @@ void UCombatDescriptor::Initialize(UObject* Outer, UCombatDescriptorDataAsset* D
 		return;
 	}
 	Config = Data;
-	Designation = Data->Designation;
 	Stats = Data->BaseStats;
 	if (BaseMagnitudeOverride != -1)
 		Stats.BaseMagnitude.SetBase(BaseMagnitudeOverride);

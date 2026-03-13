@@ -68,10 +68,10 @@ struct FUnitImmunities;
 struct FUnitWards;
 struct FUnitCoreStats;
 struct FDamageSourceSetStat;
-class UCombatDescriptor;
+class UWeapon;
 FString DamageSourceToString(EDamageSource Source);
 FString TargetReachToString(ETargetReach Reach);
-FCombatDescriptorDisplayData ConvertWeapon(UCombatDescriptor* Weapon);
+FCombatDescriptorDisplayData ConvertWeapon(UWeapon* Weapon);
 
 TArray<FString> ConvertActiveEffects(const TArray<TObjectPtr<UBattleEffect>>& Effects);
 FString ConvertArmourMap(const FUnitArmour& ArmourMap);
@@ -84,6 +84,6 @@ FUnitDisplayData BuildUnitDisplayData(
 	const FUnitCoreStats& Stats,
 	UTexture2D* PortraitTexture,
 	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects,
-	const TArray<TObjectPtr<UCombatDescriptor>>& Weapons,
+	const TArray<TObjectPtr<UWeapon>>& Weapons,
 	ETeamSide TeamSide
 );

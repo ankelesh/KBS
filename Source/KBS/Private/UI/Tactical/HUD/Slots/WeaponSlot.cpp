@@ -1,5 +1,5 @@
 #include "UI/Tactical/HUD/Slots/WeaponSlot.h"
-#include "GameMechanics/Units/Combat/CombatDescriptor.h"
+#include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/CombatDescriptorDisplayData.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
@@ -7,7 +7,7 @@
 #include "Components/TextBlock.h"
 #include "Components/HorizontalBox.h"
 
-void UWeaponSlot::SetupFromWeapon(UCombatDescriptor* Weapon, AUnit* Owner)
+void UWeaponSlot::SetupFromWeapon(UWeapon* Weapon, AUnit* Owner)
 {
 	// Get display data
 	FCombatDescriptorDisplayData DisplayData = ConvertWeapon(Weapon);
@@ -42,7 +42,7 @@ void UWeaponSlot::SetupFromWeapon(UCombatDescriptor* Weapon, AUnit* Owner)
 		EffectIconList->ClearChildren();
 		CreatedEffectSlots.Empty();
 
-		const TArray<UBattleEffect*>& Effects = Weapon->GetEffects();
+		const TArray<UBattleEffect*>& Effects = Weapon->GetDescriptor()->GetEffects();
 		for (UBattleEffect* Effect : Effects)
 		{
 			if (!Effect) continue;
@@ -60,7 +60,7 @@ void UWeaponSlot::SetupFromWeapon(UCombatDescriptor* Weapon, AUnit* Owner)
 	// Set tooltip with full weapon description
 	if (Owner)
 	{
-		FText TooltipText = Weapon->GetEffectsTooltips(Owner);
+		FText TooltipText = Weapon->GetDescriptor()->GetEffectsTooltips(Owner);
 		SetToolTipText(TooltipText);
 	}
 

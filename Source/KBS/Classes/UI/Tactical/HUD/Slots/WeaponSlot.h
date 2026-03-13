@@ -7,6 +7,7 @@
 
 class UTextBlock;
 class UHorizontalBox;
+class UWeapon;
 
 // Display widget for weapon information
 // Shows weapon name, damage, damage types, and effects
@@ -18,7 +19,7 @@ class KBS_API UWeaponSlot : public UUserWidget
 public:
 	// Setup from weapon data
 	UFUNCTION(BlueprintCallable, Category = "Weapon Slot")
-	void SetupFromWeapon(UCombatDescriptor* Weapon, class AUnit* Owner);
+	void SetupFromWeapon(UWeapon* Weapon, class AUnit* Owner);
 
 	// Clear and hide widget
 	UFUNCTION(BlueprintCallable, Category = "Weapon Slot")

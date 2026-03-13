@@ -1,5 +1,6 @@
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
@@ -128,14 +129,14 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 	{
 		return nullptr;
 	}
-	auto Weapons = Unit->GetWeapons();
+	const auto& Weapons = Unit->GetWeapons();
 	if (Weapons.Num() == 0)
 	{
 		return nullptr;
 	}
 	if (Weapons.Num() == 1)
 	{
-		return Weapons[0];
+		return Weapons[0]->GetDescriptor();
 	}
 	auto GetReachScore = [](ETargetReach Reach) -> int32
 		{
@@ -156,9 +157,10 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 		};
 	UCombatDescriptor* BestDescriptor = nullptr;
 	int32 BestScore = -1;
-	for (UCombatDescriptor* Descriptor : Weapons)
+	for (UWeapon* W : Weapons)
 	{
-		if (bAutoAttackOnly && !Descriptor->IsUsableForAutoAttack()) continue;
+		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
+		UCombatDescriptor* Descriptor = W->GetDescriptor();
 		const FCombatDescriptorStats& Stats = Descriptor->GetStats();
 		int32 Score = GetReachScore(Stats.TargetReach);
 		if (Score > BestScore)
@@ -173,11 +175,11 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 UCombatDescriptor* FDamageCalculation::SelectSpellDescriptor(AUnit* Unit)
 {
 	if (!Unit) return nullptr;
-	for (UCombatDescriptor* Descriptor : Unit->GetWeapons())
+	for (UWeapon* W : Unit->GetWeapons())
 	{
-		if (Descriptor && Descriptor->IsUsableForSpells())
+		if (W->IsUsableForSpells())
 		{
-			return Descriptor;
+			return W->GetDescriptor();
 		}
 	}
 	return nullptr;
@@ -234,7 +236,7 @@ UCombatDescriptor* FDamageCalculation::SelectDescriptorForTarget(AUnit* Attacker
 {
 	check(Attacker && Target);
 
-	const TArray<UCombatDescriptor*>& Weapons = Attacker->GetWeapons();
+	const auto& Weapons = Attacker->GetWeapons();
 	if (Weapons.Num() == 0) return nullptr;
 
 	const int32 Distance = Attacker->GetGridMetadata().DistanceTo(Target->GetGridMetadata());
@@ -273,9 +275,10 @@ UCombatDescriptor* FDamageCalculation::SelectDescriptorForTarget(AUnit* Attacker
 
 	UCombatDescriptor* BestDescriptor = nullptr;
 	int32 BestDamage = -1;
-	for (UCombatDescriptor* Descriptor : Weapons)
+	for (UWeapon* W : Weapons)
 	{
-		if (bAutoAttackOnly && !Descriptor->IsUsableForAutoAttack()) continue;
+		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
+		UCombatDescriptor* Descriptor = W->GetDescriptor();
 		if (!CanReachTarget(Descriptor->GetStats().TargetReach)) continue;
 
 		const int32 Dmg = CalculateDamage(Attacker, Descriptor, Target).Damage;

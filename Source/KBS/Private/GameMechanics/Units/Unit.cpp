@@ -1,6 +1,6 @@
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/Combat/CombatDescriptor.h"
-#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
+#include "GameMechanics/Units/Combat/Weapon.h"
+#include "GameMechanics/Units/Combat/WeaponDataAsset.h"
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Units/UnitVisualsComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
@@ -86,11 +86,11 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 
 void AUnit::InitializeWeapons(const UUnitDefinition* Definition)
 {
-	for (const FUnitWeaponEntry& Entry : Definition->DefaultWeapons)
+	for (UWeaponDataAsset* WeaponAsset : Definition->DefaultWeapons)
 	{
-		if (!Entry.Weapon) continue;
-		TObjectPtr<UCombatDescriptor> NewWeapon = NewObject<UCombatDescriptor>();
-		NewWeapon->Initialize(this, Entry.Weapon, Entry.BaseDamageOverride);
+		if (!WeaponAsset) continue;
+		TObjectPtr<UWeapon> NewWeapon = NewObject<UWeapon>(this);
+		NewWeapon->Initialize(this, WeaponAsset);
 		Weapons.Add(NewWeapon);
 	}
 }

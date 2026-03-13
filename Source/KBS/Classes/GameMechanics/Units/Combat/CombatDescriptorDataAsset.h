@@ -23,14 +23,10 @@ class KBS_API UCombatDescriptorDataAsset : public UPrimaryDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	FText Name;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
-	FText Description;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor Stats")
 	FCombatDescriptorStats BaseStats;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor Effects")
 	TArray<FDescriptorEffectConfig> Effects;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
-	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	EMagnitudePolicy MagnitudePolicy = EMagnitudePolicy::Damage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
