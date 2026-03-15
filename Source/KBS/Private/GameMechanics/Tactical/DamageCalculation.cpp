@@ -232,7 +232,7 @@ bool FDamageCalculation::IsFriendlyReach(ETargetReach Reach)
 		Reach == ETargetReach::FriendlyNonBlockedCorpse;
 }
 
-UCombatDescriptor* FDamageCalculation::SelectDescriptorForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly)
+UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly)
 {
 	check(Attacker && Target);
 
@@ -273,7 +273,7 @@ UCombatDescriptor* FDamageCalculation::SelectDescriptorForTarget(AUnit* Attacker
 		}
 	};
 
-	UCombatDescriptor* BestDescriptor = nullptr;
+	UWeapon* BestWeapon = nullptr;
 	int32 BestDamage = -1;
 	for (UWeapon* W : Weapons)
 	{
@@ -285,10 +285,10 @@ UCombatDescriptor* FDamageCalculation::SelectDescriptorForTarget(AUnit* Attacker
 		if (Dmg > BestDamage)
 		{
 			BestDamage = Dmg;
-			BestDescriptor = Descriptor;
+			BestWeapon = W;
 		}
 	}
-	return BestDescriptor;
+	return BestWeapon;
 }
 
 EDamageSource FDamageCalculation::SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target)

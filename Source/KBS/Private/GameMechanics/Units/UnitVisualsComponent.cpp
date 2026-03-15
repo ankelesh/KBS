@@ -3,8 +3,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
-#include "GameMechanics/Units/Combat/CombatDescriptor.h"
-#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
+#include "GameMechanics/Units/UnitAnimationSet.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -168,6 +167,7 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 		return;
 	}
 	CachedUnitSize = Definition->UnitSize;
+	AnimationSet = Definition->AnimationSet;
 	if (Definition->MeshComponents.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitDefinition"));
@@ -400,17 +400,27 @@ void UUnitVisualsComponent::PlayAttackMontage(UAnimMontage* Montage, float PlayR
 	}
 }
 
-FBatchHandle UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* Target, UCombatDescriptor* Weapon)
+UAnimMontage* UUnitVisualsComponent::ResolveAnimation(FGameplayTag Tag) const
 {
-	checkf(OwnerUnit && Target && Weapon, TEXT("PlayAttackSequence: all params must be valid"));
+	if (!AnimationSet || !Tag.IsValid()) return nullptr;
+	FGameplayTag Current = Tag;
+	while (Current.IsValid())
+	{
+		if (TObjectPtr<UAnimMontage>* Found = AnimationSet->Montages.Find(Current))
+			return Found->Get();
+		Current = Current.RequestDirectParent();
+	}
+	return nullptr;
+}
+
+FBatchHandle UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* Target, FGameplayTag AnimTag)
+{
+	checkf(OwnerUnit && Target, TEXT("PlayAttackSequence: OwnerUnit and Target must be valid"));
 
 	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
 	FBatchHandle Batch = PresentationSys->BeginBatch(
 		FString::Printf(TEXT("AttackSeq_%s"), *OwnerUnit->GetName())
 	);
-
-	const UCombatDescriptorDataAsset* WeaponConfig = Weapon->GetConfig();
-	UAnimMontage* AttackMontage = WeaponConfig ? WeaponConfig->AttackMontage : nullptr;
 
 	const FVector SourceLoc = OwnerUnit->GetActorLocation();
 	const FVector TargetLoc = Target->GetActorLocation();
@@ -420,13 +430,13 @@ FBatchHandle UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* 
 	RegisterRotationOperation(Batch);
 	RotateTowardTarget(LookAtRotation, AttackRotationSpeed);
 
-	if (AttackMontage)
+	if (UAnimMontage* Montage = ResolveAnimation(AnimTag))
 	{
 		if (UAnimInstance* AnimInstance = PrimarySkeletalMesh ? PrimarySkeletalMesh->GetAnimInstance() : nullptr)
 		{
-			if (AnimInstance->Montage_Play(AttackMontage) > 0.0f)
+			if (AnimInstance->Montage_Play(Montage) > 0.0f)
 			{
-				RegisterMontageOperation(AttackMontage, Batch);
+				RegisterMontageOperation(Montage, Batch);
 			}
 		}
 	}

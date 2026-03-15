@@ -12,6 +12,11 @@ void UWeapon::Initialize(UObject* Outer, UWeaponDataAsset* Data)
 	Descriptor->Initialize(Outer, Data->Descriptor, Data->DamageOverride);
 }
 
+FGameplayTag UWeapon::GetAnimTag() const
+{
+	return Config->AnimTag;
+}
+
 FText UWeapon::GetDisplayName() const
 {
 	return Config->NameOverride.IsEmpty() ? Config->Descriptor->Name : Config->NameOverride;

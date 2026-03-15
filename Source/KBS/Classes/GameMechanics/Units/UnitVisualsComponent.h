@@ -4,10 +4,11 @@
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/TacMovementTypes.h"
+#include "GameplayTagContainer.h"
 #include "UnitVisualsComponent.generated.h"
 class UUnitDefinition;
+class UUnitAnimationSet;
 class USkeletalMeshComponent;
-class UCombatDescriptor;
 class UStaticMesh;
 class UAnimMontage;
 class UNiagaraSystem;
@@ -41,7 +42,9 @@ public:
 	void SetCellSize(float InCellSize) { CachedCellSize = InCellSize; }
 	UNiagaraComponent* SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration);
 	void ReverseExtraCellOffset();
-	FBatchHandle PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, UCombatDescriptor* Weapon);
+	// Resolves a montage by tag with parent-tag fallback (e.g. Animation.Attack.Slash -> Animation.Attack)
+	UAnimMontage* ResolveAnimation(FGameplayTag Tag) const;
+	FBatchHandle PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, FGameplayTag AnimTag);
 	void ShowBattleEffect(UBattleEffect* Effect);
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UPROPERTY(BlueprintAssignable, Category = "Animation")
@@ -70,6 +73,8 @@ private:
 	UFUNCTION() void OnOwnerFieldPresenceChanged(AUnit* Unit, bool bIsOnField);
 	void OnOwnerOrientationChanged(EUnitOrientation NewOrientation);
 	static FRotator OrientationToRotation(EUnitOrientation Orientation);
+
+	TObjectPtr<UUnitAnimationSet> AnimationSet;
 
 	// Attack/ability rotation
 	FRotator PendingRotation;

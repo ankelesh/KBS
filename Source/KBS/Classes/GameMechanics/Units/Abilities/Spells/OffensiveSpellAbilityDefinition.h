@@ -1,10 +1,9 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
 #include "OffensiveSpellAbilityDefinition.generated.h"
-
-class UAnimMontage;
 
 UCLASS(BlueprintType)
 class KBS_API UOffensiveSpellAbilityDefinition : public UUnitAbilityDefinition
@@ -18,8 +17,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell|Descriptor")
 	TArray<FDescriptorEffectConfig> EmbeddedEffects;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell|Descriptor")
-	TObjectPtr<UAnimMontage> AttackMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell|Visuals")
+	FGameplayTag AnimTag;
 
 	// Scaling: embedded.BaseDamage = spellDescriptor.ModifiedDamage * DamageMultiplier + FlatDamageBonus
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell|Scaling")
