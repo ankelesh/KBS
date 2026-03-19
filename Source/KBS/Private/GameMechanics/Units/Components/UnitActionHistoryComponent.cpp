@@ -55,9 +55,9 @@ void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbilityInstanc
 
 	for (auto It = LastActionTags.CreateConstIterator(); It; ++It)
 	{
-		if (UCombatDescriptor* const* Descriptor = TagToDescriptorMap.Find(*It))
+		if (auto const* Descriptor = TagToDescriptorMap.Find(*It))
 		{
-			TArray<AUnit*> Targets = TargetingService->GetValidTargetUnits(Unit, (*Descriptor)->GetReach());
+			TArray<AUnit*> Targets = TargetingService->GetValidTargetUnits(Unit, (*Descriptor)->GetTargeting());
 			CombatSubsystem->ResolveReactionAttack(Unit, Targets, *Descriptor);
 			break;
 		}

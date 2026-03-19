@@ -66,7 +66,7 @@ void UUnitSpellbookPopup::InitializePools()
 			UActiveAbilitySlot* NewSlot = CreateWidget<UActiveAbilitySlot>(this, AbilitySlotClass);
 			if (NewSlot)
 			{
-				NewSlot->bExpandedView = true;
+				NewSlot->Expand();
 				NewSlot->SetVisibility(ESlateVisibility::Collapsed);
 				if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot>(AbilityListContainer->AddChild(NewSlot)))
 				{
@@ -92,7 +92,7 @@ UActiveAbilitySlot* UUnitSpellbookPopup::GetOrCreateAbilitySlot()
 		UActiveAbilitySlot* NewSlot = CreateWidget<UActiveAbilitySlot>(this, AbilitySlotClass);
 		if (NewSlot)
 		{
-			NewSlot->bExpandedView = true;
+			NewSlot->Expand();
 			NewSlot->SetVisibility(ESlateVisibility::Collapsed);
 			if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot>(AbilityListContainer->AddChild(NewSlot)))
 			{

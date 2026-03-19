@@ -36,6 +36,8 @@ public:
 	void Enable();   // Disabled → Enabled
 	void Disable();  // Enabled/Selected → Disabled
 	void Hide();     // Any → Hidden
+	void Expand() {bExpandedView = true;}
+	void Collapse() {bExpandedView = false;}
 
 	bool HasAbility(UUnitAbilityInstance* Ability) const;
 protected:

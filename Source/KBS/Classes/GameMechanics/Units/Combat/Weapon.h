@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
+#include "WeaponDataAsset.h"
 #include "Weapon.generated.h"
 
 class UWeaponDataAsset;
