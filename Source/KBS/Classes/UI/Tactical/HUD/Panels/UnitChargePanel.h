@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "GameplayTagContainer.h"
-#include "UnitChargeWidget.generated.h"
+#include "UnitChargePanel.generated.h"
 
 class AUnit;
 class UUnitChargeComponent;
@@ -15,29 +15,29 @@ class UTacTurnSubsystem;
 // Pops up on turn start if the unit has UUnitChargeComponent; hides otherwise.
 // Listens to OnChargeChanged to refresh individual slots in real time.
 UCLASS(Blueprintable)
-class KBS_API UUnitChargeWidget : public UUserWidget
+class KBS_API UUnitChargePanel : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Unit Charge Widget")
+	UFUNCTION(BlueprintCallable, Category = "Unit Charge Panel")
 	void Clear();
 
 	// --- BP hooks for visual events ---
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Widget|Events")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Panel|Events")
 	void BP_OnUnitSet(AUnit* NewUnit);
 
 	// Called when unit has no charge component — hide your root here
-	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Widget|Events")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Panel|Events")
 	void BP_OnHidden();
 
 	// Called after all slots are rebuilt
-	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Widget|Events")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Panel|Events")
 	void BP_OnCountersRefreshed(int32 CounterCount);
 
 	// Called each time a single charge value changes
-	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Widget|Events")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Unit Charge Panel|Events")
 	void BP_OnChargeChanged(const FGameplayTag& Tag, int32 NewValue);
 
 protected:
