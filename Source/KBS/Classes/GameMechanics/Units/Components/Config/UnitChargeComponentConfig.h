@@ -14,6 +14,9 @@ struct KBS_API FUnitChargeComponentEntry
 	FGameplayTag Tag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Charges")
+	FText DisplayName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Charges")
 	int32 CounterMax = 0;
 
 	// -1 = start at CounterMax

@@ -22,6 +22,7 @@ public:
 	void DropCharge(const FGameplayTag& Tag);
 
 	int32 GetCharge(const FGameplayTag& Tag) const;
+	FText GetChargeName(const FGameplayTag& Tag) const;
 	TArray<FGameplayTag> GetTrackedTags() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Charges")
@@ -30,4 +31,5 @@ public:
 private:
 	TMap<FGameplayTag, int32> ChargePool;
 	TMap<FGameplayTag, int32> ChargeCaps;
+	TMap<FGameplayTag, FText> ChargeNames;
 };

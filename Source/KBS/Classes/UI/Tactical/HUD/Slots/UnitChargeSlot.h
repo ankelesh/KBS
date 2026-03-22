@@ -16,11 +16,11 @@ class KBS_API UUnitChargeSlot : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void SetupSlot(const FGameplayTag& Tag, int32 Value, TSoftObjectPtr<UTexture2D> Icon);
+	void SetupSlot(const FGameplayTag& Tag, int32 Value, const FText& Name, TSoftObjectPtr<UTexture2D> Icon);
 	void UpdateValue(int32 NewValue);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Charge Slot|Events")
-	void BP_OnSetup(const FGameplayTag& Tag, int32 Value);
+	void BP_OnSetup(const FGameplayTag& Tag, int32 Value, const FText& Name);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Charge Slot|Events")
 	void BP_OnValueChanged(int32 NewValue);
@@ -28,6 +28,9 @@ public:
 protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UImage> ChargeIcon;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> ChargeNameText;
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> ChargeValueText;
