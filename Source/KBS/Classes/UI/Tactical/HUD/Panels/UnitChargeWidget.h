@@ -51,6 +51,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Widget Classes")
 	TSubclassOf<UUnitChargeSlot> ChargeSlotClass;
 
+	// Optional: pin display order and/or filter to a subset of tags.
+	// If empty, all tracked tags are shown sorted alphabetically by tag name.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Charges")
+	TArray<FGameplayTag> TagsToDisplay;
+
 private:
 	UFUNCTION()
 	void OnTurnStarted(AUnit* Unit);
@@ -59,6 +64,7 @@ private:
 	void OnChargeChangedHandler(const FGameplayTag& Tag, int32 NewValue);
 
 	void SetupForUnit(AUnit* Unit);
+	// Builds slots in TagsToDisplay order, or alphabetically if TagsToDisplay is empty
 	void RebuildSlots(UUnitChargeComponent* Component);
 	void UnbindFromCurrentComponent();
 
