@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "Engine/Texture2D.h"
 #include "GameplayTagContainer.h"
 #include "GameMechanics/Units/Components/Config/UnitComponentConfig.h"
 #include "UnitChargeComponentConfig.generated.h"
@@ -18,6 +19,9 @@ struct KBS_API FUnitChargeComponentEntry
 	// -1 = start at CounterMax
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Charges")
 	int32 CounterStart = -1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Charges")
+	TSoftObjectPtr<UTexture2D> Icon;
 };
 
 USTRUCT(BlueprintType)
