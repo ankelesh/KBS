@@ -1,8 +1,8 @@
 #include "GameMechanics/Units/Abilities/AbilityFactory.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Unit.h"
-UUnitAbilityInstance* UAbilityFactory::CreateAbilityFromDefinition(UUnitAbilityDefinition* Definition, AUnit* Owner)
+UUnitAbility* UAbilityFactory::CreateAbilityFromDefinition(UUnitAbilityDefinition* Definition, AUnit* Owner)
 {
 	if (!Definition || !Owner)
 	{
@@ -14,7 +14,7 @@ UUnitAbilityInstance* UAbilityFactory::CreateAbilityFromDefinition(UUnitAbilityD
 		UE_LOG(LogTemp, Warning, TEXT("AbilityFactory: AbilityClass not set in definition '%s'"), *Definition->GetName());
 		return nullptr;
 	}
-	UUnitAbilityInstance* NewAbility = NewObject<UUnitAbilityInstance>(Owner, Definition->AbilityClass);
+	UUnitAbility* NewAbility = NewObject<UUnitAbility>(Owner, Definition->AbilityClass);
 	if (!NewAbility)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AbilityFactory: Failed to instantiate ability class '%s'"), *Definition->AbilityClass->GetName());

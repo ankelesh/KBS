@@ -3,6 +3,7 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
 #include "UI/Tactical/HUD/TacticalHUD.h"
 #include "UI/Tactical/HUD/Snapshots/BattleEffectSlotSnapshot.h"
 #include "UI/Tactical/Controller/TacticalGameController.h"
@@ -119,10 +120,10 @@ void UHoveredUnitPanel::RefreshPortrait(AUnit* Unit)
 		return;
 	}
 
-	UUnitDefinition* UnitDef = Unit->GetUnitDefinition();
-	if (UnitDef && UnitDef->Portrait)
+	UUnitVisualDefinition* VisualDef = Unit->GetActiveVisualDefinition();
+	if (VisualDef && VisualDef->Portrait)
 	{
-		UnitPortraitImage->SetBrushFromTexture(UnitDef->Portrait);
+		UnitPortraitImage->SetBrushFromTexture(VisualDef->Portrait);
 		// Portrait mirroring should be handled in Blueprint via RenderTransform
 	}
 	else

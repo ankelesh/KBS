@@ -8,7 +8,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 
 void UActiveAbilitySlot::NativeConstruct()
 {
@@ -69,7 +69,7 @@ void UActiveAbilitySlot::OnSlotButtonClicked()
 	}
 }
 
-void UActiveAbilitySlot::SetAbility(UUnitAbilityInstance* NewAbility)
+void UActiveAbilitySlot::SetAbility(UUnitAbility* NewAbility)
 {
 	// Unbind from previous ability
 	if (BoundAbility)
@@ -126,7 +126,7 @@ void UActiveAbilitySlot::SetAbility(UUnitAbilityInstance* NewAbility)
 	UpdateNameDisplay();
 }
 
-void UActiveAbilitySlot::BindToAbility(UUnitAbilityInstance* Ability)
+void UActiveAbilitySlot::BindToAbility(UUnitAbility* Ability)
 {
 	// Unbind from previous ability
 	if (BoundAbility)
@@ -174,7 +174,7 @@ void UActiveAbilitySlot::Clean()
 	Hide();
 }
 
-void UActiveAbilitySlot::OnAbilityAvailabilityChanged(const UUnitAbilityInstance* Ability, bool bAvailable)
+void UActiveAbilitySlot::OnAbilityAvailabilityChanged(const UUnitAbility* Ability, bool bAvailable)
 {
 	if (!Ability || Ability != BoundAbility) return;
 	// Transition based on availability - always goes to Enabled, not Selected
@@ -229,7 +229,7 @@ void UActiveAbilitySlot::Hide()
 	ApplyHiddenVisuals();
 }
 
-bool UActiveAbilitySlot::HasAbility(UUnitAbilityInstance* Ability) const
+bool UActiveAbilitySlot::HasAbility(UUnitAbility* Ability) const
 {
 	return (Ability == BoundAbility);
 }

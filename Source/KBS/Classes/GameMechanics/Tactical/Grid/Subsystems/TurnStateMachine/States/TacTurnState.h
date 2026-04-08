@@ -27,7 +27,7 @@ enum class ETurnProcessingSubstate : uint8
 	EProcessingEndState
 };
 class AUnit;
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UTacTurnSubsystem;
 class FTacTurnOrder;
 class UTacAICombatService;
@@ -42,7 +42,7 @@ public:
 	virtual void Exit();
 	virtual void UnitClicked(AUnit * Unit) {}
 	virtual void CellClicked(FTacCoordinates Cell) {}
-	virtual void AbilityClicked(UUnitAbilityInstance * Ability) {}
+	virtual void AbilityClicked(UUnitAbility * Ability) {}
 	virtual void OnPresentationComplete() {}
 	void SetParentTurnSubsystem(UTacTurnSubsystem * Parent) { ParentTurnSubsystem = Parent; };
 	virtual ETurnProcessingSubstate CanReleaseState(){ return TurnProcessing; };

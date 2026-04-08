@@ -1,6 +1,6 @@
 #include "GameplayTypes/CombatTypes.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
 
@@ -20,7 +20,7 @@ FHitInstance::FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UCombatDescri
 {
 }
 
-void FHitInstance::Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled)
+void FHitInstance::Interfere(UUnitAbility* Ability, bool bIsCancelled)
 {
 	InterferingAbilities.Add(Ability);
 	bIsHitCancelled |= bIsCancelled;
@@ -60,7 +60,7 @@ FCombatContext::FCombatContext(AUnit* AttackerUnit, UCombatDescriptor* Descripto
 	}
 }
 
-void FCombatContext::Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled)
+void FCombatContext::Interfere(UUnitAbility* Ability, bool bIsCancelled)
 {
 	InterferingAbilities.Add(Ability);
 	bIsAttackCancelled |= bIsCancelled;

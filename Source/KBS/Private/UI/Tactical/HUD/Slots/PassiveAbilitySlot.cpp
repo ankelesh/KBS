@@ -2,7 +2,7 @@
 #include "Components/Image.h"
 #include "Blueprint/WidgetTree.h"
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 
 void UPassiveAbilitySlot::NativeConstruct()
 {
@@ -19,7 +19,7 @@ void UPassiveAbilitySlot::NativeDestruct()
 	Super::NativeDestruct();
 }
 
-void UPassiveAbilitySlot::SetupFromAbility(UUnitAbilityInstance* Ability, bool bBindToEvents)
+void UPassiveAbilitySlot::SetupFromAbility(UUnitAbility* Ability, bool bBindToEvents)
 {
 	// Clear previous state
 	Clear();

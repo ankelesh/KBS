@@ -13,10 +13,10 @@ class UAbilityPanel;
 class UOverlay;
 class UCanvasPanel;
 class AUnit;
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UTacTurnSubsystem;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpellbookAbilitySelected, UUnitAbilityInstance*, Ability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpellbookAbilitySelected, UUnitAbility*, Ability);
 
 UCLASS(Blueprintable)
 class KBS_API UTacticalHUD : public UKbsHUD
@@ -102,10 +102,10 @@ private:
 	void OnSpellbookPopupCloseRequested();
 
 	UFUNCTION()
-	void HandleSpellbookAbilitySelected(UUnitAbilityInstance* Ability);
+	void HandleSpellbookAbilitySelected(UUnitAbility* Ability);
 
 	UFUNCTION()
-	void HandleAbilityPanelAbilitySelected(UUnitAbilityInstance* Ability);
+	void HandleAbilityPanelAbilitySelected(UUnitAbility* Ability);
 
 	UPROPERTY()
 	TObjectPtr<UTacTurnSubsystem> TurnSubsystem = nullptr;

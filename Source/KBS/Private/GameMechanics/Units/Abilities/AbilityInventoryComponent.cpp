@@ -1,14 +1,14 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Abilities/AbilityFactory.h"
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacAbilityEventSubsystem.h"
-#include "GameMechanics/Units/Abilities/Defaults/UnitAutoAttackAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/UnitMovementAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/UnitWaitAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/UnitDefendAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/UnitFleeAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/AutoAttackAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/MovementAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/WaitAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/DefendAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/FleeAbility.h"
 #include "GameMechanics/Units/Unit.h"
 UAbilityInventoryComponent::UAbilityInventoryComponent()
 {
@@ -28,7 +28,7 @@ void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition*
 	auto CreateAndRegister = [&](UUnitAbilityDefinition* AbilityDef, EDefaultAbilitySlot Slot)
 	{
 		if (!AbilityDef) return;
-		UUnitAbilityInstance* Ability = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
+		UUnitAbility* Ability = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
 		if (!Ability) return;
 		SetDefaultAbility(Slot, Ability);
 		AddActiveAbility(Ability);
@@ -42,7 +42,7 @@ void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition*
 	for (UUnitAbilityDefinition* AbilityDef : Definition->AdditionalAbilities)
 	{
 		if (!AbilityDef) continue;
-		UUnitAbilityInstance* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
+		UUnitAbility* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
 		if (!NewAbility) continue;
 		if (NewAbility->IsPassive()) AddPassiveAbility(NewAbility);
 		else AddActiveAbility(NewAbility);
@@ -50,7 +50,7 @@ void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition*
 	for (UUnitAbilityDefinition* AbilityDef : Definition->SpellbookAbilities)
 	{
 		if (!AbilityDef) continue;
-		UUnitAbilityInstance* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
+		UUnitAbility* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
 		if (!NewAbility) continue;
 		AddSpellbookAbility(NewAbility);
 	}
@@ -58,14 +58,14 @@ void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition*
 	// Passives are already subscribed individually inside AddPassiveAbility().
 	// RegisterPassives() is reserved for re-registration after an explicit Unregister cycle.
 }
-UUnitAbilityInstance* UAbilityInventoryComponent::GetCurrentActiveAbility() const
+UUnitAbility* UAbilityInventoryComponent::GetCurrentActiveAbility() const
 {
 	return CurrentActiveAbility;
 }
-TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAvailableActiveAbilities() const
+TArray<UUnitAbility*> UAbilityInventoryComponent::GetAvailableActiveAbilities() const
 {
-	TArray<UUnitAbilityInstance*> Result;
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
+	TArray<UUnitAbility*> Result;
+	for (const TObjectPtr<UUnitAbility>& Ability : AvailableActiveAbilities)
 	{
 		if (IsAbilityAvailable(Ability))
 		{
@@ -74,44 +74,44 @@ TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetAvailableActiveAbil
 	}
 	return Result;
 }
-TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetPassiveAbilities() const
+TArray<UUnitAbility*> UAbilityInventoryComponent::GetPassiveAbilities() const
 {
-	TArray<UUnitAbilityInstance*> Result;
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : PassiveAbilities)
+	TArray<UUnitAbility*> Result;
+	for (const TObjectPtr<UUnitAbility>& Ability : PassiveAbilities)
 	{
 		Result.Add(Ability);
 	}
 	return Result;
 }
-void UAbilityInventoryComponent::EquipAbility(UUnitAbilityInstance* Ability)
+void UAbilityInventoryComponent::EquipAbility(UUnitAbility* Ability)
 {
 	check(Ability);
 	if (CurrentActiveAbility) CurrentActiveAbility->ChangeSelection(false);
 	CurrentActiveAbility = Ability;
 	CurrentActiveAbility->ChangeSelection(true);
 }
-void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
+void UAbilityInventoryComponent::AddActiveAbility(UUnitAbility* Ability)
 {
 	check(Ability);
 	checkf(!Ability->IsPassive(), TEXT("AbilityInventory: passive ability passed to AddActiveAbility"));
 
-	if (Ability->IsA<UUnitAutoAttackAbility>())
+	if (Ability->IsA<UAutoAttackAbility>())
 	{
 		DefaultAttackAbility = Ability;
 	}
-	else if (Ability->IsA<UUnitMovementAbility>())
+	else if (Ability->IsA<UMovementAbility>())
 	{
 		DefaultMoveAbility = Ability;
 	}
-	else if (Ability->IsA<UUnitWaitAbility>())
+	else if (Ability->IsA<UWaitAbility>())
 	{
 		DefaultWaitAbility = Ability;
 	}
-	else if (Ability->IsA<UUnitDefendAbility>())
+	else if (Ability->IsA<UDefendAbility>())
 	{
 		DefaultDefendAbility = Ability;
 	}
-	else if (Ability->IsA<UUnitFleeAbility>())
+	else if (Ability->IsA<UFleeAbility>())
 	{
 		DefaultFleeAbility = Ability;
 	}
@@ -122,7 +122,7 @@ void UAbilityInventoryComponent::AddActiveAbility(UUnitAbilityInstance* Ability)
 
 	Ability->Subscribe();
 }
-void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability)
+void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbility* Ability)
 {
 	check(Ability);
 	checkf(Ability->IsPassive(), TEXT("AbilityInventory: non-passive ability passed to AddPassiveAbility"));
@@ -134,7 +134,7 @@ void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbilityInstance* Ability
 	Ability->Subscribe();
 	AbilitySubsystem->RegisterAbility(Ability);
 }
-void UAbilityInventoryComponent::RemovePassiveAbility(UUnitAbilityInstance* Ability)
+void UAbilityInventoryComponent::RemovePassiveAbility(UUnitAbility* Ability)
 {
 	check(Ability);
 	UWorld* World = GetWorld();
@@ -151,7 +151,7 @@ void UAbilityInventoryComponent::RegisterPassives()
 	checkf(World, TEXT("AbilityInventory: no world in RegisterPassives"));
 	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
 	checkf(AbilitySubsystem, TEXT("AbilityInventory: TacAbilityEventSubsystem not found"));
-	for (UUnitAbilityInstance* Ability : PassiveAbilities)
+	for (UUnitAbility* Ability : PassiveAbilities)
 	{
 		if (Ability)
 		{
@@ -168,7 +168,7 @@ void UAbilityInventoryComponent::OnOwnerTurnStart(AUnit* Unit)
 
 void UAbilityInventoryComponent::OnOwnerTurnEnd(AUnit* Unit)
 {
-	auto Notify = [](UUnitAbilityInstance* Ability) { if (Ability) Ability->HandleTurnEnd(); };
+	auto Notify = [](UUnitAbility* Ability) { if (Ability) Ability->HandleTurnEnd(); };
 
 	Notify(DefaultAttackAbility);
 	Notify(DefaultMoveAbility);
@@ -176,11 +176,11 @@ void UAbilityInventoryComponent::OnOwnerTurnEnd(AUnit* Unit)
 	Notify(DefaultDefendAbility);
 	Notify(DefaultFleeAbility);
 
-	for (UUnitAbilityInstance* Ability : AvailableActiveAbilities)
+	for (UUnitAbility* Ability : AvailableActiveAbilities)
 		Notify(Ability);
-	for (UUnitAbilityInstance* Ability : SpellbookAbilities)
+	for (UUnitAbility* Ability : SpellbookAbilities)
 		Notify(Ability);
-	for (UUnitAbilityInstance* Ability : PassiveAbilities)
+	for (UUnitAbility* Ability : PassiveAbilities)
 		Notify(Ability);
 	AbilityContext.ClearTurnData();
 }
@@ -191,7 +191,7 @@ void UAbilityInventoryComponent::UnregisterPassives()
 	checkf(World, TEXT("AbilityInventory: no world in UnregisterPassives"));
 	UTacAbilityEventSubsystem* AbilitySubsystem = World->GetSubsystem<UTacAbilityEventSubsystem>();
 	checkf(AbilitySubsystem, TEXT("AbilityInventory: TacAbilityEventSubsystem not found"));
-	for (UUnitAbilityInstance* Ability : PassiveAbilities)
+	for (UUnitAbility* Ability : PassiveAbilities)
 	{
 		if (Ability)
 		{
@@ -223,7 +223,7 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetActiveAbilitiesDispla
 	{
 		DisplayDataArray.Add(DefaultFleeAbility->GetAbilityDisplayData());
 	}
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
+	for (const TObjectPtr<UUnitAbility>& Ability : AvailableActiveAbilities)
 	{
 		if (Ability && IsAbilityAvailable(Ability))
 		{
@@ -235,7 +235,7 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetActiveAbilitiesDispla
 TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetPassiveAbilitiesDisplayData() const
 {
 	TArray<FAbilityDisplayData> DisplayDataArray;
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : PassiveAbilities)
+	for (const TObjectPtr<UUnitAbility>& Ability : PassiveAbilities)
 	{
 		if (Ability)
 		{
@@ -244,7 +244,7 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetPassiveAbilitiesDispl
 	}
 	return DisplayDataArray;
 }
-void UAbilityInventoryComponent::SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbilityInstance* Ability)
+void UAbilityInventoryComponent::SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbility* Ability)
 {
 	switch (Slot)
 	{
@@ -265,7 +265,7 @@ void UAbilityInventoryComponent::SetDefaultAbility(EDefaultAbilitySlot Slot, UUn
 		break;
 	}
 }
-UUnitAbilityInstance* UAbilityInventoryComponent::GetDefaultAbility(EDefaultAbilitySlot Slot) const
+UUnitAbility* UAbilityInventoryComponent::GetDefaultAbility(EDefaultAbilitySlot Slot) const
 {
 	switch (Slot)
 	{
@@ -292,7 +292,7 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 	}
 
 	// Prefer default attack slot, then remaining defaults, then extras; spellbook excluded
-	for (UUnitAbilityInstance* Candidate : {
+	for (UUnitAbility* Candidate : {
 		DefaultAttackAbility.Get(),
 		DefaultMoveAbility.Get(),
 		DefaultWaitAbility.Get(),
@@ -306,7 +306,7 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 		}
 	}
 
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
+	for (const TObjectPtr<UUnitAbility>& Ability : AvailableActiveAbilities)
 	{
 		if (Ability)
 		{
@@ -349,7 +349,7 @@ bool UAbilityInventoryComponent::HasAnyAbilityAvailable() const
 	}
 
 	// Check other active abilities
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : AvailableActiveAbilities)
+	for (const TObjectPtr<UUnitAbility>& Ability : AvailableActiveAbilities)
 	{
 		if (IsAbilityAvailable(Ability))
 		{
@@ -361,14 +361,14 @@ bool UAbilityInventoryComponent::HasAnyAbilityAvailable() const
 }
 
 // Spellbook methods
-TArray<UUnitAbilityInstance*> UAbilityInventoryComponent::GetSpellbookAbilities() const
+TArray<UUnitAbility*> UAbilityInventoryComponent::GetSpellbookAbilities() const
 {
-	TArray<UUnitAbilityInstance*> Result;
+	TArray<UUnitAbility*> Result;
 	if (!IsSpellbookAvailable())
 	{
 		return Result;
 	}
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : SpellbookAbilities)
+	for (const TObjectPtr<UUnitAbility>& Ability : SpellbookAbilities)
 	{
 		Result.Add(Ability);
 	}
@@ -382,7 +382,7 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetSpellbookDisplayData(
 	{
 		return DisplayDataArray;
 	}
-	for (const TObjectPtr<UUnitAbilityInstance>& Ability : SpellbookAbilities)
+	for (const TObjectPtr<UUnitAbility>& Ability : SpellbookAbilities)
 	{
 		if (Ability)
 		{
@@ -405,7 +405,7 @@ bool UAbilityInventoryComponent::IsSpellbookAvailable() const
 	return false;
 }
 
-void UAbilityInventoryComponent::AddSpellbookAbility(UUnitAbilityInstance* Ability)
+void UAbilityInventoryComponent::AddSpellbookAbility(UUnitAbility* Ability)
 {
 	check(Ability);
 	SpellbookAbilities.Add(Ability);
@@ -456,7 +456,7 @@ const FUnitStatusContainer* UAbilityInventoryComponent::GetOwnerStatus() const
 	return &OwnerUnit->GetStats().Status;
 }
 
-bool UAbilityInventoryComponent::IsDefaultAbility(UUnitAbilityInstance* Ability) const
+bool UAbilityInventoryComponent::IsDefaultAbility(UUnitAbility* Ability) const
 {
 	if (!Ability)
 	{
@@ -469,7 +469,7 @@ bool UAbilityInventoryComponent::IsDefaultAbility(UUnitAbilityInstance* Ability)
 		   Ability == DefaultFleeAbility;
 }
 
-bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbilityInstance* Ability) const
+bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbility* Ability) const
 {
 	if (!Ability)
 	{

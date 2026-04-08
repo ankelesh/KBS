@@ -1,7 +1,7 @@
 #include "GameMechanics/Units/Abilities/Spells/OffensiveSpellAbility.h"
 #include "GameMechanics/Units/Abilities/Spells/OffensiveSpellAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"

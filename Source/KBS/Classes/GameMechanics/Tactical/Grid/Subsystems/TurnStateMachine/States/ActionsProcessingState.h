@@ -11,7 +11,7 @@ public:
 	virtual void Exit() override;
 	virtual void UnitClicked(AUnit* Unit) override;
 	virtual void CellClicked(FTacCoordinates Cell) override;
-	virtual void AbilityClicked(UUnitAbilityInstance* Ability) override;
+	virtual void AbilityClicked(UUnitAbility* Ability) override;
 	virtual void OnPresentationComplete() override;
 	virtual ETurnState NextState() override;
 

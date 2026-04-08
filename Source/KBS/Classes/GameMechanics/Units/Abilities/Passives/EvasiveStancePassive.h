@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "EvasiveStancePassive.generated.h"
 
 /**
@@ -14,7 +14,7 @@
  *   Unsubscribe()           — unbinds on ability removal
  */
 UCLASS()
-class KBS_API UEvasiveStancePassive : public UUnitAbilityInstance
+class KBS_API UEvasiveStancePassive : public UUnitAbility
 {
 	GENERATED_BODY()
 public:

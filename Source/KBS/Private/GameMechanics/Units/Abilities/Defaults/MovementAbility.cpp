@@ -1,4 +1,4 @@
-#include "GameMechanics/Units/Abilities/Defaults/UnitMovementAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/MovementAbility.h"
 #include "GameMechanics/Units/Abilities/Defaults/MovementAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
@@ -6,16 +6,16 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameplayTypes/GridCoordinates.h"
 
-FTargetingDescriptor UUnitMovementAbility::GetTargeting() const
+FTargetingDescriptor UMovementAbility::GetTargeting() const
 {
 	const UMovementAbilityDefinition* MoveDef = CastChecked<UMovementAbilityDefinition>(Config);
-	checkf(Owner, TEXT("UUnitMovementAbility::GetTargeting called without an owner"));
+	checkf(Owner, TEXT("UMovementAbility::GetTargeting called without an owner"));
 	return Owner->GetGridMetadata().Coords.Layer == ETacGridLayer::Air
 		? MoveDef->AirTargeting
 		: MoveDef->GroundTargeting;
 }
 
-FAbilityExecutionResult UUnitMovementAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UMovementAbility::Execute(FTacCoordinates TargetCell)
 {
 	check(Owner);
 	UTacGridMovementService* MovementService = GetMovementService();
@@ -31,7 +31,7 @@ FAbilityExecutionResult UUnitMovementAbility::Execute(FTacCoordinates TargetCell
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
-bool UUnitMovementAbility::CanExecute(FTacCoordinates TargetCell) const
+bool UMovementAbility::CanExecute(FTacCoordinates TargetCell) const
 {
 	check(Owner);
 	if (RemainingCharges <= 0) return false;
@@ -42,7 +42,7 @@ bool UUnitMovementAbility::CanExecute(FTacCoordinates TargetCell) const
 	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, GetTargeting());
 }
 
-bool UUnitMovementAbility::CanExecute() const
+bool UMovementAbility::CanExecute() const
 {
 	check(Owner);
 	if (!RemainingCharges) return false;
@@ -53,7 +53,7 @@ bool UUnitMovementAbility::CanExecute() const
 	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
 }
 
-FGameplayTagContainer UUnitMovementAbility::BuildTags() const
+FGameplayTagContainer UMovementAbility::BuildTags() const
 {
 	FGameplayTagContainer Tags = Super::BuildTags();
 	Tags.AddTag(TAG_ABILITY_MOVEMENT);

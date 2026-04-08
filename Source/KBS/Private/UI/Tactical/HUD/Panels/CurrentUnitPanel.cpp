@@ -3,8 +3,9 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "UI/Tactical/HUD/TacticalHUD.h"
 #include "UI/Tactical/HUD/Slots/BattleEffectSlot.h"
@@ -177,10 +178,10 @@ void UCurrentUnitPanel::RefreshPortrait(AUnit* Unit)
 		return;
 	}
 
-	UUnitDefinition* UnitDef = Unit->GetUnitDefinition();
-	if (UnitDef && UnitDef->Portrait)
+	UUnitVisualDefinition* VisualDef = Unit->GetActiveVisualDefinition();
+	if (VisualDef && VisualDef->Portrait)
 	{
-		UnitPortraitImage->SetBrushFromTexture(UnitDef->Portrait);
+		UnitPortraitImage->SetBrushFromTexture(VisualDef->Portrait);
 	}
 	else
 	{
@@ -285,7 +286,7 @@ void UCurrentUnitPanel::RefreshPassiveAbilities(AUnit* Unit)
 		return;
 	}
 
-	TArray<UUnitAbilityInstance*> PassiveAbilities = AbilityInventory->GetPassiveAbilities();
+	TArray<UUnitAbility*> PassiveAbilities = AbilityInventory->GetPassiveAbilities();
 
 	// Ensure we have enough slots (up to MAX_PASSIVE_SLOTS)
 	int32 NumNeeded = FMath::Min(PassiveAbilities.Num(), MAX_PASSIVE_SLOTS);

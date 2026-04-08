@@ -1,5 +1,5 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacAbilityEventSubsystem.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 
 
@@ -31,7 +31,7 @@ void UTacAbilityEventSubsystem::UnregisterUnit(AUnit* Unit)
 	}
 	RegisteredUnits.Remove(Unit);
 }
-void UTacAbilityEventSubsystem::RegisterAbility(UUnitAbilityInstance* Ability)
+void UTacAbilityEventSubsystem::RegisterAbility(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{
@@ -40,11 +40,11 @@ void UTacAbilityEventSubsystem::RegisterAbility(UUnitAbilityInstance* Ability)
 	for (int32 i = 0; i < (int32)EAbilityEventType::OnUnitAttacks + 1; i++)
 	{
 		EAbilityEventType EventType = (EAbilityEventType)i;
-		TArray<UUnitAbilityInstance*>& Abilities = RegisteredAbilities.FindOrAdd(EventType);
+		TArray<UUnitAbility*>& Abilities = RegisteredAbilities.FindOrAdd(EventType);
 		Abilities.AddUnique(Ability);
 	}
 }
-void UTacAbilityEventSubsystem::UnregisterAbility(UUnitAbilityInstance* Ability)
+void UTacAbilityEventSubsystem::UnregisterAbility(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{

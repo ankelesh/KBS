@@ -9,7 +9,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogKBSAI, Log, All);
 class AUnit;
 class UTacGridSubsystem;
 class UTacCombatSubsystem;
-class UUnitAbilityInstance;
+class UUnitAbility;
 
 USTRUCT()
 struct FAiDecision
@@ -17,7 +17,7 @@ struct FAiDecision
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TObjectPtr<UUnitAbilityInstance> AbilityToUse = nullptr;
+	TObjectPtr<UUnitAbility> AbilityToUse = nullptr;
 
 	FTacCoordinates TargetCell;
 	bool bHasDecision = false;

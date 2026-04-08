@@ -2,7 +2,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/TacTurnOrder.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
@@ -74,7 +74,7 @@ void FActionsProcessingState::UnitClicked(AUnit* Unit)
 	}
 }
 
-void FActionsProcessingState::AbilityClicked(UUnitAbilityInstance* Ability)
+void FActionsProcessingState::AbilityClicked(UUnitAbility* Ability)
 {
 	if (Ability && TurnProcessing == ETurnProcessingSubstate::EAwaitingInputState)
 	{
@@ -95,7 +95,7 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 	if (!ExecutorService) return;
 
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
-	UUnitAbilityInstance* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
+	UUnitAbility* Ability = CurrentUnit->GetAbilityInventory()->GetCurrentActiveAbility();
 
 	UE_LOG(LogKBSTurn, Log, TEXT("[Input] Ability '%s' -> cell [%d,%d]"),
 	       *Ability->GetConfig()->AbilityName, TargetCell.Row, TargetCell.Col);
@@ -174,7 +174,7 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 	if (Inventory->HasAnyAbilityAvailable())
 	{
 		Inventory->EnsureValidAbility();
-		UUnitAbilityInstance* CurrentAbility = Inventory->GetCurrentActiveAbility();
+		UUnitAbility* CurrentAbility = Inventory->GetCurrentActiveAbility();
 
 		UE_LOG(LogKBSTurn, Log, TEXT("Awaiting player input: %s | ability: %s"),
 		       *CurrentUnit->GetLogName(), *CurrentAbility->GetAbilityDisplayData().AbilityName);

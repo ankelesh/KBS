@@ -6,10 +6,10 @@
 
 class AUnit;
 class UActiveAbilitySlot;
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UHorizontalBox;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDefaultAbilitiesPanelOnAbilitySelected, UUnitAbilityInstance*, Ability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDefaultAbilitiesPanelOnAbilitySelected, UUnitAbility*, Ability);
 
 // Panel for default unit abilities (Attack, Move, Wait, Defend, Flee)
 // Transits child slot selection events to parent, manages 5 fixed ability slots
@@ -32,7 +32,7 @@ public:
 
 	// Select ability in matching slot (deselects all others)
 	UFUNCTION(BlueprintCallable, Category = "Default Abilities Panel")
-	void SelectAbility(UUnitAbilityInstance* Ability);
+	void SelectAbility(UUnitAbility* Ability);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -60,5 +60,5 @@ protected:
 
 private:
 	UFUNCTION()
-	void OnChildAbilitySelected(UUnitAbilityInstance* Ability);
+	void OnChildAbilitySelected(UUnitAbility* Ability);
 };

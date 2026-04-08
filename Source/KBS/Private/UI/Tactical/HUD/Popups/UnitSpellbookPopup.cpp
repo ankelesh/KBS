@@ -1,7 +1,7 @@
 #include "UI/Tactical/HUD/Popups/UnitSpellbookPopup.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "UI/Tactical/HUD/Slots/ActiveAbilitySlot.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -159,9 +159,9 @@ void UUnitSpellbookPopup::PopulateAbilities(AUnit* Unit)
 	checkf(AbilityInventory, TEXT("UnitSpellbookPopup::PopulateAbilities - Unit has no AbilityInventory"));
 
 	// Get spellbook abilities
-	TArray<UUnitAbilityInstance*> SpellbookAbilities = AbilityInventory->GetSpellbookAbilities();
+	TArray<UUnitAbility*> SpellbookAbilities = AbilityInventory->GetSpellbookAbilities();
 
-	for (UUnitAbilityInstance* Ability : SpellbookAbilities)
+	for (UUnitAbility* Ability : SpellbookAbilities)
 	{
 		if (!Ability) continue;
 
@@ -187,7 +187,7 @@ void UUnitSpellbookPopup::OnCloseButtonClicked()
 	bIsProcessingClick = false;
 }
 
-void UUnitSpellbookPopup::OnAbilitySlotClicked(UUnitAbilityInstance* Ability)
+void UUnitSpellbookPopup::OnAbilitySlotClicked(UUnitAbility* Ability)
 {
 	// Multiclick protection
 	if (bIsProcessingClick) return;

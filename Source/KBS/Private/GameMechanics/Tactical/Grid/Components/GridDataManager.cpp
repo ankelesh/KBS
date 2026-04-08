@@ -1,7 +1,7 @@
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"

@@ -1,10 +1,10 @@
 #include "UI/Tactical/HUD/Snapshots/ActiveAbilitySlotSnapshot.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 
-void UActiveAbilitySlotSnapshot::SetupFromAbility(UUnitAbilityInstance* Ability)
+void UActiveAbilitySlotSnapshot::SetupFromAbility(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{

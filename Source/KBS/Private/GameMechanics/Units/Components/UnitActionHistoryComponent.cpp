@@ -1,6 +1,6 @@
 #include "GameMechanics/Units/Components/UnitActionHistoryComponent.h"
 #include "GameMechanics/Units/Components/Config/UnitActionHistoryCmpConfig.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
@@ -49,7 +49,7 @@ void UUnitActionHistoryComponent::ResetSequence()
 	CurrentSequenceStep = 0;
 }
 
-void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbilityInstance* Ability)
+void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbility* Ability)
 {
 	LastActionTags = Ability->GetTags();
 

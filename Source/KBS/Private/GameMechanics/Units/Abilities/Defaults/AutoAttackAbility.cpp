@@ -1,7 +1,7 @@
-#include "GameMechanics/Units/Abilities/Defaults/UnitAutoAttackAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/AutoAttackAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
@@ -12,7 +12,7 @@
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 
-TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(FTacCoordinates TargetCell) const
+TMap<FTacCoordinates, FPreviewHitResult> UAutoAttackAbility::DamagePreview(FTacCoordinates TargetCell) const
 {
 	TMap<FTacCoordinates, FPreviewHitResult> Results;
 	if (!Owner) return Results;
@@ -39,7 +39,7 @@ TMap<FTacCoordinates, FPreviewHitResult> UUnitAutoAttackAbility::DamagePreview(F
 	return Results;
 }
 
-FAbilityExecutionResult UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 {
 	check(Owner);
 	UTacCombatSubsystem* CombatSubsystem = GetCombatSubsystem();
@@ -77,7 +77,7 @@ FAbilityExecutionResult UUnitAutoAttackAbility::Execute(FTacCoordinates TargetCe
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
-bool UUnitAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
+bool UAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 {
 	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
@@ -86,7 +86,7 @@ bool UUnitAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 	return TargetingService->HasValidTargetAtCell(Owner, TargetCell, GetTargeting());
 }
 
-bool UUnitAutoAttackAbility::CanExecute() const
+bool UAutoAttackAbility::CanExecute() const
 {
 	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
@@ -96,14 +96,14 @@ bool UUnitAutoAttackAbility::CanExecute() const
 	return TargetingService->HasAnyValidTargets(Owner, GetTargeting());
 }
 
-EAbilityTurnReleasePolicy UUnitAutoAttackAbility::DecideTurnRelease() const
+EAbilityTurnReleasePolicy UAutoAttackAbility::DecideTurnRelease() const
 {
 	if (RemainingCharges > 0)
 		return EAbilityTurnReleasePolicy::Locked;
 	return Super::DecideTurnRelease();
 }
 
-FTargetingDescriptor UUnitAutoAttackAbility::GetTargeting() const
+FTargetingDescriptor UAutoAttackAbility::GetTargeting() const
 {
 	if (Config->Targeting != ETargetReach::None)
 	{
@@ -116,7 +116,7 @@ FTargetingDescriptor UUnitAutoAttackAbility::GetTargeting() const
 	return FTargetingDescriptor{};
 }
 
-FGameplayTagContainer UUnitAutoAttackAbility::BuildTags() const
+FGameplayTagContainer UAutoAttackAbility::BuildTags() const
 {
 	FGameplayTagContainer Tags = Super::BuildTags();
 	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))

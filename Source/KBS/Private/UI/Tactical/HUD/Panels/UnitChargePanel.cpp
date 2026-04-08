@@ -55,9 +55,9 @@ void UUnitChargePanel::OnTurnStarted(AUnit* Unit)
 
 void UUnitChargePanel::OnChargeChangedHandler(const FGameplayTag& Tag, int32 NewValue)
 {
-	if (UUnitChargeSlot** Slot = SlotMap.Find(Tag))
+	if (auto ChargeSlot = SlotMap.Find(Tag))
 	{
-		(*Slot)->UpdateValue(NewValue);
+		(*ChargeSlot)->UpdateValue(NewValue);
 	}
 
 	BP_OnChargeChanged(Tag, NewValue);
@@ -112,15 +112,15 @@ void UUnitChargePanel::RebuildSlots(UUnitChargeComponent* Component)
 
 	for (const FGameplayTag& Tag : Tags)
 	{
-		UUnitChargeSlot* Slot = CreateWidget<UUnitChargeSlot>(this, ChargeSlotClass);
-		if (!Slot)
+		UUnitChargeSlot* ChargeSlot = CreateWidget<UUnitChargeSlot>(this, ChargeSlotClass);
+		if (!ChargeSlot)
 		{
 			continue;
 		}
 
-		Slot->SetupSlot(Tag, Component->GetCharge(Tag), Component->GetChargeName(Tag), nullptr);
-		ChargeSlotContainer->AddChild(Slot);
-		SlotMap.Add(Tag, Slot);
+		ChargeSlot->SetupSlot(Tag, Component->GetCharge(Tag), Component->GetChargeName(Tag), nullptr);
+		ChargeSlotContainer->AddChild(ChargeSlot);
+		SlotMap.Add(Tag, ChargeSlot);
 	}
 
 	BP_OnCountersRefreshed(SlotMap.Num());

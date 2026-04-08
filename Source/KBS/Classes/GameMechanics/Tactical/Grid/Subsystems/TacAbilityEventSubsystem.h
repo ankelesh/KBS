@@ -4,7 +4,7 @@
 #include "TacAbilityEventSubsystem.generated.h"
 
 class AUnit;
-class UUnitAbilityInstance;
+class UUnitAbility;
 
 UENUM(BlueprintType)
 enum class EAbilityEventType : uint8
@@ -29,12 +29,12 @@ public:
 
 	void RegisterUnit(AUnit* Unit);
 	void UnregisterUnit(AUnit* Unit);
-	void RegisterAbility(UUnitAbilityInstance* Ability);
-	void UnregisterAbility(UUnitAbilityInstance* Ability);
+	void RegisterAbility(UUnitAbility* Ability);
+	void UnregisterAbility(UUnitAbility* Ability);
 
 
 private:
-	TMap<EAbilityEventType, TArray<UUnitAbilityInstance*>> RegisteredAbilities;
+	TMap<EAbilityEventType, TArray<UUnitAbility*>> RegisteredAbilities;
 	UPROPERTY()
 	TArray<TObjectPtr<AUnit>> RegisteredUnits;
 };

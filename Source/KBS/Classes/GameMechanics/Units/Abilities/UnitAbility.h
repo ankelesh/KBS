@@ -7,7 +7,7 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
 #include "GameplayTypes/CombatTypes.h"
-#include "UnitAbilityInstance.generated.h"
+#include "UnitAbility.generated.h"
 
 class UUnitAbilityDefinition;
 struct FPreviewHitResult;
@@ -22,10 +22,10 @@ class UTacTurnSubsystem;
 class UTacAbilityExecutorService;
 struct FCombatContext;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbilityInstance*, Ability, bool, Available);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbility*, Ability, bool, Available);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityUsed, int32, ChargesLeft, bool, Available);
 UCLASS(Abstract, Blueprintable)
-class KBS_API UUnitAbilityInstance : public UObject
+class KBS_API UUnitAbility : public UObject
 {
 	GENERATED_BODY()
 public:

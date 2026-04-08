@@ -2,7 +2,8 @@
 #include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/WeaponDataAsset.h"
 #include "GameMechanics/Units/UnitDefinition.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
@@ -38,9 +39,11 @@ void AUnit::BeginPlay()
 		//UE_LOG(LogTemp, Warning, TEXT("Unit has no UnitDefinition assigned!"));
 		return;
 	}
+	ActiveVisualDefinition = UnitDefinition->VisualDefinition;
 	if (VisualsComponent)
 	{
-		VisualsComponent->InitializeFromDefinition(UnitDefinition);
+		VisualsComponent->SetUnitSize(UnitDefinition->UnitSize);
+		VisualsComponent->InitializeFromDefinition(ActiveVisualDefinition);
 	}
 	BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
 	InitializeWeapons(UnitDefinition);
@@ -59,8 +62,10 @@ void AUnit::OnConstruction(const FTransform& Transform)
 		//UE_LOG(LogTemp, Warning, TEXT("AUnit::OnConstruction - Editor world, initializing visuals"));
 		if (UnitDefinition && VisualsComponent)
 		{
+			ActiveVisualDefinition = UnitDefinition->VisualDefinition;
+			VisualsComponent->SetUnitSize(UnitDefinition->UnitSize);
 			VisualsComponent->ClearAllMeshComponents();
-			VisualsComponent->InitializeFromDefinition(UnitDefinition);
+			VisualsComponent->InitializeFromDefinition(ActiveVisualDefinition);
 		}
 	}
 	//else
@@ -78,9 +83,19 @@ void AUnit::SetUnitDefinition(UUnitDefinition* InDefinition)
 	{
 		SetActorLabel(FString::Printf(TEXT("%s_%s"), *UnitDefinition->UnitName, *UnitID.ToString().Left(8)));
 		BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
+		ActiveVisualDefinition = UnitDefinition->VisualDefinition;
 
 		Weapons.Empty();
 		InitializeWeapons(UnitDefinition);
+	}
+}
+
+void AUnit::SwapVisualDefinition(UUnitVisualDefinition* NewVisual)
+{
+	ActiveVisualDefinition = NewVisual;
+	if (VisualsComponent)
+	{
+		VisualsComponent->SwapVisualDefinition(ActiveVisualDefinition);
 	}
 }
 
@@ -98,7 +113,7 @@ void AUnit::InitializeWeapons(const UUnitDefinition* Definition)
 FUnitDisplayData AUnit::GetDisplayData() const
 {
 	const FString Name = UnitDefinition ? UnitDefinition->UnitName : TEXT("Unknown");
-	UTexture2D* Portrait = UnitDefinition ? UnitDefinition->Portrait : nullptr;
+	UTexture2D* Portrait = ActiveVisualDefinition ? ActiveVisualDefinition->Portrait : nullptr;
 	const TArray<TObjectPtr<UBattleEffect>> Effects = EffectManager
 		                                                  ? EffectManager->GetActiveEffects()
 		                                                  : TArray<TObjectPtr<UBattleEffect>>();

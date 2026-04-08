@@ -7,7 +7,7 @@ DEFINE_LOG_CATEGORY(LogKBSAI);
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameplayTypes/AbilityTypes.h"
 
 void UTacAICombatService::Initialize(UTacGridSubsystem* InGridSubsystem, UTacCombatSubsystem* InCombatSubsystem)
@@ -32,7 +32,7 @@ FAiDecision UTacAICombatService::ThinkOverNextAction(AUnit* Unit) const
 
 bool UTacAICombatService::TryDecideAttack(AUnit* Unit, FAiDecision& OutDecision) const
 {
-	UUnitAbilityInstance* AttackAbility = Unit->GetAbilityInventory()->GetDefaultAbility(EDefaultAbilitySlot::Attack);
+	UUnitAbility* AttackAbility = Unit->GetAbilityInventory()->GetDefaultAbility(EDefaultAbilitySlot::Attack);
 	if (!AttackAbility)
 	{
 		UE_LOG(LogKBSAI, Log, TEXT("  [Attack] No default attack ability"));
@@ -60,7 +60,7 @@ bool UTacAICombatService::TryDecideAttack(AUnit* Unit, FAiDecision& OutDecision)
 
 bool UTacAICombatService::TryDecideMove(AUnit* Unit, FAiDecision& OutDecision) const
 {
-	UUnitAbilityInstance* MoveAbility = Unit->GetAbilityInventory()->GetDefaultAbility(EDefaultAbilitySlot::Move);
+	UUnitAbility* MoveAbility = Unit->GetAbilityInventory()->GetDefaultAbility(EDefaultAbilitySlot::Move);
 	if (!MoveAbility)
 	{
 		UE_LOG(LogKBSAI, Log, TEXT("  [Move] No default move ability"));
@@ -88,7 +88,7 @@ bool UTacAICombatService::TryDecideMove(AUnit* Unit, FAiDecision& OutDecision) c
 
 void UTacAICombatService::DecideWait(AUnit* Unit, FAiDecision& OutDecision) const
 {
-	UUnitAbilityInstance* WaitAbility = Unit->GetAbilityInventory()->GetDefaultAbility(EDefaultAbilitySlot::Wait);
+	UUnitAbility* WaitAbility = Unit->GetAbilityInventory()->GetDefaultAbility(EDefaultAbilitySlot::Wait);
 	if (!WaitAbility || !WaitAbility->CanExecute())
 	{
 		UE_LOG(LogKBSAI, Warning, TEXT("  [Wait] No usable wait ability"));

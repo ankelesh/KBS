@@ -2,7 +2,7 @@
 #include "UI/Tactical/HUD/Slots/ActiveAbilitySlot.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 
 void UDefaultAbilitiesPanel::NativeConstruct()
 {
@@ -56,7 +56,7 @@ void UDefaultAbilitiesPanel::SetUnit(AUnit* Unit)
 	FleeSlot->SetAbility(Inventory->GetDefaultAbility(EDefaultAbilitySlot::Flee));
 }
 
-void UDefaultAbilitiesPanel::SelectAbility(UUnitAbilityInstance* Ability)
+void UDefaultAbilitiesPanel::SelectAbility(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{
@@ -93,7 +93,7 @@ void UDefaultAbilitiesPanel::SelectAbility(UUnitAbilityInstance* Ability)
 	}
 }
 
-void UDefaultAbilitiesPanel::OnChildAbilitySelected(UUnitAbilityInstance* Ability)
+void UDefaultAbilitiesPanel::OnChildAbilitySelected(UUnitAbility* Ability)
 {
 	// Transit selection event to parent
 	OnAbilitySelected.Broadcast(Ability);

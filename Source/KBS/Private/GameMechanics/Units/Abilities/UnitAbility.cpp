@@ -1,4 +1,4 @@
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameplayTypes/TargetingDescriptor.h"
 #include "GameMechanics/Units/Unit.h"
@@ -10,7 +10,7 @@
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 
-FGameplayTagContainer UUnitAbilityInstance::GetTags() const
+FGameplayTagContainer UUnitAbility::GetTags() const
 {
 	if (!bTagsCached)
 	{
@@ -20,12 +20,12 @@ FGameplayTagContainer UUnitAbilityInstance::GetTags() const
 	return CachedTags;
 }
 
-FGameplayTagContainer UUnitAbilityInstance::BuildTags() const
+FGameplayTagContainer UUnitAbility::BuildTags() const
 {
 	return Config ? Config->ExtraTags : FGameplayTagContainer{};
 }
 
-void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
+void UUnitAbility::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition, AUnit* InOwner)
 {
 	Config = InDefinition;
 	Owner = InOwner;
@@ -35,19 +35,19 @@ void UUnitAbilityInstance::InitializeFromDefinition(UUnitAbilityDefinition* InDe
 	}
 }
 
-bool UUnitAbilityInstance::RefreshAvailability() const
+bool UUnitAbility::RefreshAvailability() const
 {
 	bool bResult = CanExecute();
 	OnAbilityAvailabilityChange.Broadcast(this, bResult);
 	return bResult;
 }
 
-FTargetingDescriptor UUnitAbilityInstance::GetTargeting() const
+FTargetingDescriptor UUnitAbility::GetTargeting() const
 {
 	return FTargetingDescriptor::FromReach(Config->Targeting);
 }
 
-bool UUnitAbilityInstance::IsPassive() const
+bool UUnitAbility::IsPassive() const
 {
 	if (Config)
 	{
@@ -56,17 +56,17 @@ bool UUnitAbilityInstance::IsPassive() const
 	return false;
 }
 
-void UUnitAbilityInstance::HandleTurnEnd()
+void UUnitAbility::HandleTurnEnd()
 {
 	RestoreCharges();
 }
 
-void UUnitAbilityInstance::ChangeSelection(bool bIsSelected)
+void UUnitAbility::ChangeSelection(bool bIsSelected)
 {
 	bIsCurrent = bIsSelected;
 }
 
-void UUnitAbilityInstance::ConsumeCharge()
+void UUnitAbility::ConsumeCharge()
 {
 	if (RemainingCharges > 0)
 	{
@@ -74,7 +74,7 @@ void UUnitAbilityInstance::ConsumeCharge()
 	}
 }
 
-void UUnitAbilityInstance::RestoreCharges()
+void UUnitAbility::RestoreCharges()
 {
 	if (Config)
 	{
@@ -82,12 +82,12 @@ void UUnitAbilityInstance::RestoreCharges()
 	}
 }
 
-void UUnitAbilityInstance::BroadcastUsage() const
+void UUnitAbility::BroadcastUsage() const
 {
 	OnAbilityUsed.Broadcast(RemainingCharges, CanExecute());
 }
 
-FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
+FAbilityDisplayData UUnitAbility::GetAbilityDisplayData() const
 {
 	FAbilityDisplayData DisplayData;
 	if (!Config)
@@ -105,7 +105,7 @@ FAbilityDisplayData UUnitAbilityInstance::GetAbilityDisplayData() const
 	return DisplayData;
 }
 
-UTacGridSubsystem* UUnitAbilityInstance::GetGridSubsystem() const
+UTacGridSubsystem* UUnitAbility::GetGridSubsystem() const
 {
 	if (!Owner) return nullptr;
 	UWorld* World = Owner->GetWorld();
@@ -113,19 +113,19 @@ UTacGridSubsystem* UUnitAbilityInstance::GetGridSubsystem() const
 	return World->GetSubsystem<UTacGridSubsystem>();
 }
 
-UTacGridMovementService* UUnitAbilityInstance::GetMovementService() const
+UTacGridMovementService* UUnitAbility::GetMovementService() const
 {
 	UTacGridSubsystem* GridSys = GetGridSubsystem();
 	return GridSys ? GridSys->GetGridMovementService() : nullptr;
 }
 
-UTacGridTargetingService* UUnitAbilityInstance::GetTargetingService() const
+UTacGridTargetingService* UUnitAbility::GetTargetingService() const
 {
 	UTacGridSubsystem* GridSys = GetGridSubsystem();
 	return GridSys ? GridSys->GetGridTargetingService() : nullptr;
 }
 
-UTacCombatSubsystem* UUnitAbilityInstance::GetCombatSubsystem() const
+UTacCombatSubsystem* UUnitAbility::GetCombatSubsystem() const
 {
 	if (!Owner) return nullptr;
 	UWorld* World = Owner->GetWorld();
@@ -133,13 +133,13 @@ UTacCombatSubsystem* UUnitAbilityInstance::GetCombatSubsystem() const
 	return World->GetSubsystem<UTacCombatSubsystem>();
 }
 
-UTacAbilityExecutorService* UUnitAbilityInstance::GetExecutorService() const
+UTacAbilityExecutorService* UUnitAbility::GetExecutorService() const
 {
 	UTacCombatSubsystem* CombatSubsystem = GetCombatSubsystem();
 	return CombatSubsystem ? CombatSubsystem->GetAbilityExecutorService() : nullptr;
 }
 
-UTacTurnSubsystem* UUnitAbilityInstance::GetTurnSubsystem() const
+UTacTurnSubsystem* UUnitAbility::GetTurnSubsystem() const
 {
 	if (!Owner) return nullptr;
 	UWorld* World = Owner->GetWorld();
@@ -147,7 +147,7 @@ UTacTurnSubsystem* UUnitAbilityInstance::GetTurnSubsystem() const
 	return World->GetSubsystem<UTacTurnSubsystem>();
 }
 
-FAbilityContext* UUnitAbilityInstance::GetContext() const
+FAbilityContext* UUnitAbility::GetContext() const
 {
 	if (!Owner) return nullptr;
 	if (const auto Inventory = Owner->GetAbilityInventory())
@@ -155,12 +155,12 @@ FAbilityContext* UUnitAbilityInstance::GetContext() const
 	return nullptr;
 }
 
-EAbilityTurnReleasePolicy UUnitAbilityInstance::DecideTurnRelease() const
+EAbilityTurnReleasePolicy UUnitAbility::DecideTurnRelease() const
 {
 	return Config->DefaultReleasePolicy;
 }
 
-bool UUnitAbilityInstance::CanActByContext() const
+bool UUnitAbility::CanActByContext() const
 {
 	FAbilityContext* Context = GetContext();
 	checkf(Context, TEXT("Context empty on ability"));
@@ -168,12 +168,12 @@ bool UUnitAbilityInstance::CanActByContext() const
 		                                  Config->LookupTag.bIsPersistent);
 }
 
-bool UUnitAbilityInstance::OwnerCanAct() const
+bool UUnitAbility::OwnerCanAct() const
 {
 	return Owner->CanAct();
 }
 
-void UUnitAbilityInstance::SetCompletionTag() const
+void UUnitAbility::SetCompletionTag() const
 {
 	if (Config->CompletionTag.IsValid())
 		if (auto Context = GetContext())

@@ -2,7 +2,7 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/UnitDisplayData.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Combat/Weapon.h"
@@ -405,8 +405,8 @@ void UUnitDetailsPopup::PopulateAbilities(AUnit* Unit)
 
 	// Populate active abilities
 	{
-		TArray<UUnitAbilityInstance*> ActiveAbilities = AbilityInventory->GetAvailableActiveAbilities();
-		for (UUnitAbilityInstance* Ability : ActiveAbilities)
+		TArray<UUnitAbility*> ActiveAbilities = AbilityInventory->GetAvailableActiveAbilities();
+		for (UUnitAbility* Ability : ActiveAbilities)
 		{
 			if (!Ability) continue;
 
@@ -420,8 +420,8 @@ void UUnitDetailsPopup::PopulateAbilities(AUnit* Unit)
 
 	// Populate passive abilities
 	{
-		TArray<UUnitAbilityInstance*> PassiveAbilities = AbilityInventory->GetPassiveAbilities();
-		for (UUnitAbilityInstance* Ability : PassiveAbilities)
+		TArray<UUnitAbility*> PassiveAbilities = AbilityInventory->GetPassiveAbilities();
+		for (UUnitAbility* Ability : PassiveAbilities)
 		{
 			if (!Ability) continue;
 

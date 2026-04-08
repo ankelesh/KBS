@@ -6,7 +6,7 @@
 #include "GameplayTypes/TacMovementTypes.h"
 #include "GameplayTagContainer.h"
 #include "UnitVisualsComponent.generated.h"
-class UUnitDefinition;
+class UUnitVisualDefinition;
 class UUnitAnimationSet;
 class USkeletalMeshComponent;
 class UStaticMesh;
@@ -25,7 +25,9 @@ class KBS_API UUnitVisualsComponent : public USceneComponent
 public:
 	UUnitVisualsComponent();
 	virtual void BeginPlay() override;
-	void InitializeFromDefinition(UUnitDefinition* Definition);
+	void InitializeFromDefinition(UUnitVisualDefinition* Definition);
+	void SwapVisualDefinition(UUnitVisualDefinition* NewDefinition);
+	void SetUnitSize(int32 InUnitSize) { CachedUnitSize = InUnitSize; }
 	void ClearAllMeshComponents();
 	void AttachWeaponMesh(UStaticMesh* WeaponMesh, FName SocketName);
 	void DetachWeaponMesh(UMeshComponent* WeaponMeshComponent);
@@ -61,7 +63,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<TObjectPtr<USceneComponent>> SpawnedMeshComponents;
 private:
-	void CreateMeshComponent(const struct FUnitMeshDescriptor& Descriptor, UUnitDefinition* Definition);
+	void CreateMeshComponent(const struct FUnitMeshDescriptor& Descriptor, UUnitVisualDefinition* Definition);
 	void SetupCollisionForMesh(UPrimitiveComponent* MeshComponent);
 	void SetupAnimationDelegates();
 	UFUNCTION() void HandleMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);

@@ -10,8 +10,9 @@
 #include "GameplayTypes/TacMovementTypes.h"
 #include "Unit.generated.h"
 
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UUnitDefinition;
+class UUnitVisualDefinition;
 class UBattleEffectComponent;
 class UBattleEffect;
 class UAbilityInventoryComponent;
@@ -42,7 +43,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitEffectApplied, AUnit*, Unit,
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitEffectTriggered, AUnit*, Owner, UBattleEffect*, Effect);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAbilityUsed, AUnit*, Unit, UUnitAbilityInstance*, Ability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitAbilityUsed, AUnit*, Unit, UUnitAbility*, Ability);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitStatusChanged, AUnit*, Unit, EUnitStatus, Status);
 
@@ -80,6 +81,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void SetUnitDefinition(UUnitDefinition* InDefinition);
+	UFUNCTION(BlueprintCallable, Category = "Visual")
+	void SwapVisualDefinition(UUnitVisualDefinition* NewVisual);
+	UUnitVisualDefinition* GetActiveVisualDefinition() const { return ActiveVisualDefinition; }
 
 	// --- Outgoing Events ---
 	UPROPERTY(BlueprintAssignable, Category = "Events")
@@ -221,6 +225,8 @@ protected:
 	FGuid UnitID;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
 	TObjectPtr<UUnitDefinition> UnitDefinition;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
+	TObjectPtr<UUnitVisualDefinition> ActiveVisualDefinition;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStats;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")

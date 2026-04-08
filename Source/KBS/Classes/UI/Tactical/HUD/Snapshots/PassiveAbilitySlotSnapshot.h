@@ -4,7 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "PassiveAbilitySlotSnapshot.generated.h"
 
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UImage;
 
 // Lightweight read-only display of a passive ability - no event binding
@@ -17,7 +17,7 @@ class KBS_API UPassiveAbilitySlotSnapshot : public UUserWidget
 public:
 	// Setup from ability data (read-only, no event binding)
 	UFUNCTION(BlueprintCallable, Category = "Passive Ability Slot Snapshot")
-	void SetupFromAbility(UUnitAbilityInstance* Ability);
+	void SetupFromAbility(UUnitAbility* Ability);
 
 	// Clear and hide widget
 	UFUNCTION(BlueprintCallable, Category = "Passive Ability Slot Snapshot")

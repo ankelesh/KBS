@@ -10,7 +10,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGridReadyForStart);
 class UTacGridSubsystem;
 class UTacTurnSubsystem;
 UCLASS()
-class UTacSubsystemControl : public UWorldSubsystem
+class KBS_API UTacSubsystemControl : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:

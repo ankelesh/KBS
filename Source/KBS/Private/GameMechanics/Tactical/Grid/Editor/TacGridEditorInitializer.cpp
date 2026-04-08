@@ -4,7 +4,7 @@
 
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
 UTacGridEditorInitializer::UTacGridEditorInitializer()

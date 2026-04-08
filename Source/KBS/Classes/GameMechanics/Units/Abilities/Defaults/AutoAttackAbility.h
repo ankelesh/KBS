@@ -1,11 +1,11 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
-#include "UnitAutoAttackAbility.generated.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
+#include "AutoAttackAbility.generated.h"
 
 
 UCLASS(Blueprintable)
-class KBS_API UUnitAutoAttackAbility : public UUnitAbilityInstance
+class KBS_API UAutoAttackAbility : public UUnitAbility
 {
 public:
 	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const override;

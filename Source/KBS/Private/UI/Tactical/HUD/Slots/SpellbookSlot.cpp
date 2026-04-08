@@ -5,7 +5,7 @@
 #include "UI/Tactical/Controller/TacticalGameController.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "Components/Button.h"
 
 void USpellbookSlot::NativeConstruct()
@@ -85,7 +85,7 @@ void USpellbookSlot::OnSpellbookButtonClicked()
 	TacticalHUD->ShowSpellbookPopup(BoundUnit.Get());
 }
 
-void USpellbookSlot::OnSpellbookAbilitySelected(UUnitAbilityInstance* Ability)
+void USpellbookSlot::OnSpellbookAbilitySelected(UUnitAbility* Ability)
 {
 	checkf(Ability, TEXT("USpellbookSlot::OnSpellbookAbilitySelected - Ability is null"));
 	checkf(SpellbookSpellSlot, TEXT("USpellbookSlot::OnSpellbookAbilitySelected - SpellbookSpellSlot is null"));

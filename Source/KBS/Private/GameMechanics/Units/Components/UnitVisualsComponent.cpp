@@ -1,9 +1,9 @@
-#include "GameMechanics/Units/UnitVisualsComponent.h"
-#include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
+#include "GameplayTypes/Tags/Visual/UnitVisualTags.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
-#include "GameMechanics/Units/UnitAnimationSet.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -36,21 +36,25 @@ void UUnitVisualsComponent::BeginPlay()
 
 void UUnitVisualsComponent::OnOwnerDied(AUnit* Unit)
 {
-	const UUnitDefinition* Def = Unit->GetUnitDefinition();
-	if (Def && Def->DeathMontage)
+	UAnimMontage* DeathMontage = ResolveAnimation(TAG_ANIM_DEATH);
+	if (!DeathMontage)
 	{
-		PlayDeathMontage(Def->DeathMontage);
+		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent [%s]: No montage for Animation.Death"), *GetOwner()->GetName());
+		return;
 	}
+	PlayDeathMontage(DeathMontage);
 }
 
 void UUnitVisualsComponent::OnOwnerDamaged(AUnit* Victim, AUnit* Attacker)
 {
 	if (Victim->IsDead()) return;
-	const UUnitDefinition* Def = Victim->GetUnitDefinition();
-	if (Def && Def->HitReactionMontage)
+	UAnimMontage* HitMontage = ResolveAnimation(TAG_ANIM_HIT_REACTION);
+	if (!HitMontage)
 	{
-		PlayHitReactionMontage(Def->HitReactionMontage);
+		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent [%s]: No montage for Animation.HitReaction"), *GetOwner()->GetName());
+		return;
 	}
+	PlayHitReactionMontage(HitMontage);
 }
 void UUnitVisualsComponent::OnOwnerEffectTriggered(AUnit* OwnerUnit, UBattleEffect* Effect)
 {
@@ -159,18 +163,23 @@ void UUnitVisualsComponent::ClearAllMeshComponents()
 	SpawnedMeshComponents.Empty();
 	PrimarySkeletalMesh = nullptr;
 }
-void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition)
+void UUnitVisualsComponent::SwapVisualDefinition(UUnitVisualDefinition* NewDefinition)
+{
+	ClearAllMeshComponents();
+	InitializeFromDefinition(NewDefinition);
+}
+
+void UUnitVisualsComponent::InitializeFromDefinition(UUnitVisualDefinition* Definition)
 {
 	if (!Definition)
 	{
-		UE_LOG(LogTemp, Error, TEXT("UUnitVisualsComponent: Cannot initialize from null UnitDefinition"));
+		UE_LOG(LogTemp, Error, TEXT("UUnitVisualsComponent: Cannot initialize from null UnitVisualDefinition"));
 		return;
 	}
-	CachedUnitSize = Definition->UnitSize;
 	AnimationSet = Definition->AnimationSet;
 	if (Definition->MeshComponents.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitDefinition"));
+		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: No mesh components defined in UnitVisualDefinition"));
 		return;
 	}
 	if (!VisualsRoot)
@@ -233,7 +242,7 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitDefinition* Definition
 		}
 	}
 }
-void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descriptor, UUnitDefinition* Definition)
+void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descriptor, UUnitVisualDefinition* Definition)
 {
 	USceneComponent* NewMeshComponent = nullptr;
 	UPrimitiveComponent* PrimitiveComp = nullptr;

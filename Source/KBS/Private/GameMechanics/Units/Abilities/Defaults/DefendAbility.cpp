@@ -1,9 +1,9 @@
-#include "GameMechanics/Units/Abilities/Defaults/UnitDefendAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/DefendAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 
-FAbilityExecutionResult UUnitDefendAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UDefendAbility::Execute(FTacCoordinates TargetCell)
 {
 	check(Owner);
 	
@@ -13,17 +13,17 @@ FAbilityExecutionResult UUnitDefendAbility::Execute(FTacCoordinates TargetCell)
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
-bool UUnitDefendAbility::CanExecute(FTacCoordinates TargetCell) const
+bool UDefendAbility::CanExecute(FTacCoordinates TargetCell) const
 {
 	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
 }
 
-bool UUnitDefendAbility::CanExecute() const
+bool UDefendAbility::CanExecute() const
 {
 	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
 }
 
-FGameplayTagContainer UUnitDefendAbility::BuildTags() const
+FGameplayTagContainer UDefendAbility::BuildTags() const
 {
 	FGameplayTagContainer Tags = Super::BuildTags();
 	Tags.AddTag(TAG_ABILITY_DEFEND);

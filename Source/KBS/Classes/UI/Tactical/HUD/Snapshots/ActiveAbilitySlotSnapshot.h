@@ -4,7 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "ActiveAbilitySlotSnapshot.generated.h"
 
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UImage;
 class UTextBlock;
 
@@ -18,7 +18,7 @@ class KBS_API UActiveAbilitySlotSnapshot : public UUserWidget
 public:
 	// Setup from ability data (read-only, no event binding)
 	UFUNCTION(BlueprintCallable, Category = "Ability Slot Snapshot")
-	void SetupFromAbility(UUnitAbilityInstance* Ability);
+	void SetupFromAbility(UUnitAbility* Ability);
 
 	// Clear and hide widget
 	UFUNCTION(BlueprintCallable, Category = "Ability Slot Snapshot")

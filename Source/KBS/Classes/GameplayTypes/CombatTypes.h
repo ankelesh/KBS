@@ -6,7 +6,7 @@
 
 class AUnit;
 class UBattleEffect;
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UCombatDescriptor;
 
 USTRUCT(BlueprintType)
@@ -34,12 +34,12 @@ struct FHitInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsHitCancelled = false;
 	UPROPERTY()
-	TArray<UUnitAbilityInstance*> InterferingAbilities;
+	TArray<UUnitAbility*> InterferingAbilities;
 
 	void Reset();
 	FHitInstance() = default;
 	explicit FHitInstance(AUnit* TargetUnit, AUnit* AttackerUnit, UCombatDescriptor* Descriptor);
-	void Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled = false);
+	void Interfere(UUnitAbility* Ability, bool bIsCancelled = false);
 	void CheckCancellation();
 	~FHitInstance();
 };
@@ -55,7 +55,7 @@ struct FCombatContext
 	UPROPERTY()
 	TObjectPtr<UCombatDescriptor> AttackerDescriptor = nullptr;
 	UPROPERTY()
-	TArray<UUnitAbilityInstance*> InterferingAbilities = TArray<UUnitAbilityInstance*>();
+	TArray<UUnitAbility*> InterferingAbilities = TArray<UUnitAbility*>();
 	UPROPERTY()
 	bool bIsAttackCancelled = false;
 	UPROPERTY()
@@ -67,7 +67,7 @@ struct FCombatContext
 	FCombatContext() = default;
 	explicit FCombatContext(AUnit* AttackerUnit, UCombatDescriptor* Descriptor, TArray<AUnit*> Targets,
 	                        bool bIsReaction = false);
-	void Interfere(UUnitAbilityInstance* Ability, bool bIsCancelled = false);
+	void Interfere(UUnitAbility* Ability, bool bIsCancelled = false);
 	void CheckCancellation();
 	~FCombatContext();
 };

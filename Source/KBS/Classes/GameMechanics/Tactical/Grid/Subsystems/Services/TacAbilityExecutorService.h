@@ -8,10 +8,10 @@
 #include "GameplayTypes/GridCoordinates.h"
 #include "TacAbilityExecutorService.generated.h"
 
-class UUnitAbilityInstance;
+class UUnitAbility;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityExecuting, UUnitAbilityInstance*, Ability, FTacCoordinates, TargetCell);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAbilityCompleted, UUnitAbilityInstance*, Ability, FTacCoordinates, TargetCell, const FAbilityResult&, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityExecuting, UUnitAbility*, Ability, FTacCoordinates, TargetCell);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAbilityCompleted, UUnitAbility*, Ability, FTacCoordinates, TargetCell, const FAbilityResult&, Result);
 
 UCLASS()
 class KBS_API UTacAbilityExecutorService : public UObject
@@ -20,10 +20,10 @@ class KBS_API UTacAbilityExecutorService : public UObject
 
 public:
 	// Strong guarantee: validates before execution
-	FAbilityResult CheckAndExecute(UUnitAbilityInstance* Ability, FTacCoordinates TargetCell);
+	FAbilityResult CheckAndExecute(UUnitAbility* Ability, FTacCoordinates TargetCell);
 
 	// Weak guarantee: attempts execution, reports input failure
-	FAbilityResult Execute(UUnitAbilityInstance* Ability, FTacCoordinates TargetCell);
+	FAbilityResult Execute(UUnitAbility* Ability, FTacCoordinates TargetCell);
 	
 	// Delegates
 	UPROPERTY(BlueprintAssignable)

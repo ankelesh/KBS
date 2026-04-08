@@ -8,12 +8,12 @@ DECLARE_LOG_CATEGORY_EXTERN(LogKBSUI, Log, All);
 
 class AUnit;
 class UActiveAbilitySlot;
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UButton;
 class UTextBlock;
 class UWrapBox;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilitySelected, UUnitAbilityInstance*, Ability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilitySelected, UUnitAbility*, Ability);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSpellbookPopupOnCloseRequired);
 
 // Modal popup displaying spellbook abilities from AbilityInventoryComponent
@@ -83,7 +83,7 @@ private:
 	void OnCloseButtonClicked();
 
 	UFUNCTION()
-	void OnAbilitySlotClicked(UUnitAbilityInstance* Ability);
+	void OnAbilitySlotClicked(UUnitAbility* Ability);
 
 	// Widget pool (never shrinks, only grows as needed)
 	UPROPERTY()

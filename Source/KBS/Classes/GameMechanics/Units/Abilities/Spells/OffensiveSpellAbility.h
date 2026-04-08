@@ -1,12 +1,12 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "OffensiveSpellAbility.generated.h"
 
 class UCombatDescriptor;
 
 UCLASS(Blueprintable)
-class KBS_API UOffensiveSpellAbility : public UUnitAbilityInstance
+class KBS_API UOffensiveSpellAbility : public UUnitAbility
 {
 	GENERATED_BODY()
 public:

@@ -165,7 +165,7 @@ void UTacTurnSubsystem::CellClicked(FTacCoordinates Cell)
 	AttemptTransition();
 }
 
-void UTacTurnSubsystem::AbilityClicked(UUnitAbilityInstance* Ability)
+void UTacTurnSubsystem::AbilityClicked(UUnitAbility* Ability)
 {
 	check(CurrentState);
 	CurrentState->AbilityClicked(Ability);

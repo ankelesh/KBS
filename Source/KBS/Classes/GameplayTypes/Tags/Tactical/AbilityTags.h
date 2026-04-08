@@ -5,7 +5,7 @@
 #include "GameplayTagsManager.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
 #include "GameplayTypes/EffectTypes.h"
-class UBattleEffect;
+#include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 
 // Class tags
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_ABILITY_AUTOATTACK)

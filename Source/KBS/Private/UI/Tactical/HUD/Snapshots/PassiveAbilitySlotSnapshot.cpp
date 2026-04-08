@@ -1,9 +1,9 @@
 #include "UI/Tactical/HUD/Snapshots/PassiveAbilitySlotSnapshot.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
 #include "Components/Image.h"
 
-void UPassiveAbilitySlotSnapshot::SetupFromAbility(UUnitAbilityInstance* Ability)
+void UPassiveAbilitySlotSnapshot::SetupFromAbility(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{

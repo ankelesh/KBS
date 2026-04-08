@@ -1,10 +1,10 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "SummonedPassiveAbility.generated.h"
 
 UCLASS()
-class KBS_API USummonedPassiveAbility : public UUnitAbilityInstance
+class KBS_API USummonedPassiveAbility : public UUnitAbility
 {
 	GENERATED_BODY()
 public:

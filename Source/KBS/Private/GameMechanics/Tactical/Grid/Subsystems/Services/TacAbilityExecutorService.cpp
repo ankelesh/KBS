@@ -2,14 +2,14 @@
 
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAbilityExecutorService.h"
 #include "GameplayTypes/AbilityTypes.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
-FAbilityResult UTacAbilityExecutorService::CheckAndExecute(UUnitAbilityInstance* Ability, FTacCoordinates TargetCell)
+FAbilityResult UTacAbilityExecutorService::CheckAndExecute(UUnitAbility* Ability, FTacCoordinates TargetCell)
 {
 	check(Ability);
 
@@ -24,7 +24,7 @@ FAbilityResult UTacAbilityExecutorService::CheckAndExecute(UUnitAbilityInstance*
 	return Execute(Ability, TargetCell);
 }
 
-FAbilityResult UTacAbilityExecutorService::Execute(UUnitAbilityInstance* Ability, FTacCoordinates TargetCell)
+FAbilityResult UTacAbilityExecutorService::Execute(UUnitAbility* Ability, FTacCoordinates TargetCell)
 {
 	check(Ability);
 	AUnit* Owner = Ability->GetOwner();

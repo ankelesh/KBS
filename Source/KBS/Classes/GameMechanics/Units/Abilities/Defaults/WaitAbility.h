@@ -1,10 +1,10 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
-#include "UnitWaitAbility.generated.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
+#include "WaitAbility.generated.h"
 
 UCLASS(Blueprintable)
-class KBS_API UUnitWaitAbility : public UUnitAbilityInstance
+class KBS_API UWaitAbility : public UUnitAbility
 {
 	GENERATED_BODY()
 public:

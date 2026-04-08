@@ -1,10 +1,10 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
-#include "UnitMovementAbility.generated.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
+#include "MovementAbility.generated.h"
 
 UCLASS(Blueprintable)
-class KBS_API UUnitMovementAbility : public UUnitAbilityInstance
+class KBS_API UMovementAbility : public UUnitAbility
 {
 	GENERATED_BODY()
 public:

@@ -8,7 +8,7 @@
 #include "UI/Tactical/HUD/Panels/TeamPanel.h"
 #include "UI/Tactical/HUD/Labels/TurnCounterLabel.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "Components/Overlay.h"
 #include "Components/CanvasPanel.h"
@@ -66,14 +66,14 @@ void UTacticalHUD::OnSpellbookPopupCloseRequested()
 	HideSpellbookPopup();
 }
 
-void UTacticalHUD::HandleSpellbookAbilitySelected(UUnitAbilityInstance* Ability)
+void UTacticalHUD::HandleSpellbookAbilitySelected(UUnitAbility* Ability)
 {
 	AbilityPanel->SelectAbility(Ability);
 	TurnSubsystem->AbilityClicked(Ability);
 	OnSpellbookAbilitySelected.Broadcast(Ability);
 }
 
-void UTacticalHUD::HandleAbilityPanelAbilitySelected(UUnitAbilityInstance* Ability)
+void UTacticalHUD::HandleAbilityPanelAbilitySelected(UUnitAbility* Ability)
 {
 	TurnSubsystem->AbilityClicked(Ability);
 }

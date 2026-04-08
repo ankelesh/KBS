@@ -3,53 +3,20 @@
 #include "Engine/DataAsset.h"
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "GameMechanics/Units/Components/UnitComponentEntry.h"
+#include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
 #include "UnitDefinition.generated.h"
-class UWeaponDataAsset;
-class USkeletalMesh;
-class UStaticMesh;
-class UAnimBlueprintGeneratedClass;
-class UMaterialInterface;
-class UAnimMontage;
-class UUnitAbilityDefinition;
-class UUnitAnimationSet;
 
-UENUM(BlueprintType)
-enum class EUnitMeshType : uint8
-{
-	Skeletal UMETA(DisplayName = "Skeletal Mesh"),
-	Static UMETA(DisplayName = "Static Mesh")
-};
-USTRUCT(BlueprintType)
-struct FUnitMeshDescriptor
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh")
-	EUnitMeshType MeshType = EUnitMeshType::Skeletal;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (EditCondition = "MeshType == EUnitMeshType::Skeletal", EditConditionHides))
-	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (EditCondition = "MeshType == EUnitMeshType::Static", EditConditionHides))
-	TSoftObjectPtr<UStaticMesh> StaticMesh;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attachment")
-	FName ParentSocket = NAME_None;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attachment")
-	FTransform RelativeTransform = FTransform::Identity;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Materials")
-	TArray<TSoftObjectPtr<UMaterialInterface>> MaterialOverrides;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	bool bIsPrimaryMesh = false;
-};
+class UWeaponDataAsset;
+class UUnitAbilityDefinition;
+
 UCLASS(BlueprintType)
 class KBS_API UUnitDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
-	TArray<FUnitMeshDescriptor> MeshComponents;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
-	TSubclassOf<UAnimInstance> AnimationClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
-	TObjectPtr<UTexture2D> Portrait;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
+	TObjectPtr<UUnitVisualDefinition> VisualDefinition;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
 	FString UnitName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStatsTemplate;
@@ -69,12 +36,6 @@ public:
 	TArray<TObjectPtr<UUnitAbilityDefinition>> AdditionalAbilities;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|Spellbook")
 	TArray<TObjectPtr<UUnitAbilityDefinition>> SpellbookAbilities;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	TObjectPtr<UUnitAnimationSet> AnimationSet;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	TObjectPtr<UAnimMontage> DeathMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	TObjectPtr<UAnimMontage> HitReactionMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float MovementSpeed = 300.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")

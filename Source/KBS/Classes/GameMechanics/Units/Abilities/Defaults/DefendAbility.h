@@ -1,10 +1,11 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
-#include "UnitFleeAbility.generated.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
+#include "DefendAbility.generated.h"
+
 
 UCLASS(Blueprintable)
-class KBS_API UUnitFleeAbility : public UUnitAbilityInstance
+class KBS_API UDefendAbility : public UUnitAbility
 {
 	GENERATED_BODY()
 public:
@@ -12,10 +13,5 @@ public:
 	virtual bool CanExecute(FTacCoordinates TargetCell) const override;
 	virtual bool CanExecute() const override;
 	virtual FGameplayTagContainer BuildTags() const override;
-	virtual void HandleTurnEnd() override {}
-
-private:
-	UFUNCTION()
-	void HandleTurnStarted(AUnit* Unit);
-	void OnFleeRotationCompleted();
 };
+

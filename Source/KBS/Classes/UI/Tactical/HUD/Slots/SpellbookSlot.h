@@ -7,7 +7,7 @@
 class AUnit;
 class UButton;
 class UActiveAbilitySlotSnapshot;
-class UUnitAbilityInstance;
+class UUnitAbility;
 
 // Lightweight shortcut to unit's spellbook - button to open popup + selected spell display
 // Hides entirely if unit has no spellbook available
@@ -44,7 +44,7 @@ private:
 	void OnSpellbookButtonClicked();
 
 	UFUNCTION()
-	void OnSpellbookAbilitySelected(UUnitAbilityInstance* Ability);
+	void OnSpellbookAbilitySelected(UUnitAbility* Ability);
 
 	bool bDelegatesBound = false;
 };

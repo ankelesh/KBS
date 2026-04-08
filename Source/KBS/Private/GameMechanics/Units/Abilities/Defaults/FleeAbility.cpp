@@ -1,12 +1,12 @@
-#include "GameMechanics/Units/Abilities/Defaults/UnitFleeAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/FleeAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
-#include "GameMechanics/Units/UnitVisualsComponent.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameplayTypes/TacticalMovementConstants.h"
 
 
-FAbilityExecutionResult UUnitFleeAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UFleeAbility::Execute(FTacCoordinates TargetCell)
 {
 	check(Owner);
 	// 1) Turn unit to its field side — reverse of normal combat facing
@@ -15,33 +15,33 @@ FAbilityExecutionResult UUnitFleeAbility::Execute(FTacCoordinates TargetCell)
 		: FTacMovementConstants::AttackerDefaultYaw;
 	Owner->GetVisualsComponent()->RotateTowardTarget(FRotator(0.f, FleeYaw, 0.f));
 	if (Owner->GetGridMetadata().HasExtraCell())
-		Owner->GetVisualsComponent()->OnRotationCompletedNative.AddUObject(this, &UUnitFleeAbility::OnFleeRotationCompleted);
+		Owner->GetVisualsComponent()->OnRotationCompletedNative.AddUObject(this, &UFleeAbility::OnFleeRotationCompleted);
 
 	Owner->GetStats().Status.SetFleeing();
-	Owner->OnUnitTurnStart.AddDynamic(this, &UUnitFleeAbility::HandleTurnStarted);
+	Owner->OnUnitTurnStart.AddDynamic(this, &UFleeAbility::HandleTurnStarted);
 	ConsumeCharge();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
-bool UUnitFleeAbility::CanExecute(FTacCoordinates TargetCell) const
+bool UFleeAbility::CanExecute(FTacCoordinates TargetCell) const
 {
 	return CanExecute();
 }
 
-bool UUnitFleeAbility::CanExecute() const
+bool UFleeAbility::CanExecute() const
 {
 	check(Owner);
 	return OwnerCanAct() && CanActByContext() && RemainingCharges > 0;
 }
 
-void UUnitFleeAbility::OnFleeRotationCompleted()
+void UFleeAbility::OnFleeRotationCompleted()
 {
 	Owner->GetVisualsComponent()->OnRotationCompletedNative.RemoveAll(this);
 	Owner->GetVisualsComponent()->ReverseExtraCellOffset();
 }
 
-void UUnitFleeAbility::HandleTurnStarted(AUnit* Unit)
+void UFleeAbility::HandleTurnStarted(AUnit* Unit)
 {
 	// 4) Remove to off-field only if unit is still fleeing
 	if (Owner->GetStats().Status.IsFleeing() && Owner->GetStats().Status.CanAct() && Owner->GetStats().Status.CanMove())
@@ -50,10 +50,10 @@ void UUnitFleeAbility::HandleTurnStarted(AUnit* Unit)
 	}
 
 	// 5) One-shot — unsubscribe regardless of whether removal happened
-	Owner->OnUnitTurnStart.RemoveDynamic(this, &UUnitFleeAbility::HandleTurnStarted);
+	Owner->OnUnitTurnStart.RemoveDynamic(this, &UFleeAbility::HandleTurnStarted);
 }
 
-FGameplayTagContainer UUnitFleeAbility::BuildTags() const
+FGameplayTagContainer UFleeAbility::BuildTags() const
 {
 	FGameplayTagContainer Tags = Super::BuildTags();
 	Tags.AddTag(TAG_ABILITY_FLEE);

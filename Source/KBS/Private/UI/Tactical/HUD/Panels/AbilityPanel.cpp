@@ -7,7 +7,7 @@
 #include "UI/Tactical/Controller/TacticalGameController.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
@@ -157,7 +157,7 @@ void UAbilityPanel::SetUnit(AUnit* Unit)
 void UAbilityPanel::PopulateActiveAbilitySlots(AUnit* Unit)
 {
 	UAbilityInventoryComponent* Inventory = Unit->GetAbilityInventory();
-	TArray<UUnitAbilityInstance*> AvailableAbilities = Inventory->GetAvailableActiveAbilities();
+	TArray<UUnitAbility*> AvailableAbilities = Inventory->GetAvailableActiveAbilities();
 
 	// Limit to MAX_ACTIVE_ABILITY_SLOTS
 	if (AvailableAbilities.Num() > MAX_ACTIVE_ABILITY_SLOTS)
@@ -184,7 +184,7 @@ void UAbilityPanel::PopulateActiveAbilitySlots(AUnit* Unit)
 	}
 }
 
-void UAbilityPanel::SelectAbility(UUnitAbilityInstance* Ability)
+void UAbilityPanel::SelectAbility(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{
@@ -223,7 +223,7 @@ void UAbilityPanel::DeselectAllSlots()
 	}
 }
 
-void UAbilityPanel::OnDefaultAbilitySelected(UUnitAbilityInstance* Ability)
+void UAbilityPanel::OnDefaultAbilitySelected(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{
@@ -237,7 +237,7 @@ void UAbilityPanel::OnDefaultAbilitySelected(UUnitAbilityInstance* Ability)
 	OnAbilitySelected.Broadcast(Ability);
 }
 
-void UAbilityPanel::OnActiveAbilitySlotSelected(UUnitAbilityInstance* Ability)
+void UAbilityPanel::OnActiveAbilitySlotSelected(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{
@@ -251,7 +251,7 @@ void UAbilityPanel::OnActiveAbilitySlotSelected(UUnitAbilityInstance* Ability)
 	OnAbilitySelected.Broadcast(Ability);
 }
 
-void UAbilityPanel::OnSpellbookAbilitySelected(UUnitAbilityInstance* Ability)
+void UAbilityPanel::OnSpellbookAbilitySelected(UUnitAbility* Ability)
 {
 	if (!Ability)
 	{

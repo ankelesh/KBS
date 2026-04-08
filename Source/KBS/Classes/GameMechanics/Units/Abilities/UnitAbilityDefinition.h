@@ -7,7 +7,7 @@
 #include "UnitAbilityDefinition.generated.h"
 
 class UBattleEffect;
-class UUnitAbilityInstance;
+class UUnitAbility;
 
 USTRUCT(BlueprintType)
 struct FAbilityConditionalTag
@@ -28,7 +28,7 @@ class KBS_API UUnitAbilityDefinition : public UPrimaryDataAsset
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
-	TSubclassOf<UUnitAbilityInstance> AbilityClass;
+	TSubclassOf<UUnitAbility> AbilityClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	FString AbilityName;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")

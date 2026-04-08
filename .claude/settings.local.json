@@ -1,6 +1,14 @@
 {
   "permissions": {
     "allow": [
+      "Bash(grep -l '^class F' E:/Projects/unreal_projects/KBS/Source/KBS/Classes/**/*.h)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(grep:*)",
+      "Bash(sed 's/\\(.*//')",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//e/Projects/unreal_projects/KBS/**)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

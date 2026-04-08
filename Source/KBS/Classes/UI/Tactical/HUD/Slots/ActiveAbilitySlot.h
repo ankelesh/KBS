@@ -6,9 +6,9 @@
 #include "ActiveAbilitySlot.generated.h"
 
 struct FAbilityDisplayData;
-class UUnitAbilityInstance;
+class UUnitAbility;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActiveAbilitySlotOnAbilitySelected, UUnitAbilityInstance*, Ability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActiveAbilitySlotOnAbilitySelected, UUnitAbility*, Ability);
 
 // State-displaying representation of UnitAbilityInstance, clickable brick for larger panels
 // States: Enabled (available, clickable), Disabled (visible, greyed out), Hidden (collapsed)
@@ -22,10 +22,10 @@ public:
 	FActiveAbilitySlotOnAbilitySelected OnAbilitySelected;
 
 	// Replace current ability (unbinds old, binds new, checks CanExecute for initial state)
-	void SetAbility(UUnitAbilityInstance* NewAbility);
+	void SetAbility(UUnitAbility* NewAbility);
 
 	// Bind to ability without replacing display state
-	void BindToAbility(UUnitAbilityInstance* Ability);
+	void BindToAbility(UUnitAbility* Ability);
 
 	// Reset widget to clean state for pooling/reuse (unbinds, hides, clears data)
 	void Clean();
@@ -39,7 +39,7 @@ public:
 	void Expand() {bExpandedView = true;}
 	void Collapse() {bExpandedView = false;}
 
-	bool HasAbility(UUnitAbilityInstance* Ability) const;
+	bool HasAbility(UUnitAbility* Ability) const;
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -81,14 +81,14 @@ protected:
 	EAbilitySlotState CurrentState = EAbilitySlotState::Hidden;
 
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UUnitAbilityInstance> BoundAbility = nullptr;
+	TObjectPtr<UUnitAbility> BoundAbility = nullptr;
 
 private:
 	UFUNCTION()
 	void OnSlotButtonClicked(); // Broadcasts OnAbilitySelected
 
 	UFUNCTION()
-	void OnAbilityAvailabilityChanged(const UUnitAbilityInstance* Ability, bool bAvailable);
+	void OnAbilityAvailabilityChanged(const UUnitAbility* Ability, bool bAvailable);
 
 	UFUNCTION()
 	void OnAbilityUsed(int32 ChargesLeft, bool bAvailable);

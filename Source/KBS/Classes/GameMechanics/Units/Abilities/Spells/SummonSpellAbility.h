@@ -1,12 +1,12 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityInstance.h"
+#include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "SummonSpellAbility.generated.h"
 
 class USummonSpellAbilityDefinition;
 
 UCLASS(Blueprintable)
-class KBS_API USummonSpellAbility : public UUnitAbilityInstance
+class KBS_API USummonSpellAbility : public UUnitAbility
 {
 	GENERATED_BODY()
 public:

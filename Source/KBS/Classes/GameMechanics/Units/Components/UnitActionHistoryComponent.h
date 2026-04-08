@@ -6,7 +6,7 @@
 
 struct FUnitActionHistoryCmpConfig;
 class AUnit;
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UCombatDescriptor;
 class UTacCombatSubsystem;
 class UTacGridTargetingService;
@@ -30,7 +30,7 @@ public:
 
 private:
 	UFUNCTION()
-	void OnAbilityUsed(AUnit* Unit, UUnitAbilityInstance* Ability);
+	void OnAbilityUsed(AUnit* Unit, UUnitAbility* Ability);
 
 	FGameplayTagContainer LastActionTags;
 

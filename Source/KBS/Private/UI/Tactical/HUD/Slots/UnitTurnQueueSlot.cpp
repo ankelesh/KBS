@@ -4,6 +4,7 @@
 #include "Components/TextBlock.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/UnitDefinition.h"
+#include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
 
 void UUnitTurnQueueSlot::SetupSlot(AUnit* Unit, int32 RolledInitiative, bool bIsCurrentUnit)
 {
@@ -29,9 +30,10 @@ void UUnitTurnQueueSlot::SetupSlot(AUnit* Unit, int32 RolledInitiative, bool bIs
 	}
 
 	// Set portrait
-	if (Portrait && UnitDef && UnitDef->Portrait)
+	UUnitVisualDefinition* VisualDef = Unit->GetActiveVisualDefinition();
+	if (Portrait && VisualDef && VisualDef->Portrait)
 	{
-		Portrait->SetBrushFromTexture(UnitDef->Portrait);
+		Portrait->SetBrushFromTexture(VisualDef->Portrait);
 		Portrait->SetVisibility(ESlateVisibility::Visible);
 	}
 

@@ -1,10 +1,10 @@
-#include "GameMechanics/Units/Abilities/Defaults/UnitWaitAbility.h"
+#include "GameMechanics/Units/Abilities/Defaults/WaitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
 
-FAbilityExecutionResult UUnitWaitAbility::Execute(FTacCoordinates TargetCell)
+FAbilityExecutionResult UWaitAbility::Execute(FTacCoordinates TargetCell)
 {
 	check(Owner);
 	UTacTurnSubsystem* TurnSubsystem = GetTurnSubsystem();
@@ -18,37 +18,37 @@ FAbilityExecutionResult UUnitWaitAbility::Execute(FTacCoordinates TargetCell)
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
-bool UUnitWaitAbility::CanExecute(FTacCoordinates TargetCell) const
+bool UWaitAbility::CanExecute(FTacCoordinates TargetCell) const
 {
 	check(Owner);
 	return RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
 }
 
-bool UUnitWaitAbility::CanExecute() const
+bool UWaitAbility::CanExecute() const
 {
 	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
 }
 
-void UUnitWaitAbility::Subscribe()
+void UWaitAbility::Subscribe()
 {
 	UTacTurnSubsystem* TurnSubsystem = GetTurnSubsystem();
 	check(TurnSubsystem);
-	TurnSubsystem->OnRoundEnd.AddDynamic(this, &UUnitWaitAbility::HandleRoundEnd);
+	TurnSubsystem->OnRoundEnd.AddDynamic(this, &UWaitAbility::HandleRoundEnd);
 }
 
-void UUnitWaitAbility::Unsubscribe()
+void UWaitAbility::Unsubscribe()
 {
 	UTacTurnSubsystem* TurnSubsystem = GetTurnSubsystem();
 	check(TurnSubsystem);
-	TurnSubsystem->OnRoundEnd.RemoveDynamic(this, &UUnitWaitAbility::HandleRoundEnd);
+	TurnSubsystem->OnRoundEnd.RemoveDynamic(this, &UWaitAbility::HandleRoundEnd);
 }
 
-void UUnitWaitAbility::HandleRoundEnd(int32)
+void UWaitAbility::HandleRoundEnd(int32)
 {
 	RestoreCharges();
 }
 
-FGameplayTagContainer UUnitWaitAbility::BuildTags() const
+FGameplayTagContainer UWaitAbility::BuildTags() const
 {
 	FGameplayTagContainer Tags = Super::BuildTags();
 	Tags.AddTag(TAG_ABILITY_WAIT);

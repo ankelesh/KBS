@@ -8,14 +8,14 @@ class AUnit;
 class UDefaultAbilitiesPanel;
 class UActiveAbilitySlot;
 class USpellbookSlot;
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UTacTurnSubsystem;
 class UTacGridSubsystem;
 class UTacticalHUD;
 class UUnitSpellbookPopup;
 class UHorizontalBox;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAbilityPanelOnAbilitySelected, UUnitAbilityInstance*, Ability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAbilityPanelOnAbilitySelected, UUnitAbility*, Ability);
 
 // Master panel wrapping AbilityInventory - manages DefaultAbilitiesPanel, active ability slots, and spellbook
 // Listens to OnTurnStart, reinitializes for player units, clears for non-player units
@@ -36,7 +36,7 @@ public:
 
 	// Notify panel that ability selection changed externally (updates visual selection)
 	UFUNCTION(BlueprintCallable, Category = "Ability Panel")
-	void SelectAbility(UUnitAbilityInstance* Ability);
+	void SelectAbility(UUnitAbility* Ability);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -61,13 +61,13 @@ private:
 	void OnTurnStarted(AUnit* Unit);
 
 	UFUNCTION()
-	void OnDefaultAbilitySelected(UUnitAbilityInstance* Ability);
+	void OnDefaultAbilitySelected(UUnitAbility* Ability);
 
 	UFUNCTION()
-	void OnActiveAbilitySlotSelected(UUnitAbilityInstance* Ability);
+	void OnActiveAbilitySlotSelected(UUnitAbility* Ability);
 
 	UFUNCTION()
-	void OnSpellbookAbilitySelected(UUnitAbilityInstance* Ability);
+	void OnSpellbookAbilitySelected(UUnitAbility* Ability);
 
 	void SetUnit(AUnit* Unit);
 	void PopulateActiveAbilitySlots(AUnit* Unit);
@@ -94,7 +94,7 @@ private:
 
 	// Currently selected ability for tracking
 	UPROPERTY()
-	TObjectPtr<UUnitAbilityInstance> CurrentSelectedAbility = nullptr;
+	TObjectPtr<UUnitAbility> CurrentSelectedAbility = nullptr;
 
 	static constexpr int32 MAX_ACTIVE_ABILITY_SLOTS = 4;
 };

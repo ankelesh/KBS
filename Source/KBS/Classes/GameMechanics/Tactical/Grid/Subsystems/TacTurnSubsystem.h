@@ -20,7 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTurnEnd, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattleEnd, UBattleTeam*, WinnerTeam);
 class FTacTurnState;
 class AUnit;
-class UUnitAbilityInstance;
+class UUnitAbility;
 struct FTacCoordinates;
 enum class ETurnState : uint8;
 
@@ -57,7 +57,7 @@ public:
 	// Input forwarding
 	void UnitClicked(AUnit* Unit);
 	void CellClicked(FTacCoordinates Cell);
-	void AbilityClicked(UUnitAbilityInstance* Ability);
+	void AbilityClicked(UUnitAbility* Ability);
 
 	int32 GetCurrentRound() const { return CurrentRound; }
 	UTacAICombatService* GetAICombatService() const { return AICombatService; }

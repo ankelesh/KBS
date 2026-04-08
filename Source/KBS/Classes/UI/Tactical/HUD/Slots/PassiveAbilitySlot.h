@@ -5,7 +5,7 @@
 #include "PassiveAbilitySlot.generated.h"
 
 struct FAbilityDisplayData;
-class UUnitAbilityInstance;
+class UUnitAbility;
 
 // Simple icon display for passive abilities - flashes VFX when triggered
 // Supports pure visual mode (no event binding) for static menus
@@ -17,7 +17,7 @@ class KBS_API UPassiveAbilitySlot : public UUserWidget
 public:
 	// Setup widget with ability data. If bBindToEvents=true, listens to OnAbilityUsed for VFX triggers
 	UFUNCTION(BlueprintCallable, Category = "Passive Ability Slot")
-	void SetupFromAbility(UUnitAbilityInstance* Ability, bool bBindToEvents = true);
+	void SetupFromAbility(UUnitAbility* Ability, bool bBindToEvents = true);
 
 	// Reset widget to clean state for pooling/reuse (unbinds, hides, clears data)
 	UFUNCTION(BlueprintCallable, Category = "Passive Ability Slot")
@@ -32,7 +32,7 @@ protected:
 	class UImage* AbilityIcon;
 
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UUnitAbilityInstance> BoundAbility = nullptr;
+	TObjectPtr<UUnitAbility> BoundAbility = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsListeningToEvents = false;
@@ -45,5 +45,5 @@ public:
 	// Blueprint hook called when passive ability triggers - implement to show flash VFX
 	// Only fires if bBindToEvents was true in SetupFromAbility
 	UFUNCTION(BlueprintImplementableEvent, Category = "Passive Ability Slot|Events")
-	void BP_OnAbilityTriggered(UUnitAbilityInstance* Ability);
+	void BP_OnAbilityTriggered(UUnitAbility* Ability);
 };

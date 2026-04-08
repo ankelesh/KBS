@@ -4,7 +4,7 @@
 #include "GameMechanics/Units/Abilities/AbilityDisplayData.h"
 #include "GameplayTypes/AbilityTypes.h"
 #include "AbilityInventoryComponent.generated.h"
-class UUnitAbilityInstance;
+class UUnitAbility;
 class UUnitDefinition;
 class AUnit;
 struct FAbilityDisplayData;
@@ -27,34 +27,34 @@ public:
 	
 	
 	// Add-remove
-	void AddActiveAbility(UUnitAbilityInstance* Ability);
-	void AddPassiveAbility(UUnitAbilityInstance* Ability);
-	void RemovePassiveAbility(UUnitAbilityInstance* Ability);
+	void AddActiveAbility(UUnitAbility* Ability);
+	void AddPassiveAbility(UUnitAbility* Ability);
+	void RemovePassiveAbility(UUnitAbility* Ability);
 	UFUNCTION(BlueprintCallable, Category = "Abilities|DefaultSlots")
-	void SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbilityInstance* Ability);
+	void SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbility* Ability);
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
-	void AddSpellbookAbility(UUnitAbilityInstance* Ability);
+	void AddSpellbookAbility(UUnitAbility* Ability);
 	
 	
 	// Getters
 	UFUNCTION(BlueprintPure, Category = "Abilities")
-	UUnitAbilityInstance* GetCurrentActiveAbility() const;
+	UUnitAbility* GetCurrentActiveAbility() const;
 	UFUNCTION(BlueprintPure, Category = "Abilities")
-	TArray<UUnitAbilityInstance*> GetAvailableActiveAbilities() const;
+	TArray<UUnitAbility*> GetAvailableActiveAbilities() const;
 	UFUNCTION(BlueprintPure, Category = "Abilities")
-	TArray<UUnitAbilityInstance*> GetPassiveAbilities() const;
+	TArray<UUnitAbility*> GetPassiveAbilities() const;
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
 	TArray<FAbilityDisplayData> GetActiveAbilitiesDisplayData() const;
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
 	TArray<FAbilityDisplayData> GetPassiveAbilitiesDisplayData() const;
 	UFUNCTION(BlueprintPure, Category = "Abilities|DefaultSlots")
-	UUnitAbilityInstance* GetDefaultAbility(EDefaultAbilitySlot Slot) const;
+	UUnitAbility* GetDefaultAbility(EDefaultAbilitySlot Slot) const;
 	UFUNCTION(BlueprintPure, Category = "Abilities|Spellbook")
-	TArray<UUnitAbilityInstance*> GetSpellbookAbilities() const;
+	TArray<UUnitAbility*> GetSpellbookAbilities() const;
 	
 	// Interface
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
-	void EquipAbility(UUnitAbilityInstance* Ability);
+	void EquipAbility(UUnitAbility* Ability);
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	void EnsureValidAbility();
 	UFUNCTION(BlueprintPure, Category = "Abilities")
@@ -71,29 +71,29 @@ public:
 	TArray<FAbilityDisplayData> GetSpellbookDisplayData() const;
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
-	TObjectPtr<UUnitAbilityInstance> CurrentActiveAbility;
+	TObjectPtr<UUnitAbility> CurrentActiveAbility;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbilityInstance> DefaultAttackAbility;
+	TObjectPtr<UUnitAbility> DefaultAttackAbility;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbilityInstance> DefaultMoveAbility;
+	TObjectPtr<UUnitAbility> DefaultMoveAbility;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbilityInstance> DefaultWaitAbility;
+	TObjectPtr<UUnitAbility> DefaultWaitAbility;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbilityInstance> DefaultDefendAbility;
+	TObjectPtr<UUnitAbility> DefaultDefendAbility;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbilityInstance> DefaultFleeAbility;
+	TObjectPtr<UUnitAbility> DefaultFleeAbility;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
-	TArray<TObjectPtr<UUnitAbilityInstance>> AvailableActiveAbilities;
+	TArray<TObjectPtr<UUnitAbility>> AvailableActiveAbilities;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
-	TArray<TObjectPtr<UUnitAbilityInstance>> PassiveAbilities;
+	TArray<TObjectPtr<UUnitAbility>> PassiveAbilities;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|Spellbook")
-	TArray<TObjectPtr<UUnitAbilityInstance>> SpellbookAbilities;
+	TArray<TObjectPtr<UUnitAbility>> SpellbookAbilities;
 
 private:
 
 	FAbilityContext AbilityContext;
-	bool IsDefaultAbility(UUnitAbilityInstance* Ability) const;
-	bool IsAbilityAvailable(UUnitAbilityInstance* Ability) const;
+	bool IsDefaultAbility(UUnitAbility* Ability) const;
+	bool IsAbilityAvailable(UUnitAbility* Ability) const;
 	const FUnitStatusContainer* GetOwnerStatus() const;
 	UFUNCTION() void OnOwnerTurnStart(AUnit* Unit);
 	UFUNCTION() void OnOwnerTurnEnd(AUnit* Unit);
