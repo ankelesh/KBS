@@ -3,6 +3,7 @@
 #include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
@@ -29,7 +30,7 @@ void UUnitActionHistoryComponent::InitializeFromConfig(const FUnitActionHistoryC
 	for (const auto& [Tag, Asset] : Config.TagToDescriptorMap)
 	{
 		UCombatDescriptor* Descriptor = NewObject<UCombatDescriptor>(this);
-		Descriptor->Initialize(this, Asset);
+		Descriptor->Initialize(this, Asset->Data);
 		TagToDescriptorMap.Add(Tag, Descriptor);
 	}
 }

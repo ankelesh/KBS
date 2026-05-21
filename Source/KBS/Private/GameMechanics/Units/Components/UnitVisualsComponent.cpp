@@ -369,8 +369,8 @@ void UUnitVisualsComponent::AttachWeaponMesh(UStaticMesh* WeaponMesh, FName Sock
 	{
 		WeaponMeshComp->SetStaticMesh(WeaponMesh);
 		WeaponMeshComp->SetMobility(EComponentMobility::Movable);
-		WeaponMeshComp->AttachToComponent(PrimarySkeletalMesh, FAttachmentTransformRules::KeepRelativeTransform, SocketName);
 		WeaponMeshComp->RegisterComponent();
+		WeaponMeshComp->AttachToComponent(PrimarySkeletalMesh, FAttachmentTransformRules::KeepRelativeTransform, SocketName);
 		SetupCollisionForMesh(WeaponMeshComp);
 		SpawnedMeshComponents.Add(WeaponMeshComp);
 	}

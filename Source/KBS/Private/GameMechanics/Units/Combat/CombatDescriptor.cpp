@@ -1,25 +1,16 @@
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
-#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
 #include "GameMechanics/Units/Unit.h"
-void UCombatDescriptor::Initialize(UObject* Outer, UCombatDescriptorDataAsset* Data, int32 BaseMagnitudeOverride)
+void UCombatDescriptor::Initialize(UObject* Outer, const FCombatDescriptorData& Data)
 {
-	if (!Data)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UCombatDescriptor::Initialize - No DataAsset provided"));
-		return;
-	}
-	Config = Data;
-	Stats = Data->BaseStats;
-	if (BaseMagnitudeOverride != -1)
-		Stats.BaseMagnitude.SetBase(BaseMagnitudeOverride);
-	bIsImmutable = Data->bIsImmutable;
-	bGuaranteedHit = Data->bGuaranteedHit;
-	MagnitudePolicy = Data->MagnitudePolicy;
-	SideEffects = Data->SideEffects;
+	Stats = Data.BaseStats;
+	bIsImmutable = Data.bIsImmutable;
+	bGuaranteedHit = Data.bGuaranteedHit;
+	MagnitudePolicy = Data.MagnitudePolicy;
+	SideEffects = Data.SideEffects;
 	ActiveEffects.Empty();
-	for (const FDescriptorEffectConfig& EffectConfig : Data->Effects)
+	for (const FDescriptorEffectConfig& EffectConfig : Data.Effects)
 	{
 		if (EffectConfig.EffectClass && EffectConfig.EffectConfig)
 		{

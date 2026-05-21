@@ -1,28 +1,26 @@
 #include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/WeaponDataAsset.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
-#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorMerge.h"
 
-void UWeapon::Initialize(UObject* Outer, UWeaponDataAsset* Data)
+void UWeapon::Initialize(UObject* Outer, const FWeaponData& Data)
 {
-	checkf(Data, TEXT("UWeapon::Initialize: null WeaponDataAsset"));
-	checkf(Data->Descriptor, TEXT("UWeapon::Initialize: WeaponDataAsset has no Descriptor"));
 	Config = Data;
 	Descriptor = NewObject<UCombatDescriptor>(Outer);
-	Descriptor->Initialize(Outer, Data->Descriptor, Data->DamageOverride);
+	Descriptor->Initialize(Outer, MergeDescriptors(Data));
 }
 
 FGameplayTag UWeapon::GetAnimTag() const
 {
-	return Config->AnimTag;
+	return Config.AnimTag;
 }
 
 FText UWeapon::GetDisplayName() const
 {
-	return Config->NameOverride.IsEmpty() ? Config->Descriptor->Name : Config->NameOverride;
+	return Config.Name;
 }
 
 const FText& UWeapon::GetDescription() const
 {
-	return Config->Description;
+	return Config.Description;
 }

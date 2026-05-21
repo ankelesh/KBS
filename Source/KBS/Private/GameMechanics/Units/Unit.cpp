@@ -1,6 +1,5 @@
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Combat/Weapon.h"
-#include "GameMechanics/Units/Combat/WeaponDataAsset.h"
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
@@ -101,11 +100,10 @@ void AUnit::SwapVisualDefinition(UUnitVisualDefinition* NewVisual)
 
 void AUnit::InitializeWeapons(const UUnitDefinition* Definition)
 {
-	for (UWeaponDataAsset* WeaponAsset : Definition->DefaultWeapons)
+	for (const FWeaponData& WeaponData : Definition->DefaultWeapons)
 	{
-		if (!WeaponAsset) continue;
 		TObjectPtr<UWeapon> NewWeapon = NewObject<UWeapon>(this);
-		NewWeapon->Initialize(this, WeaponAsset);
+		NewWeapon->Initialize(this, WeaponData);
 		Weapons.Add(NewWeapon);
 	}
 }

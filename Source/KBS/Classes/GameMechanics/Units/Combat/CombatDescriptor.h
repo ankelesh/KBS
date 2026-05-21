@@ -1,41 +1,16 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/TargetingDescriptor.h"
-#include "GameplayTypes/CombatDescriptorTypes.h"
-#include "GameMechanics/Units/Stats/BaseUnitStatTypes.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorData.h"
 #include "CombatDescriptor.generated.h"
 class UBattleEffect;
-class UCombatDescriptorDataAsset;
 class AUnit;
-USTRUCT(BlueprintType)
-struct FCombatDescriptorStats
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	FUnitStatPositive BaseMagnitude {10};
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	FDamageSourceSetStat DamageSources;
-
-	// Constant descriptor property
-	// Not modified by buffs - all accuracy buffs affect Unit stats instead
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	int32 AccuracyMultiplier = 100;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Targeting")
-	ETargetReach TargetReach = ETargetReach::AnyEnemy;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Targeting")
-	FAreaShape AreaShape;
-};
 UCLASS(BlueprintType)
 class KBS_API UCombatDescriptor : public UObject
 {
 	GENERATED_BODY()
 public:
-	void Initialize(UObject* Outer, UCombatDescriptorDataAsset* Data, int32 BaseMagnitudeOverride = -1);
+	void Initialize(UObject* Outer, const FCombatDescriptorData& Data);
 
 	
 	// Add enchantments/buffs to descriptor stats (e.g., Stats.BaseMagnitude.AddFlatModifier(...))
@@ -52,12 +27,8 @@ public:
 	const TArray<UBattleEffect*>& GetEffects() const { return ActiveEffects; }
 	FText GetEffectsTooltips(AUnit* Owner);
 	FTargetingDescriptor GetTargeting() const { return FTargetingDescriptor::FromReach(Stats.TargetReach); }
-	const UCombatDescriptorDataAsset* GetConfig() const { return Config; }
 	const FDescriptorSideEffects& GetSideEffects() const { return SideEffects; }
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
-	TObjectPtr<UCombatDescriptorDataAsset> Config;
-
 	// Single stats instance - stat wrappers handle Base/Modified internally
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	EMagnitudePolicy MagnitudePolicy = EMagnitudePolicy::Damage;

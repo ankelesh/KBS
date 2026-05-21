@@ -7,7 +7,6 @@ DEFINE_LOG_CATEGORY(LogKBSCombat);
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAbilityExecutorService.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
-#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 
 namespace
@@ -270,8 +269,7 @@ void UTacCombatSubsystem::LogResolutionStart(FCombatContext& Context)
 {
 	TArray<FString> TargetNames;
 	for (const FHitInstance& Hit : Context.Hits) { TargetNames.Add(Hit.Target->GetName()); }
-	const UCombatDescriptorDataAsset* DescriptorConfig = Context.AttackerDescriptor ? Context.AttackerDescriptor->GetConfig() : nullptr;
 	UE_LOG(LogKBSCombat, Log, TEXT("[RESOLUTION START] %s -> [%s] descriptor=%s reaction=%d"),
 	       *Context.Attacker->GetLogName(), *FString::Join(TargetNames, TEXT(", ")),
-	       DescriptorConfig ? *DescriptorConfig->GetName() : TEXT("none"), Context.bIsReactionHit ? 1 : 0);
+	       Context.AttackerDescriptor ? TEXT("present") : TEXT("none"), Context.bIsReactionHit ? 1 : 0);
 }

@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
-#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorData.h"
 #include "OffensiveSpellAbilityDefinition.generated.h"
 
 UCLASS(BlueprintType)
@@ -10,12 +10,8 @@ class KBS_API UOffensiveSpellAbilityDefinition : public UUnitAbilityDefinition
 {
 	GENERATED_BODY()
 public:
-	// Inline descriptor config — a transient UCombatDescriptorDataAsset is constructed from these at init time
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell|Descriptor")
-	FCombatDescriptorStats EmbeddedStats;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell|Descriptor")
-	TArray<FDescriptorEffectConfig> EmbeddedEffects;
+	FCombatDescriptorData EmbeddedDescriptor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell|Visuals")
 	FGameplayTag AnimTag;

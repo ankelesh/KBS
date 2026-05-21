@@ -4,9 +4,9 @@
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "GameMechanics/Units/Components/UnitComponentEntry.h"
 #include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
+#include "GameMechanics/Units/Combat/WeaponDataAsset.h"
 #include "UnitDefinition.generated.h"
 
-class UWeaponDataAsset;
 class UUnitAbilityDefinition;
 
 UCLASS(BlueprintType)
@@ -21,7 +21,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	FUnitCoreStats BaseStatsTemplate;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	TArray<TObjectPtr<UWeaponDataAsset>> DefaultWeapons;
+	TArray<FWeaponData> DefaultWeapons;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Attack"))
 	TObjectPtr<UUnitAbilityDefinition> DefaultAttackAbility;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots", meta = (DisplayName = "Move"))

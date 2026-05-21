@@ -18,12 +18,8 @@ void UOffensiveSpellAbility::InitializeFromDefinition(UUnitAbilityDefinition* In
 	UOffensiveSpellAbilityDefinition* SpellConfig = Cast<UOffensiveSpellAbilityDefinition>(Config);
 	checkf(SpellConfig, TEXT("UOffensiveSpellAbility requires a USpellAbilityDefinition asset"));
 
-	UCombatDescriptorDataAsset* TransientWeapon = NewObject<UCombatDescriptorDataAsset>(this);
-	TransientWeapon->BaseStats = SpellConfig->EmbeddedStats;
-	TransientWeapon->Effects = SpellConfig->EmbeddedEffects;
-
 	EmbeddedDescriptor = NewObject<UCombatDescriptor>(this);
-	EmbeddedDescriptor->Initialize(this, TransientWeapon);
+	EmbeddedDescriptor->Initialize(this, SpellConfig->EmbeddedDescriptor);
 }
 
 void UOffensiveSpellAbility::ScaleEmbeddedDescriptor() const
