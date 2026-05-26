@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "TurnStateMachine/TacTurnOrder.h"
+#include "TurnStateMachine/States/TacTurnState.h"
 #include "TacCategoryLogger.h"
 #include "TacTurnSubsystem.generated.h"
 
@@ -22,7 +23,6 @@ class FTacTurnState;
 class AUnit;
 class UUnitAbility;
 struct FTacCoordinates;
-enum class ETurnState : uint8;
 
 UCLASS()
 class KBS_API UTacTurnSubsystem : public UWorldSubsystem
@@ -73,6 +73,15 @@ public:
 	void OnPresentationComplete();
 
 private:
+	struct FTransitionRecord
+	{
+		ETurnState From;
+		ETurnState To;
+		FString    Trigger;
+		int32      Round;
+		FString    UnitName;
+	};
+
 	UFUNCTION()
 	void HandleUnitDied(AUnit* Unit);
 
@@ -81,6 +90,11 @@ private:
 	void AttemptTransition();
 	void AttemptTransition(int32 Depth);
 
+	void RecordPhase(ETurnState State);
+	void RecordTransition(ETurnState From, ETurnState To);
+	void RecordEvent(const FString& Event);
+	void DumpInfiniteLoopDiagnostics() const;
+
 	void ReloadTurnOrder();
 	void BroadcastRoundStart();
 	void BroadcastRoundEnd();
@@ -88,13 +102,26 @@ private:
 	void BroadcastTurnEnd();
 	void BroadcastBattleEnd();
 
+	static constexpr int32 KPhaseHistorySize     = 20;
+	static constexpr int32 KTransitionRecordSize = 10;
+	static constexpr int32 KEventHistorySize     = 20;
+
 	TUniquePtr<FTacTurnOrder> TurnOrder;
 	TMap<ETurnState, TUniquePtr<FTacTurnState>> States;
 	TUniquePtr<FTacCategoryLogger> TurnLogger;
 	TUniquePtr<FTacCategoryLogger> AILogger;
 	FTacTurnState* CurrentState = nullptr;
+	ETurnState CurrentStateEnum = ETurnState::EBattleInitializationState;
 	int32 CurrentRound = 0;
 	UTacGridSubsystem* GridSubsystem = nullptr;
 	UPROPERTY()
 	TObjectPtr<UTacAICombatService> AICombatService;
+
+	TArray<ETurnState>        PhaseHistory;
+	TArray<FTransitionRecord> TransitionHistory;
+	TArray<FString>           EventHistory;
+	int32                     PhaseHistoryIdx      = 0;
+	int32                     TransitionHistoryIdx = 0;
+	int32                     EventHistoryIdx      = 0;
+	FString                   PendingTrigger;
 };

@@ -64,6 +64,7 @@ public:
 	bool IsSpellbookAvailable() const;
 	FAbilityContext* GetContext();
 	void ProcessTurnPolicy(EAbilityTurnReleasePolicy Policy);
+	FString GetAbilitiesDebugString() const;
 	
 
 	// DisplayData getters

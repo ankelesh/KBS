@@ -83,4 +83,6 @@ void FAbilityContext::ClearTurnData()
 {
 	TurnTagContext.Reset();
 	TurnOnlyStorage.Empty();
+	TurnState = EAbilityTurnReleasePolicy::Free;
+	StateBeforeLock = EAbilityTurnReleasePolicy::Free;
 }

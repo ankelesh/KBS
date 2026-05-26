@@ -95,25 +95,44 @@ void UAbilityInventoryComponent::AddActiveAbility(UUnitAbility* Ability)
 	check(Ability);
 	checkf(!Ability->IsPassive(), TEXT("AbilityInventory: passive ability passed to AddActiveAbility"));
 
+	// Only claim a default slot if it is vacant or already points to this instance.
+	// If a different ability already occupies the slot (e.g. a second MovementAbility
+	// subclass added via AdditionalAbilities), treat it as a regular active ability so
+	// the original default is not overwritten.
 	if (Ability->IsA<UAutoAttackAbility>())
 	{
-		DefaultAttackAbility = Ability;
+		if (!DefaultAttackAbility || DefaultAttackAbility == Ability)
+			DefaultAttackAbility = Ability;
+		else
+			AvailableActiveAbilities.Add(Ability);
 	}
 	else if (Ability->IsA<UMovementAbility>())
 	{
-		DefaultMoveAbility = Ability;
+		if (!DefaultMoveAbility || DefaultMoveAbility == Ability)
+			DefaultMoveAbility = Ability;
+		else
+			AvailableActiveAbilities.Add(Ability);
 	}
 	else if (Ability->IsA<UWaitAbility>())
 	{
-		DefaultWaitAbility = Ability;
+		if (!DefaultWaitAbility || DefaultWaitAbility == Ability)
+			DefaultWaitAbility = Ability;
+		else
+			AvailableActiveAbilities.Add(Ability);
 	}
 	else if (Ability->IsA<UDefendAbility>())
 	{
-		DefaultDefendAbility = Ability;
+		if (!DefaultDefendAbility || DefaultDefendAbility == Ability)
+			DefaultDefendAbility = Ability;
+		else
+			AvailableActiveAbilities.Add(Ability);
 	}
 	else if (Ability->IsA<UFleeAbility>())
 	{
-		DefaultFleeAbility = Ability;
+		if (!DefaultFleeAbility || DefaultFleeAbility == Ability)
+			DefaultFleeAbility = Ability;
+		else
+			AvailableActiveAbilities.Add(Ability);
 	}
 	else
 	{
@@ -501,4 +520,28 @@ bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbility* Ability) const
 	}
 
 	return Ability->CanExecute();
+}
+
+FString UAbilityInventoryComponent::GetAbilitiesDebugString() const
+{
+	FString Result;
+	auto Append = [&](const UUnitAbility* Ability, const TCHAR* Slot)
+	{
+		if (Ability)
+			Result += FString::Printf(TEXT("  [%s] %s\n"), Slot, *Ability->GetDebugString());
+	};
+
+	Append(DefaultAttackAbility, TEXT("Attack"));
+	Append(DefaultMoveAbility,   TEXT("Move"));
+	Append(DefaultWaitAbility,   TEXT("Wait"));
+	Append(DefaultDefendAbility, TEXT("Defend"));
+	Append(DefaultFleeAbility,   TEXT("Flee"));
+	for (const TObjectPtr<UUnitAbility>& A : AvailableActiveAbilities)
+		Append(A, TEXT("Active"));
+	for (const TObjectPtr<UUnitAbility>& A : PassiveAbilities)
+		Append(A, TEXT("Passive"));
+	for (const TObjectPtr<UUnitAbility>& A : SpellbookAbilities)
+		Append(A, TEXT("Spellbook"));
+
+	return Result;
 }

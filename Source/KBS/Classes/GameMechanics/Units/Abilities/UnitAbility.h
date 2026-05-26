@@ -52,6 +52,7 @@ public:
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }
+	FString GetDebugString() const;
 	AUnit* GetOwner() const { return Owner; }
 	void SetOwner(AUnit* NewOwner) { Owner = NewOwner; }
 	void ChangeSelection(bool bIsSelected);

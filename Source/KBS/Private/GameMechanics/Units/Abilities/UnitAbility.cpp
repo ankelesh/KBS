@@ -87,6 +87,15 @@ void UUnitAbility::BroadcastUsage() const
 	OnAbilityUsed.Broadcast(RemainingCharges, CanExecute());
 }
 
+FString UUnitAbility::GetDebugString() const
+{
+	if (!Config)
+		return TEXT("<no config> [?/?] explicit:no");
+	return FString::Printf(TEXT("%s [%d/%d] explicit:%s"),
+		*Config->AbilityName, RemainingCharges, Config->MaxCharges,
+		HasExplicitCharges() ? TEXT("yes") : TEXT("no"));
+}
+
 FAbilityDisplayData UUnitAbility::GetAbilityDisplayData() const
 {
 	FAbilityDisplayData DisplayData;

@@ -14,6 +14,7 @@ DEFINE_LOG_CATEGORY(LogKBSTurn);
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAICombatService.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
 void UTacTurnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
@@ -93,9 +94,12 @@ void UTacTurnSubsystem::StartBattle()
 	checkf(States.Num() > 0, TEXT("TacTurnSubsystem: States not initialized"));
 	UE_LOG(LogKBSTurn, Log, TEXT("Battle started"));
 
+	CurrentStateEnum = ETurnState::EBattleInitializationState;
 	CurrentState = States[ETurnState::EBattleInitializationState].Get();
 	CurrentState->Enter();
+	RecordPhase(ETurnState::EBattleInitializationState);
 
+	PendingTrigger = TEXT("BattleStart");
 	AttemptTransition();
 }
 
@@ -107,9 +111,12 @@ void UTacTurnSubsystem::TransitionToState(ETurnState NextState)
 	{
 		const UEnum* StateEnum = StaticEnum<ETurnState>();
 		UE_LOG(LogKBSTurn, Log, TEXT("State transition -> %s"), *StateEnum->GetNameStringByValue(static_cast<int64>(NextState)));
+		RecordTransition(CurrentStateEnum, NextState);
 		CurrentState->Exit();
+		CurrentStateEnum = NextState;
 		CurrentState = NextStatePtr->Get();
 		CurrentState->Enter();
+		RecordPhase(NextState);
 	}
 	else
 	{
@@ -124,7 +131,12 @@ void UTacTurnSubsystem::AttemptTransition()
 
 void UTacTurnSubsystem::AttemptTransition(int32 Depth)
 {
-	checkf(Depth < 100, TEXT("TacTurnSubsystem: AttemptTransition exceeded 100 automatic transitions - likely infinite loop in state machine"));
+	if (Depth >= 100)
+	{
+		DumpInfiniteLoopDiagnostics();
+		TransitionToState(ETurnState::EBattleEndState);
+		return;
+	}
 	check(CurrentState);
 
 	// Check win condition - if battle ended, force to battle end state
@@ -154,6 +166,8 @@ void UTacTurnSubsystem::AttemptTransition(int32 Depth)
 void UTacTurnSubsystem::UnitClicked(AUnit* Unit)
 {
 	check(CurrentState);
+	RecordEvent(TEXT("UnitClicked"));
+	PendingTrigger = TEXT("UnitClicked");
 	CurrentState->UnitClicked(Unit);
 	AttemptTransition();
 }
@@ -161,6 +175,8 @@ void UTacTurnSubsystem::UnitClicked(AUnit* Unit)
 void UTacTurnSubsystem::CellClicked(FTacCoordinates Cell)
 {
 	check(CurrentState);
+	RecordEvent(TEXT("CellClicked"));
+	PendingTrigger = TEXT("CellClicked");
 	CurrentState->CellClicked(Cell);
 	AttemptTransition();
 }
@@ -168,6 +184,8 @@ void UTacTurnSubsystem::CellClicked(FTacCoordinates Cell)
 void UTacTurnSubsystem::AbilityClicked(UUnitAbility* Ability)
 {
 	check(CurrentState);
+	RecordEvent(TEXT("AbilityClicked"));
+	PendingTrigger = TEXT("AbilityClicked");
 	CurrentState->AbilityClicked(Ability);
 	AttemptTransition();
 }
@@ -175,6 +193,8 @@ void UTacTurnSubsystem::AbilityClicked(UUnitAbility* Ability)
 void UTacTurnSubsystem::OnPresentationComplete()
 {
 	check(CurrentState);
+	RecordEvent(TEXT("PresentationComplete"));
+	PendingTrigger = TEXT("PresentationComplete");
 	CurrentState->OnPresentationComplete();
 	AttemptTransition();
 }
@@ -228,6 +248,87 @@ void UTacTurnSubsystem::ReloadTurnOrder()
 	{
 		Unit->OnUnitDied.RemoveDynamic(this, &UTacTurnSubsystem::HandleUnitDied);
 		Unit->OnUnitDied.AddDynamic(this, &UTacTurnSubsystem::HandleUnitDied);
+	}
+}
+
+void UTacTurnSubsystem::RecordPhase(ETurnState State)
+{
+	if (PhaseHistory.Num() < KPhaseHistorySize)
+		PhaseHistory.Add(State);
+	else
+		PhaseHistory[PhaseHistoryIdx % KPhaseHistorySize] = State;
+	++PhaseHistoryIdx;
+}
+
+void UTacTurnSubsystem::RecordTransition(ETurnState From, ETurnState To)
+{
+	AUnit* Unit = GetCurrentUnit();
+	FTransitionRecord Rec{From, To, PendingTrigger, CurrentRound, Unit ? Unit->GetName() : TEXT("None")};
+	if (TransitionHistory.Num() < KTransitionRecordSize)
+		TransitionHistory.Add(Rec);
+	else
+		TransitionHistory[TransitionHistoryIdx % KTransitionRecordSize] = Rec;
+	++TransitionHistoryIdx;
+}
+
+void UTacTurnSubsystem::RecordEvent(const FString& Event)
+{
+	if (EventHistory.Num() < KEventHistorySize)
+		EventHistory.Add(Event);
+	else
+		EventHistory[EventHistoryIdx % KEventHistorySize] = Event;
+	++EventHistoryIdx;
+}
+
+void UTacTurnSubsystem::DumpInfiniteLoopDiagnostics() const
+{
+	const UEnum* StateEnum = StaticEnum<ETurnState>();
+	AUnit* Unit = GetCurrentUnit();
+
+	UE_LOG(LogKBSTurn, Error, TEXT("=== INFINITE LOOP DETECTED (100 consecutive transitions) ==="));
+	UE_LOG(LogKBSTurn, Error, TEXT("Round: %d | ActiveUnit: %s"), CurrentRound,
+		Unit ? *Unit->GetName() : TEXT("None"));
+
+	UE_LOG(LogKBSTurn, Error, TEXT("--- Phase History (oldest->newest, %d entries) ---"), PhaseHistory.Num());
+	const int32 PhaseStart = PhaseHistory.Num() >= KPhaseHistorySize ? PhaseHistoryIdx % KPhaseHistorySize : 0;
+	for (int32 i = 0; i < PhaseHistory.Num(); ++i)
+	{
+		const ETurnState& Phase = PhaseHistory[(PhaseStart + i) % PhaseHistory.Num()];
+		UE_LOG(LogKBSTurn, Error, TEXT("  [%d] %s"), i, *StateEnum->GetNameStringByValue(static_cast<int64>(Phase)));
+	}
+
+	UE_LOG(LogKBSTurn, Error, TEXT("--- Last %d Transition Records ---"), TransitionHistory.Num());
+	const int32 TransStart = TransitionHistory.Num() >= KTransitionRecordSize ? TransitionHistoryIdx % KTransitionRecordSize : 0;
+	for (int32 i = 0; i < TransitionHistory.Num(); ++i)
+	{
+		const FTransitionRecord& Rec = TransitionHistory[(TransStart + i) % TransitionHistory.Num()];
+		UE_LOG(LogKBSTurn, Error, TEXT("  [%d] %s -> %s | Trigger: %s | Round: %d | Unit: %s"),
+			i,
+			*StateEnum->GetNameStringByValue(static_cast<int64>(Rec.From)),
+			*StateEnum->GetNameStringByValue(static_cast<int64>(Rec.To)),
+			*Rec.Trigger, Rec.Round, *Rec.UnitName);
+	}
+
+	UE_LOG(LogKBSTurn, Error, TEXT("--- Last %d Events (oldest->newest) ---"), EventHistory.Num());
+	const int32 EvStart = EventHistory.Num() >= KEventHistorySize ? EventHistoryIdx % KEventHistorySize : 0;
+	for (int32 i = 0; i < EventHistory.Num(); ++i)
+	{
+		UE_LOG(LogKBSTurn, Error, TEXT("  [%d] %s"), i, *EventHistory[(EvStart + i) % EventHistory.Num()]);
+	}
+
+	if (Unit)
+	{
+		UE_LOG(LogKBSTurn, Error, TEXT("--- Active Unit Abilities ---"));
+		UE_LOG(LogKBSTurn, Error, TEXT("%s"), *Unit->GetAbilityInventory()->GetAbilitiesDebugString());
+	}
+
+	UE_LOG(LogKBSTurn, Error, TEXT("Recovering by forcing -> EBattleEndState"));
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 60.f, FColor::Red,
+			FString::Printf(TEXT("[TacTurn] Inf-loop detected! Round %d, Unit: %s. Forced BattleEnd. See LogKBSTurn for details."),
+				CurrentRound, Unit ? *Unit->GetName() : TEXT("None")));
 	}
 }
 
