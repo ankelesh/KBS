@@ -11,6 +11,7 @@ class KBS_API UBattleEffectDataAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 public:
+	FPrimaryAssetId GetPrimaryAssetId() const override { return FPrimaryAssetId("BattleEffect", GetFName()); }
 	// Description
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
 	FText Name;

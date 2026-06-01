@@ -14,6 +14,7 @@ class KBS_API UUnitDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 public:
+	FPrimaryAssetId GetPrimaryAssetId() const override { return FPrimaryAssetId("UnitDefinition", GetFName()); }
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TObjectPtr<UUnitVisualDefinition> VisualDefinition;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")

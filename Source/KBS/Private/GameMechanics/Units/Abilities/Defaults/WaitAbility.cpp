@@ -1,4 +1,5 @@
 #include "GameMechanics/Units/Abilities/Defaults/WaitAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
@@ -11,7 +12,8 @@ FAbilityExecutionResult UWaitAbility::Execute(FTacCoordinates TargetCell)
 	check(TurnSubsystem);
 	
 	TurnSubsystem->Wait();
-	
+	// FTacLogWaitStep WaitStep = FTacLogWaitStep::Make(Owner->GetUnitID());
+
 	UE_LOG(LogTemp, Log, TEXT("%s uses Wait - reinserted into queue with modified initiative"), *Owner->GetName());
 	ConsumeCharge();
 	SetCompletionTag();

@@ -1,4 +1,5 @@
 #include "GameMechanics/Units/Abilities/Defaults/MovementAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Abilities/Defaults/MovementAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
@@ -22,10 +23,12 @@ FAbilityExecutionResult UMovementAbility::Execute(FTacCoordinates TargetCell)
 	check(MovementService);
 	
 	const UMovementAbilityDefinition* MoveDef = CastChecked<UMovementAbilityDefinition>(Config);
+	// const FTacCoordinates FromCoords = Owner->GetGridMetadata().Coords;
 	const bool bSuccess = MoveDef->bIsAnimated
 		? MovementService->MoveUnit(Owner, TargetCell)
 		: MovementService->TeleportUnit(Owner, TargetCell);
 	check(bSuccess);
+	// FTacLogMoveStep MoveStep = FTacLogMoveStep::Make(Owner->GetUnitID(), FromCoords, TargetCell, MoveDef->bIsAnimated);
 	ConsumeCharge();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());

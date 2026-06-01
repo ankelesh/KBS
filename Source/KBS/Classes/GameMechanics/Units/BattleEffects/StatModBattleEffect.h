@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "BattleEffect.h"
 #include "StatModBattleEffectDataAsset.h"
-#include "GameplayTypes/DamageTypes.h"
+#include "GameMechanics/Units/Stats/UnitStatDelta.h"
 #include "StatModBattleEffect.generated.h"
 
 UCLASS(Blueprintable)
@@ -20,15 +20,6 @@ protected:
 	void ApplyStatModifications();
 	void RemoveStatModifications();
 
-	// Cache applied modifications for exact removal
 	UPROPERTY()
-	int32 AppliedMaxHealthMod = 0;
-	UPROPERTY()
-	int32 AppliedInitiativeMod = 0;
-	UPROPERTY()
-	int32 AppliedAccuracyMod = 0;
-	UPROPERTY()
-	TArray<EDamageSource> AppliedImmunities;
-	UPROPERTY()
-	TMap<EDamageSource, int32> AppliedArmourMods;
+	FUnitStatDelta AppliedDelta;
 };

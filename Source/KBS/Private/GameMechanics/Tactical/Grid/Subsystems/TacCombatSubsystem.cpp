@@ -222,15 +222,14 @@ void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FCombatContext& Context,
 			if (!FDamageCalculation::PerformAccuracyRoll(
 				FDamageCalculation::CalculateEffectApplication(Context.Attacker, Effect, Hit.Target)))
 			{
+				Result.AppliedEffects.Add({Effect->GetConfig()->GetPrimaryAssetId(), FGuid(), 0, EEffectApplicationOutcome::RollMissed});
 				continue;
 			}
 		}
 		TObjectPtr<UBattleEffect> EffectCopy = DuplicateObject(Effect, Hit.Target);
 		EffectCopy->PrepareForApply(Context.Attacker, Hit.Target);
-		if (Hit.Target->ApplyEffect(EffectCopy))
-		{
-			++Result.EffectsApplied;
-		}
+		const EEffectApplicationOutcome Outcome = Hit.Target->ApplyEffect(EffectCopy);
+		Result.AppliedEffects.Add({EffectCopy->GetConfig()->GetPrimaryAssetId(), EffectCopy->GetEffectId(), EffectCopy->GetDuration(), Outcome});
 	}
 }
 

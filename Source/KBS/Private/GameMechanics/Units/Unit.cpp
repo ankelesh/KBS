@@ -191,14 +191,17 @@ void AUnit::ConsumeWard(EDamageSource Source, bool Emits)
 	if (Emits) OnUnitStatsModified.Broadcast(this, BaseStats);
 }
 
-bool AUnit::ApplyEffect(UBattleEffect* Effect, bool Emits)
+EEffectApplicationOutcome AUnit::ApplyEffect(UBattleEffect* Effect, bool Emits)
 {
 	checkf(Effect, TEXT("ApplyEffect called with null Effect on %s"), *GetLogName());
 	checkf(EffectManager, TEXT("EffectManager is null on %s - component may have been GC'd"), *GetLogName());
-	if (IsDead()) return false;
-	const bool bApplied = EffectManager->AddEffect(Effect);
-	if (bApplied && Emits) OnUnitEffectApplied.Broadcast(this, Effect);
-	return bApplied;
+	if (IsDead()) return EEffectApplicationOutcome::Rejected;
+	const EEffectApplicationOutcome Outcome = EffectManager->AddEffect(Effect);
+	const bool bNewInstance = Outcome == EEffectApplicationOutcome::Applied
+		|| Outcome == EEffectApplicationOutcome::Replaced
+		|| Outcome == EEffectApplicationOutcome::Stacked;
+	if (bNewInstance && Emits) OnUnitEffectApplied.Broadcast(this, Effect);
+	return Outcome;
 }
 
 void AUnit::NotifyEffectTriggered(UBattleEffect* Effect)

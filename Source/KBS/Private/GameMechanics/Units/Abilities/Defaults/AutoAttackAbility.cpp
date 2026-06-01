@@ -1,4 +1,5 @@
 #include "GameMechanics/Units/Abilities/Defaults/AutoAttackAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
@@ -70,6 +71,7 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	// Execute attack through combat subsystem
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon->GetDescriptor());
+	// FTacLogCombatStep CombatStep = FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords, ResolvedTargets.ClickedTarget->GetUnitID(), Weapon->GetAnimTag(), HitResults);
 
 	ConsumeCharge();
 	SetCompletionTag();

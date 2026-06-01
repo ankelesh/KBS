@@ -1,4 +1,5 @@
 #include "GameMechanics/Units/Abilities/Spells/OffensiveSpellAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Abilities/Spells/OffensiveSpellAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
@@ -78,7 +79,8 @@ FAbilityExecutionResult UOffensiveSpellAbility::Execute(FTacCoordinates TargetCe
 
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, EmbeddedDescriptor);
-	
+	// FTacLogCombatStep CombatStep = FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords, ResolvedTargets.ClickedTarget->GetUnitID(), SpellDef->AnimTag, HitResults);
+
 	SetCompletionTag();
 	ConsumeCharge();
 

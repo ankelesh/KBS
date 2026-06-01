@@ -63,44 +63,8 @@ void UStatModBattleEffect::ApplyStatModifications()
 		return;
 	}
 
-	FUnitCoreStats& Stats = Owner->GetStats();
-	const FGuid& EffId = GetEffectId();
-
-	// Apply stat modifiers (0 = no modification)
-	AppliedMaxHealthMod = Cfg->MaxHealthModifier;
-	if (AppliedMaxHealthMod != 0)
-	{
-		Stats.Health.AddMaxModifier(EffId, AppliedMaxHealthMod, true);
-	}
-
-	AppliedInitiativeMod = Cfg->InitiativeModifier;
-	if (AppliedInitiativeMod != 0)
-	{
-		Stats.Initiative.AddFlatModifier(EffId, AppliedInitiativeMod);
-	}
-
-	AppliedAccuracyMod = Cfg->AccuracyModifier;
-	if (AppliedAccuracyMod != 0)
-	{
-		Stats.Accuracy.AddFlatModifier(EffId, AppliedAccuracyMod);
-	}
-
-	// Apply immunities
-	AppliedImmunities = Cfg->ImmunitiesToGrant.Array();
-	for (EDamageSource Immunity : AppliedImmunities)
-	{
-		Stats.Defense.Immunities.AddModifier(EffId, Immunity, true);
-	}
-
-	// Apply armour modifiers
-	for (const auto& ArmorPair : Cfg->ArmourModifiers)
-	{
-		if (ArmorPair.Value != 0)
-		{
-			AppliedArmourMods.Add(ArmorPair.Key, ArmorPair.Value);
-			Stats.Defense.Armour.AddFlatModifier(EffId, ArmorPair.Value, ArmorPair.Key);
-		}
-	}
+	AppliedDelta = Cfg->Delta;
+	Owner->GetStats().ApplyDelta(AppliedDelta, GetEffectId());
 }
 
 void UStatModBattleEffect::RemoveStatModifications()
@@ -110,39 +74,6 @@ void UStatModBattleEffect::RemoveStatModifications()
 		return;
 	}
 
-	FUnitCoreStats& Stats = Owner->GetStats();
-	const FGuid& EffId = GetEffectId();
-
-	// Remove using cached amounts
-	if (AppliedMaxHealthMod != 0)
-	{
-		Stats.Health.RemoveMaxModifier(EffId, AppliedMaxHealthMod);
-		AppliedMaxHealthMod = 0;
-	}
-
-	if (AppliedInitiativeMod != 0)
-	{
-		Stats.Initiative.RemoveFlatModifier(EffId, AppliedInitiativeMod);
-		AppliedInitiativeMod = 0;
-	}
-
-	if (AppliedAccuracyMod != 0)
-	{
-		Stats.Accuracy.RemoveFlatModifier(EffId, AppliedAccuracyMod);
-		AppliedAccuracyMod = 0;
-	}
-
-	// Remove immunities
-	for (EDamageSource Immunity : AppliedImmunities)
-	{
-		Stats.Defense.Immunities.RemoveModifier(EffId, Immunity, true);
-	}
-	AppliedImmunities.Empty();
-
-	// Remove armour modifications
-	for (const auto& ArmorPair : AppliedArmourMods)
-	{
-		Stats.Defense.Armour.RemoveFlatModifier(EffId, ArmorPair.Value, ArmorPair.Key);
-	}
-	AppliedArmourMods.Empty();
+	Owner->GetStats().RemoveDelta(AppliedDelta, GetEffectId());
+	AppliedDelta.Reset();
 }

@@ -1,4 +1,5 @@
 #include "GameMechanics/Units/Abilities/Defaults/FleeAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
@@ -18,6 +19,7 @@ FAbilityExecutionResult UFleeAbility::Execute(FTacCoordinates TargetCell)
 		Owner->GetVisualsComponent()->OnRotationCompletedNative.AddUObject(this, &UFleeAbility::OnFleeRotationCompleted);
 
 	Owner->GetStats().Status.SetFleeing();
+	// FTacLogFleeStep FleeStep = FTacLogFleeStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords, Owner->GetTeamSide());
 	Owner->OnUnitTurnStart.AddDynamic(this, &UFleeAbility::HandleTurnStarted);
 	ConsumeCharge();
 	SetCompletionTag();

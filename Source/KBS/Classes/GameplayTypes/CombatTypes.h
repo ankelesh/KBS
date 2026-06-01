@@ -2,12 +2,39 @@
 #include "CoreMinimal.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/LogTypesLibrary.h"
 #include "CombatTypes.generated.h"
 
 class AUnit;
 class UBattleEffect;
 class UUnitAbility;
 class UCombatDescriptor;
+
+USTRUCT()
+struct FAppliedEffectRef
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FPrimaryAssetId AssetId;
+
+	UPROPERTY()
+	FGuid InstanceId;
+
+	UPROPERTY()
+	int32 FinalDuration = 0;
+
+	UPROPERTY()
+	EEffectApplicationOutcome Outcome = EEffectApplicationOutcome::Rejected;
+
+	bool WasApplied() const
+	{
+		return Outcome == EEffectApplicationOutcome::Applied
+			|| Outcome == EEffectApplicationOutcome::Replaced
+			|| Outcome == EEffectApplicationOutcome::Stacked
+			|| Outcome == EEffectApplicationOutcome::Refreshed;
+	}
+};
 
 USTRUCT(BlueprintType)
 struct FDamageResult
@@ -89,8 +116,8 @@ struct FCombatHitResult
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FDamageResult DamageResult;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 EffectsApplied = 0;
+	UPROPERTY()
+	TArray<FAppliedEffectRef> AppliedEffects;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<AUnit> TargetUnit = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

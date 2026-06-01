@@ -52,6 +52,7 @@ public:
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }
+	const FGuid& GetAbilityId() const { return AbilityId; }
 	FString GetDebugString() const;
 	AUnit* GetOwner() const { return Owner; }
 	void SetOwner(AUnit* NewOwner) { Owner = NewOwner; }
@@ -92,6 +93,9 @@ protected:
 	TObjectPtr<AUnit> Owner;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	bool bIsCurrent = false;
+
+	UPROPERTY(SaveGame)
+	FGuid AbilityId = FGuid::NewGuid();
 
 	mutable FGameplayTagContainer CachedTags;
 	mutable bool bTagsCached = false;

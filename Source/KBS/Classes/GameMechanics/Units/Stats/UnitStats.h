@@ -4,6 +4,7 @@
 #include "GameMechanics/Units/Stats/UnitDefenseStats.h"
 #include "GameMechanics/Units/Stats/UnitHealth.h"
 #include "GameMechanics/Units/Stats/UnitStatusContainer.h"
+#include "GameMechanics/Units/Stats/UnitStatDelta.h"
 #include "UnitStats.generated.h"
 
 USTRUCT(BlueprintType)
@@ -22,4 +23,6 @@ struct FUnitCoreStats
 	FUnitStatusContainer Status;
 
 	void InitFromBase(const FUnitCoreStats& Template);
+	void ApplyDelta(const FUnitStatDelta& Delta, const FGuid& EffectId);
+	void RemoveDelta(const FUnitStatDelta& Delta, const FGuid& EffectId);
 };

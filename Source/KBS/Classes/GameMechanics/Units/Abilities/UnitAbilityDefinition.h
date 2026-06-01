@@ -27,6 +27,7 @@ class KBS_API UUnitAbilityDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	FPrimaryAssetId GetPrimaryAssetId() const override { return FPrimaryAssetId("AbilityDefinition", GetFName()); }
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	TSubclassOf<UUnitAbility> AbilityClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
