@@ -1,6 +1,8 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 DEFINE_LOG_CATEGORY(LogKBSTurn);
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/TacTurnOrder.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/BattleInitializationState.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/RoundStartState.h"
@@ -332,24 +334,50 @@ void UTacTurnSubsystem::DumpInfiniteLoopDiagnostics() const
 	}
 }
 
+static void BroadcastWithTurnChangeLog(UWorld* World, ETurnChangeKind Kind, FGuid InstigatorId, ETeamSide Team, int32 Round, int32 TurnNum, TFunctionRef<void()> Broadcast)
+{
+	UTacLogSubsystem* Log = World->GetSubsystem<UTacLogSubsystem>();
+	FGuid Id = Log ? Log->OpenEvent(ETacLogEventType::TurnChange, ETacLogEventOrigin::Initiated, InstigatorId, FGuid(), Round, TurnNum) : FGuid();
+	Broadcast();
+	if (!Log) return;
+	TInstancedStruct<FTacLogPayload> Payload;
+	Payload.InitializeAs<FTurnChangePayload>();
+	FTurnChangePayload& P = Payload.GetMutable<FTurnChangePayload>();
+	P.ChangeKind   = Kind;
+	P.NewTurnOwner = InstigatorId;
+	P.NewTurnTeam  = Team;
+	Log->CloseEvent(Id, MoveTemp(Payload));
+}
+
+
 void UTacTurnSubsystem::BroadcastRoundStart()
 {
-	OnRoundStart.Broadcast(CurrentRound);
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Round, FGuid(), ETeamSide::Attacker, CurrentRound, 0,
+		[this]{ OnRoundStart.Broadcast(CurrentRound); });
 }
 
 void UTacTurnSubsystem::BroadcastRoundEnd()
 {
-	OnRoundEnd.Broadcast(CurrentRound);
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Round, FGuid(), ETeamSide::Attacker, CurrentRound, 0,
+		[this]{ OnRoundEnd.Broadcast(CurrentRound); });
 }
 
 void UTacTurnSubsystem::BroadcastTurnStart()
 {
-	OnTurnStart.Broadcast(TurnOrder->GetCurrentUnit());
+	AUnit* Unit = TurnOrder->GetCurrentUnit();
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Turn,
+		Unit ? Unit->GetUnitID() : FGuid(), Unit ? Unit->GetTeamSide() : ETeamSide::Attacker,
+		CurrentRound, ++CurrentTurnNumber,
+		[this, Unit]{ OnTurnStart.Broadcast(Unit); });
 }
 
 void UTacTurnSubsystem::BroadcastTurnEnd()
 {
-	OnTurnEnd.Broadcast(TurnOrder->GetCurrentUnit());
+	AUnit* Unit = TurnOrder->GetCurrentUnit();
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Turn,
+		Unit ? Unit->GetUnitID() : FGuid(), Unit ? Unit->GetTeamSide() : ETeamSide::Attacker,
+		CurrentRound, CurrentTurnNumber,
+		[this, Unit]{ OnTurnEnd.Broadcast(Unit); });
 }
 
 void UTacTurnSubsystem::BroadcastBattleEnd()

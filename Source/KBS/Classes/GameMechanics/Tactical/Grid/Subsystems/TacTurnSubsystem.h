@@ -124,4 +124,6 @@ private:
 	int32                     TransitionHistoryIdx = 0;
 	int32                     EventHistoryIdx      = 0;
 	FString                   PendingTrigger;
+
+	int32  CurrentTurnNumber = 0;
 };
