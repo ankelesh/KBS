@@ -4,7 +4,9 @@
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/TeamConstants.h"
+#include "GameplayTypes/LogTypesLibrary.h"
 #include "GameMechanics/Units/Stats/UnitStatDelta.h"
+#include "GameMechanics/Units/Stats/UnitStatusContainer.h"
 #include "TacLogAbilitySteps.generated.h"
 
 USTRUCT()
@@ -125,12 +127,17 @@ struct KBS_API FTacLogStatAltStep : public FTacLogStepBase
 	UPROPERTY()
 	FUnitStatDelta AppliedDelta;
 
-	static FTacLogStatAltStep Make(FGuid InSourceUnitId, FGuid InTargetUnitId, const FUnitStatDelta& InDelta)
+	UPROPERTY()
+	EStatModifierRemovalPolicy RemovalPolicy = EStatModifierRemovalPolicy::Permanent;
+
+	static FTacLogStatAltStep Make(FGuid InSourceUnitId, FGuid InTargetUnitId, const FUnitStatDelta& InDelta,
+	                               EStatModifierRemovalPolicy InPolicy = EStatModifierRemovalPolicy::Permanent)
 	{
 		FTacLogStatAltStep Step;
-		Step.SourceUnitId = InSourceUnitId;
-		Step.TargetUnitId = InTargetUnitId;
-		Step.AppliedDelta = InDelta;
+		Step.SourceUnitId  = InSourceUnitId;
+		Step.TargetUnitId  = InTargetUnitId;
+		Step.AppliedDelta  = InDelta;
+		Step.RemovalPolicy = InPolicy;
 		return Step;
 	}
 };
@@ -151,6 +158,40 @@ struct KBS_API FTacLogEffectSpawnStep : public FTacLogStepBase
 		FTacLogEffectSpawnStep Step;
 		Step.TargetUnitId = InTargetUnitId;
 		Step.EffectRef = InRef;
+		return Step;
+	}
+
+	// Appends one step per applied effect across all hit results (skips non-applied outcomes).
+	static void AppendFromHits(TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps, const TArray<FCombatHitResult>& HitResults);
+};
+
+USTRUCT()
+struct KBS_API FTacLogStatusChangeStep : public FTacLogStepBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGuid UnitId;
+
+	UPROPERTY()
+	EUnitStatus Status = EUnitStatus::Defending;
+
+	UPROPERTY()
+	bool bActivated = true;
+
+	// Valid only for ref-counted statuses (TurnBlocked, Pinned, Silenced, Disoriented).
+	// Invalid guid for bool-flag statuses (Defending, Fleeing, Channeling, Dead).
+	UPROPERTY()
+	FGuid ModifierId;
+
+	static FTacLogStatusChangeStep Make(FGuid InUnitId, EUnitStatus InStatus, bool bInActivated,
+	                                    FGuid InModifierId = FGuid())
+	{
+		FTacLogStatusChangeStep Step;
+		Step.UnitId      = InUnitId;
+		Step.Status      = InStatus;
+		Step.bActivated  = bInActivated;
+		Step.ModifierId  = InModifierId;
 		return Step;
 	}
 };

@@ -20,6 +20,7 @@ class UTacGridCombatSystem;
 class UTacGridTargetingService;
 class UTacTurnSubsystem;
 class UTacAbilityExecutorService;
+class UTacLogSubsystem;
 struct FCombatContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbility*, Ability, bool, Available);
@@ -76,6 +77,7 @@ protected:
 	UTacCombatSubsystem* GetCombatSubsystem() const;
 	UTacAbilityExecutorService* GetExecutorService() const;
 	UTacTurnSubsystem* GetTurnSubsystem() const;
+	UTacLogSubsystem* GetLogSubsystem() const;
 	FAbilityContext* GetContext() const;
 	
 	// Behavior

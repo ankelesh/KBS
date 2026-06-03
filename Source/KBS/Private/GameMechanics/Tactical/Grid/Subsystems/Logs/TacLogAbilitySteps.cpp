@@ -20,3 +20,18 @@ FTacLogCombatStep FTacLogCombatStep::Make(FGuid AttackerId, FTacCoordinates Atta
 	}
 	return Step;
 }
+
+void FTacLogEffectSpawnStep::AppendFromHits(TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps, const TArray<FCombatHitResult>& HitResults)
+{
+	for (const FCombatHitResult& Hit : HitResults)
+	{
+		for (const FAppliedEffectRef& Ref : Hit.AppliedEffects)
+		{
+			if (Ref.WasApplied())
+			{
+				OutSteps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogEffectSpawnStep>(
+					FTacLogEffectSpawnStep::Make(Hit.TargetUnit->GetUnitID(), Ref)));
+			}
+		}
+	}
+}

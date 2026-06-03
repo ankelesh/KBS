@@ -4,6 +4,8 @@
 
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
@@ -24,6 +26,10 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 	{
 		return;
 	}
+
+	UTacLogSubsystem* LogSubsystem = GetWorld()
+		? GetWorld()->GetSubsystem<UTacLogSubsystem>()
+		: nullptr;
 
 	for (const FUnitPlacement& Placement : Grid->EditorUnitPlacements)
 	{
@@ -50,15 +56,44 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 			Team->AddUnit(NewUnit);
 			NewUnit->SetTeamSide(Team->GetTeamSide());
 
+			FGuid SpawnEventId;
+			if (LogSubsystem)
+			{
+				SpawnEventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitSpawn,
+					ETacLogEventOrigin::Initiated, NewUnit->GetUnitID(), FGuid());
+			}
+
 			const bool bPlaced = Grid->GetDataManager()->PlaceUnit(NewUnit, Placement.Row, Placement.Col, Placement.Layer);
 			if (bPlaced)
 			{
 				Grid->SpawnedUnits.Add(NewUnit);
 				UE_LOG(LogTemp, Log, TEXT("Placed unit at [%d,%d] on layer %d"), Placement.Row, Placement.Col, (int32)Placement.Layer);
+				if (LogSubsystem && SpawnEventId.IsValid())
+				{
+					FUnitSpawnPayload Payload;
+					Payload.SpawnedUnitId = NewUnit->GetUnitID();
+					Payload.SpawnCoords   = FTacCoordinates(Placement.Row, Placement.Col, Placement.Layer);
+					Payload.TeamSide      = Team->GetTeamSide();
+					Payload.bIsSummon     = false;
+					if (Placement.Definition)
+						Payload.UnitDefinitionId = Placement.Definition->GetPrimaryAssetId();
+					LogSubsystem->CloseEvent(SpawnEventId,
+						TInstancedStruct<FTacLogPayload>::Make<FUnitSpawnPayload>(MoveTemp(Payload)));
+				}
 			}
 			else
 			{
 				UE_LOG(LogTemp, Error, TEXT("Failed to place unit at [%d,%d]"), Placement.Row, Placement.Col);
+				if (LogSubsystem && SpawnEventId.IsValid())
+				{
+					FUnitSpawnPayload Payload;
+					Payload.SpawnedUnitId = NewUnit->GetUnitID();
+					Payload.SpawnCoords   = FTacCoordinates(Placement.Row, Placement.Col, Placement.Layer);
+					Payload.TeamSide      = Team->GetTeamSide();
+					Payload.bIsSummon     = false;
+					LogSubsystem->CloseEvent(SpawnEventId,
+						TInstancedStruct<FTacLogPayload>::Make<FUnitSpawnPayload>(MoveTemp(Payload)));
+				}
 				Team->RemoveUnit(NewUnit);
 				NewUnit->Destroy();
 			}

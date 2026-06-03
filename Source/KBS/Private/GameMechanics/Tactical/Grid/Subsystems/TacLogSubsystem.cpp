@@ -50,7 +50,8 @@ static FString FormatStep(const FTacLogStatAltStep& S)
 	if (D.MagnitudeMultiplier != 0) Numerics += FString::Printf(TEXT(" MagMul=%d"), D.MagnitudeMultiplier);
 
 	FString Detail = Numerics.IsEmpty() ? TEXT("  (no numeric deltas)") : (TEXT("  ") + Numerics.TrimStart());
-	return Header + TEXT("\n") + Detail;
+	FString Policy = FString::Printf(TEXT(" Policy=%s"), *UEnum::GetValueAsString(S.RemovalPolicy));
+	return Header + Policy + TEXT("\n") + Detail;
 }
 
 static FString FormatHitRecord(const FTacLogHitRecord& H)
@@ -65,6 +66,16 @@ static FString FormatHitRecord(const FTacLogHitRecord& H)
 		H.RemainingHp,
 		H.bKilledTarget ? TEXT("true") : TEXT("false"),
 		H.AppliedEffects.Num());
+}
+
+static FString FormatStep(const FTacLogStatusChangeStep& S)
+{
+	const FString ModStr = S.ModifierId.IsValid() ? FString::Printf(TEXT(" Modifier=%s"), *S.ModifierId.ToString()) : TEXT("");
+	return FString::Printf(TEXT("[StatusChange] Unit=%s Status=%s %s%s"),
+		*S.UnitId.ToString(),
+		*UEnum::GetValueAsString(S.Status),
+		S.bActivated ? TEXT("SET") : TEXT("CLEARED"),
+		*ModStr);
 }
 
 static FString FormatStep(const FTacLogCombatStep& S)
@@ -91,12 +102,13 @@ static FString FormatStep(const FTacLogEffectSpawnStep& S)
 
 static FString DispatchFormatStep(const TInstancedStruct<FTacLogStepBase>& Step)
 {
-	if (const FTacLogWaitStep*        S = Step.GetPtr<FTacLogWaitStep>())        return FormatStep(*S);
-	if (const FTacLogFleeStep*        S = Step.GetPtr<FTacLogFleeStep>())        return FormatStep(*S);
-	if (const FTacLogMoveStep*        S = Step.GetPtr<FTacLogMoveStep>())        return FormatStep(*S);
-	if (const FTacLogStatAltStep*     S = Step.GetPtr<FTacLogStatAltStep>())     return FormatStep(*S);
-	if (const FTacLogCombatStep*      S = Step.GetPtr<FTacLogCombatStep>())      return FormatStep(*S);
-	if (const FTacLogEffectSpawnStep* S = Step.GetPtr<FTacLogEffectSpawnStep>()) return FormatStep(*S);
+	if (const FTacLogWaitStep*         S = Step.GetPtr<FTacLogWaitStep>())         return FormatStep(*S);
+	if (const FTacLogFleeStep*         S = Step.GetPtr<FTacLogFleeStep>())         return FormatStep(*S);
+	if (const FTacLogMoveStep*         S = Step.GetPtr<FTacLogMoveStep>())         return FormatStep(*S);
+	if (const FTacLogStatAltStep*      S = Step.GetPtr<FTacLogStatAltStep>())      return FormatStep(*S);
+	if (const FTacLogStatusChangeStep* S = Step.GetPtr<FTacLogStatusChangeStep>()) return FormatStep(*S);
+	if (const FTacLogCombatStep*       S = Step.GetPtr<FTacLogCombatStep>())       return FormatStep(*S);
+	if (const FTacLogEffectSpawnStep*  S = Step.GetPtr<FTacLogEffectSpawnStep>())  return FormatStep(*S);
 	return TEXT("[UnknownStep]");
 }
 
@@ -136,6 +148,15 @@ static FString FormatPayload(const FEffectEndPayload& P)
 		*UEnum::GetValueAsString(P.RemovalReason));
 }
 
+static FString FormatPayload(const FUnitMoveOffFieldPayload& P)
+{
+	return FString::Printf(TEXT("UnitExitField: Unit=%s @ (%d,%d) Team=%s Fled=%s"),
+		*P.UnitId.ToString(),
+		P.LastFieldCoords.X, P.LastFieldCoords.Y,
+		*UEnum::GetValueAsString(P.TeamSide),
+		P.bFled ? TEXT("true") : TEXT("false"));
+}
+
 static FString FormatPayload(const FTurnChangePayload& P)
 {
 	return FString::Printf(TEXT("TurnChange: %s -> %s Team=%s Kind=%s"),
@@ -144,13 +165,25 @@ static FString FormatPayload(const FTurnChangePayload& P)
 		*UEnum::GetValueAsString(P.ChangeKind));
 }
 
+static FString FormatPayload(const FUnitSpawnPayload& P)
+{
+	return FString::Printf(TEXT("UnitSpawn: Unit=%s @ (%d,%d) Team=%s Summoner=%s Def=%s"),
+		*P.SpawnedUnitId.ToString(),
+		P.SpawnCoords.Row, P.SpawnCoords.Col,
+		*UEnum::GetValueAsString(P.TeamSide),
+		P.SummonerUnitId.IsValid() ? *P.SummonerUnitId.ToString() : TEXT("none"),
+		*P.UnitDefinitionId.ToString());
+}
+
 static FString DispatchFormatPayload(const TInstancedStruct<FTacLogPayload>& Payload)
 {
 	if (!Payload.IsValid()) return TEXT("<no payload>");
-	if (const FAbilityUsePayload*  P = Payload.GetPtr<FAbilityUsePayload>())  return FormatPayload(*P);
-	if (const FTacEffectPayload*   P = Payload.GetPtr<FTacEffectPayload>())    return FormatPayload(*P);
-	if (const FEffectEndPayload*   P = Payload.GetPtr<FEffectEndPayload>())    return FormatPayload(*P);
-	if (const FTurnChangePayload*  P = Payload.GetPtr<FTurnChangePayload>())   return FormatPayload(*P);
+	if (const FAbilityUsePayload*        P = Payload.GetPtr<FAbilityUsePayload>())        return FormatPayload(*P);
+	if (const FTacEffectPayload*         P = Payload.GetPtr<FTacEffectPayload>())         return FormatPayload(*P);
+	if (const FEffectEndPayload*         P = Payload.GetPtr<FEffectEndPayload>())         return FormatPayload(*P);
+	if (const FUnitMoveOffFieldPayload*  P = Payload.GetPtr<FUnitMoveOffFieldPayload>())  return FormatPayload(*P);
+	if (const FTurnChangePayload*        P = Payload.GetPtr<FTurnChangePayload>())        return FormatPayload(*P);
+	if (const FUnitSpawnPayload*         P = Payload.GetPtr<FUnitSpawnPayload>())         return FormatPayload(*P);
 	return TEXT("<no payload>");
 }
 
@@ -181,7 +214,7 @@ void UTacLogSubsystem::Deinitialize()
 
 FGuid UTacLogSubsystem::OpenEvent(ETacLogEventType Type, ETacLogEventOrigin Origin,
 	FGuid InstigatorId, FGuid ParentId,
-	int32 RoundNumber, int32 TurnNumber)
+	int32 Round, int32 TurnNumber)
 {
 	FTacLogEvent Event;
 	Event.EventId          = FGuid::NewGuid();
@@ -189,8 +222,8 @@ FGuid UTacLogSubsystem::OpenEvent(ETacLogEventType Type, ETacLogEventOrigin Orig
 	Event.Type             = Type;
 	Event.Origin           = Origin;
 	Event.InstigatorId     = InstigatorId;
-	Event.RoundNumber      = RoundNumber;
-	Event.TurnNumber       = TurnNumber;
+	Event.RoundNumber      = (Round == -1)      ? CachedRound      : Round;
+	Event.TurnNumber       = (TurnNumber == -1) ? CachedTurnNumber : TurnNumber;
 	Event.State            = ETacLogEventState::Open;
 	Event.SequencePosition = Spine.Num();
 
@@ -243,6 +276,19 @@ void UTacLogSubsystem::CloseEvent(FGuid EventId, TInstancedStruct<FTacLogPayload
 
 	Event->State   = ETacLogEventState::Closed;
 	Event->Payload = MoveTemp(Payload);
+
+	if (const FTurnChangePayload* TurnPayload = Event->Payload.GetPtr<FTurnChangePayload>())
+	{
+		if (TurnPayload->ChangeKind == ETurnChangeKind::Round)
+		{
+			CachedRound++;
+			CachedTurnNumber = 0;
+		}
+		else
+		{
+			CachedTurnNumber++;
+		}
+	}
 
 	OpenStack.RemoveAt(StackIndex);
 

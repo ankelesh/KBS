@@ -65,6 +65,37 @@ struct KBS_API FEffectEndPayload : public FTacLogPayload
 };
 
 USTRUCT(BlueprintType)
+struct KBS_API FUnitMoveOffFieldPayload : public FTacLogPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGuid UnitId;
+
+	UPROPERTY()
+	FTacCoordinates LastFieldCoords;
+
+	UPROPERTY()
+	ETeamSide TeamSide = ETeamSide::Attacker;
+
+	UPROPERTY()
+	bool bFled = false;
+};
+
+USTRUCT(BlueprintType)
+struct KBS_API FUnitSpawnPayload : public FTacLogPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY() FGuid SpawnedUnitId;
+	UPROPERTY() FTacCoordinates SpawnCoords;
+	UPROPERTY() ETeamSide TeamSide = ETeamSide::Attacker;
+	UPROPERTY() FGuid SummonerUnitId;         // invalid guid = initial placement
+	UPROPERTY() FPrimaryAssetId UnitDefinitionId;
+	UPROPERTY() bool bIsSummon = false;
+};
+
+USTRUCT(BlueprintType)
 struct KBS_API FTurnChangePayload : public FTacLogPayload
 {
 	GENERATED_BODY()

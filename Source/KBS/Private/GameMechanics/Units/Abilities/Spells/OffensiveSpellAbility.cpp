@@ -1,5 +1,7 @@
 #include "GameMechanics/Units/Abilities/Spells/OffensiveSpellAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Units/Abilities/Spells/OffensiveSpellAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
@@ -58,13 +60,18 @@ FAbilityExecutionResult UOffensiveSpellAbility::Execute(FTacCoordinates TargetCe
 {
 	check(Owner);
 	UTacCombatSubsystem* CombatSubsystem = GetCombatSubsystem();
+	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
 	check(CombatSubsystem);
+	check(LogSubsystem);
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
 	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, GetTargeting(), &EmbeddedDescriptor->GetStats().AreaShape);
 	if (!ResolvedTargets.ClickedTarget) return FAbilityExecutionResult::MakeFail();
 
 	ScaleEmbeddedDescriptor();
+
+	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::Ability, ETacLogEventOrigin::Initiated,
+	                                        Owner->GetUnitID(), FGuid());
 
 	UPresentationSubsystem::FScopedBatch SpellBatch(
 		UPresentationSubsystem::Get(Owner),
@@ -79,7 +86,16 @@ FAbilityExecutionResult UOffensiveSpellAbility::Execute(FTacCoordinates TargetCe
 
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, EmbeddedDescriptor);
-	// FTacLogCombatStep CombatStep = FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords, ResolvedTargets.ClickedTarget->GetUnitID(), SpellDef->AnimTag, HitResults);
+
+	FAbilityUsePayload Payload;
+	Payload.AbilityAssetId    = Config->GetPrimaryAssetId();
+	Payload.AbilityInstanceId = AbilityId;
+	Payload.Command           = TargetCell;
+	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogCombatStep>(
+		FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords,
+		                        ResolvedTargets.ClickedTarget->GetUnitID(), HitResults)));
+	FTacLogEffectSpawnStep::AppendFromHits(Payload.Steps, HitResults);
+	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
 	SetCompletionTag();
 	ConsumeCharge();

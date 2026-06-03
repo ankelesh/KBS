@@ -9,6 +9,8 @@ enum class ETacLogEventType : uint8
 	EffectActivation UMETA(DisplayName = "Effect Activation"),
 	EffectEnd        UMETA(DisplayName = "Effect End"),
 	TurnChange       UMETA(DisplayName = "Turn Change"),
+	UnitExitField    UMETA(DisplayName = "Unit Exit Field"),
+	UnitSpawn        UMETA(DisplayName = "Unit Spawn"),
 };
 
 UENUM(BlueprintType)
@@ -32,6 +34,15 @@ enum class ETurnChangeKind : uint8
 {
 	Turn  UMETA(DisplayName = "Turn"),
 	Round UMETA(DisplayName = "Round"),
+};
+
+UENUM(BlueprintType)
+enum class EStatModifierRemovalPolicy : uint8
+{
+	InstaRemove      UMETA(DisplayName = "Insta Remove"),       // removed immediately after the triggering hit
+	Permanent        UMETA(DisplayName = "Permanent"),          // never removed (stat change is final)
+	DurationControlled UMETA(DisplayName = "Duration Controlled"), // removed when effect/duration expires
+	OwnerControlled  UMETA(DisplayName = "Owner Controlled"),   // removed when owning ability/effect decides
 };
 
 UENUM(BlueprintType)

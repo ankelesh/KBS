@@ -1,5 +1,7 @@
 #include "GameMechanics/Units/Abilities/Defaults/AutoAttackAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
@@ -45,8 +47,13 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	check(Owner);
 	UTacCombatSubsystem* CombatSubsystem = GetCombatSubsystem();
 	UTacGridTargetingService* TargetingService = GetTargetingService();
+	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
 	check(TargetingService);
 	check(CombatSubsystem);
+	check(LogSubsystem);
+
+	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::Ability, ETacLogEventOrigin::Initiated,
+	                                        Owner->GetUnitID(), FGuid());
 
 	// Resolve targets
 	FTargetingDescriptor Targeting = GetTargeting();
@@ -71,7 +78,16 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	// Execute attack through combat subsystem
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon->GetDescriptor());
-	// FTacLogCombatStep CombatStep = FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords, ResolvedTargets.ClickedTarget->GetUnitID(), Weapon->GetAnimTag(), HitResults);
+
+	FAbilityUsePayload Payload;
+	Payload.AbilityAssetId    = Config->GetPrimaryAssetId();
+	Payload.AbilityInstanceId = AbilityId;
+	Payload.Command           = TargetCell;
+	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogCombatStep>(
+		FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords,
+		                        ResolvedTargets.ClickedTarget->GetUnitID(), HitResults)));
+	FTacLogEffectSpawnStep::AppendFromHits(Payload.Steps, HitResults);
+	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
 	ConsumeCharge();
 	SetCompletionTag();

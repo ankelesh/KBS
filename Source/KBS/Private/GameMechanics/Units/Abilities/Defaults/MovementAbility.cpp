@@ -1,5 +1,7 @@
 #include "GameMechanics/Units/Abilities/Defaults/MovementAbility.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Units/Abilities/Defaults/MovementAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
@@ -20,15 +22,29 @@ FAbilityExecutionResult UMovementAbility::Execute(FTacCoordinates TargetCell)
 {
 	check(Owner);
 	UTacGridMovementService* MovementService = GetMovementService();
+	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
 	check(MovementService);
-	
+	check(LogSubsystem);
+
 	const UMovementAbilityDefinition* MoveDef = CastChecked<UMovementAbilityDefinition>(Config);
-	// const FTacCoordinates FromCoords = Owner->GetGridMetadata().Coords;
+	const FTacCoordinates FromCoords = Owner->GetGridMetadata().Coords;
+
+	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::Ability, ETacLogEventOrigin::Initiated,
+	                                        Owner->GetUnitID(), FGuid());
+
 	const bool bSuccess = MoveDef->bIsAnimated
 		? MovementService->MoveUnit(Owner, TargetCell)
 		: MovementService->TeleportUnit(Owner, TargetCell);
 	check(bSuccess);
-	// FTacLogMoveStep MoveStep = FTacLogMoveStep::Make(Owner->GetUnitID(), FromCoords, TargetCell, MoveDef->bIsAnimated);
+
+	FAbilityUsePayload Payload;
+	Payload.AbilityAssetId    = Config->GetPrimaryAssetId();
+	Payload.AbilityInstanceId = AbilityId;
+	Payload.Command           = TargetCell;
+	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogMoveStep>(
+		FTacLogMoveStep::Make(Owner->GetUnitID(), FromCoords, TargetCell, MoveDef->bIsAnimated)));
+	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
+
 	ConsumeCharge();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());

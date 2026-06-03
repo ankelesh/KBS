@@ -15,9 +15,11 @@ public:
 
 	// Allocates event in spine+map, pushes to open stack, appends open-marker to text log.
 	// Caller owns ParentId assignment (pass FGuid() for no parent).
+	// Round/TurnNumber default to -1: subsystem fills from cache. Pass explicit values only
+	// when the caller controls the transition (e.g. TurnChange events).
 	FGuid OpenEvent(ETacLogEventType Type, ETacLogEventOrigin Origin,
 	                FGuid InstigatorId, FGuid ParentId,
-	                int32 RoundNumber, int32 TurnNumber);
+	                int32 Round = -1, int32 TurnNumber = -1);
 
 	// Seals event: inserts payload, marks Closed, pops from open stack.
 	// UE_LOG error if events opened after this one are still open (nested not closed).
@@ -54,4 +56,7 @@ private:
 	TArray<FGuid> OpenStack; // back = top (most recently opened)
 
 	FString OngoingTextLogPath; // set in Initialize, appended per event
+
+	int32 CachedRound = 0;
+	int32 CachedTurnNumber = 0;
 };
