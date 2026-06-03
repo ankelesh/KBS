@@ -3,6 +3,15 @@
 #include "GameplayTypes/DamageTypes.h"
 #include "UnitStatDelta.generated.h"
 
+UENUM(BlueprintType)
+enum class EUnitStatDeltaApplyPolicy : uint8
+{
+	FlatAdd    UMETA(DisplayName = "Flat Add"),
+	Multiplier UMETA(DisplayName = "Multiplier"),
+	// Override is only meaningful for Armour; ignored by Health/Initiative/Accuracy
+	Override   UMETA(DisplayName = "Override"),
+};
+
 // Ultimate container for any stat-based alteration to a unit.
 // Core/Defense fields are applied by the battle effect system.
 // Combat fields are applied by the weapon/spell descriptor system (different pathway).
@@ -45,6 +54,9 @@ struct FUnitStatDelta
 	// Overrides bGuaranteedHit on the descriptor when true
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bGrantsGuaranteedHit = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Policy")
+	EUnitStatDeltaApplyPolicy ApplyPolicy = EUnitStatDeltaApplyPolicy::FlatAdd;
 
 	bool IsEmpty() const
 	{
