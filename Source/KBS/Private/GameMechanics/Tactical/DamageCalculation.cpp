@@ -18,23 +18,16 @@ float FDamageCalculation::CalculateHitChance(AUnit* Attacker, UCombatDescriptor*
 	return FMath::Clamp(HitChance, 0.0f, 100.0f);
 }
 
-FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target)
+FDamageResult FDamageCalculation::CalculateDamageInternal(UCombatDescriptor* Descriptor, AUnit* Target, bool bOnFlank)
 {
 	FDamageResult Result;
-	if (!Attacker || !Descriptor || !Target)
-	{
-		return Result;
-	}
 	const FCombatDescriptorStats& DescriptorStats = Descriptor->GetStats();
-	const FUnitCoreStats& TargetStats = Target->GetStats();
-	const FUnitDefenseStats& Defense = TargetStats.Defense;
+	const FUnitDefenseStats& Defense = Target->GetStats().Defense;
 	const bool bIsTargetDefending = Target->GetStats().Status.IsDefending();
 	EDamageSource BestSource = SelectBestDamageSource(DescriptorStats.DamageSources.GetValue(), Target);
 	Result.DamageSource = BestSource;
 	if (BestSource == EDamageSource::None)
-	{
 		return Result;
-	}
 	int32 BaseMagnitude = DescriptorStats.BaseMagnitude.GetValue();
 	if (Defense.Immunities.IsImmuneTo(BestSource))
 	{
@@ -52,19 +45,32 @@ FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UCombatDescri
 	int32 ArmorPercent = Defense.Armour.GetValue(BestSource);
 	float ArmorValue = ArmorPercent / 100.0f;
 	float DamageAfterArmor = BaseMagnitude * (1.0f - ArmorValue);
-	if (Attacker->GetGridMetadata().bOnFlank && !Attacker->GetStats().Status.IsFlankDelayed())
+	if (bOnFlank)
 	{
 		DamageAfterArmor *= FLANKING_DAMAGE_MULTIPLIER;
 		BaseMagnitude *= FLANKING_DAMAGE_MULTIPLIER;
 	}
 	float FinalDamage = DamageAfterArmor - Defense.DamageReduction;
 	if (bIsTargetDefending)
-	{
 		FinalDamage *= DEFENSIVE_STANCE_MULTIPLIER;
-	}
 	Result.Damage = FMath::RoundToInt(FinalDamage);
 	Result.DamageBlocked = BaseMagnitude - Result.Damage;
 	return Result;
+}
+
+FDamageResult FDamageCalculation::CalculateDamage(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target)
+{
+	if (!Attacker || !Descriptor || !Target)
+		return FDamageResult();
+	const bool bOnFlank = Attacker->GetGridMetadata().bOnFlank && !Attacker->GetStats().Status.IsFlankDelayed();
+	return CalculateDamageInternal(Descriptor, Target, bOnFlank);
+}
+
+FDamageResult FDamageCalculation::CalculateDamageNoAttacker(UCombatDescriptor* Descriptor, AUnit* Target)
+{
+	if (!Descriptor || !Target)
+		return FDamageResult();
+	return CalculateDamageInternal(Descriptor, Target, false);
 }
 
 float FDamageCalculation::CalculateEffectApplication(AUnit* Attacker, UBattleEffect* Effect, AUnit* Target)

@@ -72,6 +72,24 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveReactionAttack(AUnit* Attac
 	return ResolveAttackInternal(Context);
 }
 
+FCombatHitResult UTacCombatSubsystem::ResolveEffectTick(AUnit* Target, UCombatDescriptor* Descriptor, float HitChance)
+{
+	checkf(Target && Descriptor, TEXT("ResolveEffectTick: null Target or Descriptor"));
+
+	if (Descriptor->IsRequiringAccuracyRoll() && !FDamageCalculation::PerformAccuracyRoll(HitChance))
+		return FCombatHitResult::Miss(Target);
+
+	FDamageResult Damage = FDamageCalculation::CalculateDamageNoAttacker(Descriptor, Target);
+	Target->HandleHit(Damage, nullptr);
+
+	FCombatHitResult Result;
+	Result.TargetUnit  = Target;
+	Result.bHit        = true;
+	Result.HitOutcome  = EHitOutcome::Hit;
+	Result.DamageResult = Damage;
+	return Result;
+}
+
 TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FCombatContext& Context)
 {
 	TArray<FCombatHitResult> Results;
