@@ -222,10 +222,10 @@ FPreviewHitResult FDamageCalculation::PreviewDamage(AUnit* Attacker, UCombatDesc
 	return Preview;
 }
 
-bool FDamageCalculation::PerformAccuracyRoll(float HitChance)
+bool FDamageCalculation::PerformAccuracyRoll(float HitChance, float& OutRoll)
 {
-	float Roll = FMath::FRand() * 100.0f;
-	return Roll <= HitChance;
+	OutRoll = FMath::FRand() * 100.0f;
+	return OutRoll <= HitChance;
 }
 
 bool FDamageCalculation::IsFriendlyReach(ETargetReach Reach)

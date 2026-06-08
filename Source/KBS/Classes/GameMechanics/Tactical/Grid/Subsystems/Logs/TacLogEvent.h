@@ -38,4 +38,7 @@ struct KBS_API FTacLogEvent
 
 	UPROPERTY()
 	int32 TurnNumber = 0;
+
+	UPROPERTY()
+	int32 Depth = 0;
 };

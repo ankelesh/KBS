@@ -59,6 +59,8 @@ void UTacGridEditorInitializer::SpawnAndPlaceUnits()
 			FGuid SpawnEventId;
 			if (LogSubsystem)
 			{
+				FString TypeName = Placement.Definition ? Placement.Definition->UnitName : TEXT("Unit");
+				LogSubsystem->RegisterUnit(NewUnit->GetUnitID(), TypeName);
 				SpawnEventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitSpawn,
 					ETacLogEventOrigin::Initiated, NewUnit->GetUnitID(), FGuid());
 			}

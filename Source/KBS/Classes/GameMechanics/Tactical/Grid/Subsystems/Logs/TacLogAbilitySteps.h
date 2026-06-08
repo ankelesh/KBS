@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "StructUtils/InstancedStruct.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/GridCoordinates.h"
@@ -43,6 +44,13 @@ struct KBS_API FTacLogHitRecord
 
 	UPROPERTY()
 	bool bKilledTarget = false;
+
+	// Mirrors FCombatHitResult::HitChance. -1 = no roll required.
+	UPROPERTY()
+	float HitChance = -1.0f;
+	// Actual roll value (0-100). Meaningful only when HitChance >= 0.
+	UPROPERTY()
+	float AccuracyRoll = -1.0f;
 };
 
 USTRUCT()

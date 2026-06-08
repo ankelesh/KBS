@@ -44,6 +44,9 @@ FAbilityExecutionResult USummonSpellAbility::Execute(FTacCoordinates TargetCell)
 	FGuid SpawnEventId;
 	if (LogSubsystem)
 	{
+		FString TypeName = SummonConfig->SummonedUnitDefinition
+			? SummonConfig->SummonedUnitDefinition->UnitName : TEXT("Unit");
+		LogSubsystem->RegisterUnit(NewUnit->GetUnitID(), TypeName);
 		FGuid ParentId = LogSubsystem->FindClosestEvent(ETacLogEventType::Ability);
 		SpawnEventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitSpawn,
 			ETacLogEventOrigin::Triggered, Owner->GetUnitID(), ParentId);

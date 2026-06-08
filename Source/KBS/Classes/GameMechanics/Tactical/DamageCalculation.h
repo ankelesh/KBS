@@ -32,7 +32,7 @@ public:
 	// Combat resolution
 	static FPreviewHitResult PreviewDamage(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target);
 
-	static bool PerformAccuracyRoll(float HitChance);
+	static bool PerformAccuracyRoll(float HitChance, float& OutRoll);
 	static bool IsFriendlyReach(ETargetReach Reach);
 	static EDamageSource SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target);
 
