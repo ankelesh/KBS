@@ -10,13 +10,15 @@ FTacLogCombatStep FTacLogCombatStep::Make(FGuid AttackerId, FTacCoordinates Atta
 	for (const FCombatHitResult& Hit : HitResults)
 	{
 		FTacLogHitRecord& Rec = Step.HitRecords.AddDefaulted_GetRef();
-		Rec.TargetId = Hit.TargetUnit->GetUnitID();
-		Rec.TargetCoords = Hit.TargetUnit->GetGridMetadata().Coords;
-		Rec.Outcome = Hit.HitOutcome;
-		Rec.DamageResult = Hit.DamageResult;
+		Rec.TargetId      = Hit.TargetUnit->GetUnitID();
+		Rec.TargetCoords  = Hit.TargetUnit->GetGridMetadata().Coords;
+		Rec.Outcome       = Hit.HitOutcome;
+		Rec.DamageResult  = Hit.DamageResult;
 		Rec.AppliedEffects = Hit.AppliedEffects;
-		Rec.RemainingHp = Hit.TargetUnit->GetStats().Health.GetCurrent();
+		Rec.RemainingHp   = Hit.TargetUnit->GetStats().Health.GetCurrent();
 		Rec.bKilledTarget = Hit.TargetUnit->IsDead();
+		Rec.HitChance     = Hit.HitChance;
+		Rec.AccuracyRoll  = Hit.AccuracyRoll;
 	}
 	return Step;
 }

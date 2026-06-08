@@ -1,6 +1,7 @@
 #include "UI/Tactical/HUD/Slots/WeaponSlot.h"
 #include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/CombatDescriptorDisplayData.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "UI/Tactical/HUD/Snapshots//BattleEffectSlotSnapshot.h"

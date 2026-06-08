@@ -27,6 +27,12 @@ struct FAppliedEffectRef
 	UPROPERTY()
 	EEffectApplicationOutcome Outcome = EEffectApplicationOutcome::Rejected;
 
+	// Effect application roll data. -1 = no roll required (bIsAccuracyDependent false).
+	UPROPERTY()
+	float AppChance = -1.0f;
+	UPROPERTY()
+	float AppRoll = -1.0f;
+
 	bool WasApplied() const
 	{
 		return Outcome == EEffectApplicationOutcome::Applied
@@ -126,6 +132,12 @@ struct FCombatHitResult
 	bool bProcessingSucceeded = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EHitOutcome HitOutcome = EHitOutcome::Miss;
+	// Computed accuracy chance (0-100). -1 means no roll was required (guaranteed hit).
+	UPROPERTY()
+	float HitChance = -1.0f;
+	// Actual roll value (0-100). Meaningful only when HitChance >= 0.
+	UPROPERTY()
+	float AccuracyRoll = -1.0f;
 
 	static FCombatHitResult ProcessingError()
 	{

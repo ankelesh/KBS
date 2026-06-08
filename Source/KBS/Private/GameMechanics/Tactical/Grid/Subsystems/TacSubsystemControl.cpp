@@ -17,13 +17,11 @@ void UTacSubsystemControl::NotifyTurnReady()
 
 bool UTacSubsystemControl::CheckReady()
 {
-	if (IsReadyForStart())
-	{
-		ReadyForStart.Broadcast();
-		StartBattle();
-		return true;
-	}
-	return false;
+	if (bBattleStarted || !IsReadyForStart()) return false;
+	bBattleStarted = true;
+	ReadyForStart.Broadcast();
+	StartBattle();
+	return true;
 }
 
 void UTacSubsystemControl::StartBattle()

@@ -21,7 +21,7 @@ public:
 
 	bool IsMutable() const;
 	void SetMagnitudeBase(int32 Magnitude);
-	bool IsRequiringAccuracyRoll() const { return bGuaranteedHit;};
+	bool IsRequiringAccuracyRoll() const { return !bGuaranteedHit; };
 	EMagnitudePolicy GetMagnitudePolicy() const { return MagnitudePolicy; }
 	const FCombatDescriptorStats& GetStats() const { return Stats; }
 	const TArray<UBattleEffect*>& GetEffects() const { return ActiveEffects; }

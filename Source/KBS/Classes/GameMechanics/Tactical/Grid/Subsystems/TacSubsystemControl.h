@@ -18,7 +18,7 @@ public:
 	FOnTurnReadyForStart TurnReadyForStart;
 	FOnGridReadyForStart GridReadyForStart;
 
-	UTacSubsystemControl() : bGridReadyForStart(false), bTurnReadyForStart(false) {}
+	UTacSubsystemControl() : bGridReadyForStart(false), bTurnReadyForStart(false), bBattleStarted(false) {}
 
 	void NotifyGridReady();
 	void NotifyTurnReady();
@@ -30,5 +30,6 @@ public:
 private:
 	bool bGridReadyForStart;
 	bool bTurnReadyForStart;
+	bool bBattleStarted;
 	bool CheckReady();
 };

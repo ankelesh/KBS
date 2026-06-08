@@ -4,6 +4,8 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogEvent.h"
 #include "TacLogSubsystem.generated.h"
 
+class UBattleTeam;
+
 UCLASS()
 class KBS_API UTacLogSubsystem : public UWorldSubsystem
 {
@@ -42,10 +44,22 @@ public:
 	// Rebuilds Spine + EventMap from a .bin file produced by SerializeToFile.
 	bool LoadFromFile(const FString& BinaryPath);
 
+	// Registers a unit for log display. Call at spawn time with UnitDef->UnitName.
+	// Returns the assigned label, e.g. "Warrior-alpha". Safe to call multiple times for same guid.
+	FString RegisterUnit(FGuid UnitId, const FString& UnitTypeName);
+
+	// Writes footer to text log and serializes binary+text snapshots. Idempotent.
+	void FinalizeLog();
+
 private:
-	void AppendOpenMarkerToTextLog(const FTacLogEvent& Event);
-	void AppendCloseEntryToTextLog(const FTacLogEvent& Event);
+	UFUNCTION()
+	void HandleBattleEnd(UBattleTeam* Winner);
+
+	UFUNCTION()
+	void OnSubsystemsReady();
+
 	FString FormatEventHeader(const FTacLogEvent& Event) const;
+	FString ShortUnit(FGuid Id) const;
 
 	UPROPERTY()
 	TArray<FGuid> Spine; // insertion-ordered guid sequence
@@ -55,8 +69,12 @@ private:
 
 	TArray<FGuid> OpenStack; // back = top (most recently opened)
 
-	FString OngoingTextLogPath; // set in Initialize, appended per event
+	FString LogBasePath; // ProjectLogDir/TacLog_<World>_<Timestamp>, no extension
+	bool bFinalized = false;
 
 	int32 CachedRound = 0;
 	int32 CachedTurnNumber = 0;
+
+	TMap<FGuid, FString> UnitNameRegistry;   // UnitId → "Warrior-alpha"
+	TMap<FString, int32> UnitTypeCounters;   // TypeName → next name index
 };
