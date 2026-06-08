@@ -43,6 +43,9 @@ public:
 	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UCombatDescriptor* Descriptor);
 
 	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, UCombatDescriptor* Descriptor);
+
+	// Attacker-less resolution for effect ticks (DOT, etc.). HitChance pre-computed at effect creation.
+	FCombatHitResult ResolveEffectTick(AUnit* Target, UCombatDescriptor* Descriptor, float HitChance);
 	
 	bool ExecutePreResolutionPhase(FCombatContext& Context);
 	void ExecuteCalculationPhase(FCombatContext& Context, FHitInstance& Hit, FCombatHitResult& OutResult);
