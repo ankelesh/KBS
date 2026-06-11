@@ -142,17 +142,10 @@ void UTacLogSubsystem::CloseEvent(FGuid EventId, TInstancedStruct<FTacLogPayload
 	Event->State   = ETacLogEventState::Closed;
 	Event->Payload = MoveTemp(Payload);
 
-	if (const FTurnChangePayload* TurnPayload = Event->Payload.GetPtr<FTurnChangePayload>())
+	if (Event->Payload.GetPtr<FTurnChangePayload>())
 	{
-		if (TurnPayload->ChangeKind == ETurnChangeKind::Round)
-		{
-			CachedRound++;
-			CachedTurnNumber = 0;
-		}
-		else
-		{
-			CachedTurnNumber++;
-		}
+		CachedRound      = Event->RoundNumber;
+		CachedTurnNumber = Event->TurnNumber;
 	}
 
 	OpenStack.RemoveAt(StackIndex);
