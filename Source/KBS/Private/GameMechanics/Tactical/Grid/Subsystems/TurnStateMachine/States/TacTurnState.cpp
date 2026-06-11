@@ -15,6 +15,7 @@ void FTacTurnState::Exit()
 void FTacTurnState::IncrementRound()
 {
 	ParentTurnSubsystem->CurrentRound++;
+	ParentTurnSubsystem->CurrentTurnNumber = 0;
 }
 
 void FTacTurnState::BroadcastRoundStart()
