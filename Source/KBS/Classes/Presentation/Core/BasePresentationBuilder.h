@@ -3,7 +3,7 @@
 #include "UObject/NoExportTypes.h"
 #include "BasePresentationBuilder.generated.h"
 
-class UVisualSequence;
+class UPresentationSequence;
 
 UCLASS(Abstract, BlueprintType, Blueprintable)
 class KBS_API UBasePresentationBuilder : public UObject
@@ -12,6 +12,6 @@ class KBS_API UBasePresentationBuilder : public UObject
 
 public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Presentation")
-	UVisualSequence* Build();
-	virtual UVisualSequence* Build_Implementation() { return nullptr; }
+	UPresentationSequence* Build();
+	virtual UPresentationSequence* Build_Implementation() { return nullptr; }
 };

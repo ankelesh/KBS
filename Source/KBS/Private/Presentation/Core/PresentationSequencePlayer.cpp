@@ -1,5 +1,5 @@
 #include "Presentation/Core/PresentationSequencePlayer.h"
-#include "Presentation/Core/VisualSequence.h"
+#include "Presentation/Core/PresentationSequence.h"
 
 UPresentationSequencePlayer* UPresentationSequencePlayer::Get(const UObject* WorldContextObject)
 {
@@ -20,6 +20,6 @@ void UPresentationSequencePlayer::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UPresentationSequencePlayer::PlaySequence(UVisualSequence* Sequence, EPlaybackMode PlaybackMode)
+void UPresentationSequencePlayer::PlaySequence(UPresentationSequence* Sequence, EPlaybackMode PlaybackMode)
 {
 }
