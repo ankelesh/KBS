@@ -3,7 +3,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "PresentationSequencePlayer.generated.h"
 
-class UVisualSequence;
+class UPresentationSequence;
 
 UENUM(BlueprintType)
 enum class EPresentationPlayerState : uint8
@@ -34,7 +34,7 @@ public:
 	static UPresentationSequencePlayer* Get(const UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintCallable, Category = "Presentation")
-	void PlaySequence(UVisualSequence* Sequence, EPlaybackMode PlaybackMode = EPlaybackMode::Animated);
+	void PlaySequence(UPresentationSequence* Sequence, EPlaybackMode PlaybackMode = EPlaybackMode::Animated);
 
 	UFUNCTION(BlueprintCallable, Category = "Presentation")
 	EPresentationPlayerState GetState() const { return State; }
