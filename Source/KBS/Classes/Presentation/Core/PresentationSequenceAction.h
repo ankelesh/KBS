@@ -50,7 +50,8 @@ public:
 		OnCleanup();
 	}
 
-	EPresentationTransitionPolicy GetTransitionPolicy() const { return TransitionPolicy; }
+	// Must be stable before Execute — the sequence chooses its delegate bindings from this
+	virtual EPresentationTransitionPolicy GetTransitionPolicy() const { return TransitionPolicy; }
 	EVisualActionResult GetResult() const { return Result; }
 
 	UPROPERTY(BlueprintAssignable, Category = "Presentation")
@@ -74,6 +75,7 @@ protected:
 	// Call when execution phase is done
 	void FinishExecution(EVisualActionResult InResult)
 	{
+		CancelTimeout();
 		Result = InResult;
 		OnPresentationExit.Broadcast(this, Result);
 	}

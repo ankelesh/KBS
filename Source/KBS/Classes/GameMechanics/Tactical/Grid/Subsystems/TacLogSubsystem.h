@@ -30,6 +30,9 @@ public:
 	// O(1) map lookup. Returns nullptr if not found.
 	const FTacLogEvent* GetEvent(FGuid EventId) const;
 
+	// Insertion-ordered guid sequence. Callers slice ranges with IndexOfByKey.
+	const TArray<FGuid>& GetSpine() const { return Spine; }
+
 	// Walk open stack top-down; return first EventId whose Type matches. Invalid guid if none.
 	FGuid FindClosestEvent(ETacLogEventType Type) const;
 
