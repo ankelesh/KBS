@@ -20,6 +20,12 @@ void UMontagePresentationAction::OnExecute(EPlaybackMode PlaybackMode)
 	checkf(Context.Actor, TEXT("UMontagePresentationAction: Actor must not be null"));
 	checkf(Context.Montage, TEXT("UMontagePresentationAction: Montage must not be null"));
 
+	if (PlaybackMode == EPlaybackMode::Instant)
+	{
+		FinishExecution(EVisualActionResult::Completed);
+		return;
+	}
+
 	UAnimInstance* AnimInstance = GetAnimInstance();
 	checkf(AnimInstance, TEXT("UMontagePresentationAction: Actor has no AnimInstance"));
 
@@ -52,6 +58,8 @@ void UMontagePresentationAction::OnMontageNotifyBegin(FName NotifyName, const FB
 	if (AI)
 	{
 		AI->OnPlayMontageNotifyBegin.RemoveAll(this);
+		// Natural end is only observed again if OnCleanup rebinds OnMontageEndedCleanup
+		AI->OnMontageEnded.RemoveAll(this);
 	}
 
 	bExitedViaSignal = true;
@@ -99,12 +107,13 @@ void UMontagePresentationAction::OnCleanup()
 	if (bExitedViaSignal)
 	{
 		UAnimInstance* AI = GetAnimInstance();
-		if (AI)
+		if (AI && AI->Montage_IsPlaying(Context.Montage))
 		{
 			AI->OnMontageEnded.AddUObject(this, &UMontagePresentationAction::OnMontageEndedCleanup);
 		}
 		else
 		{
+			// Montage already finished (KeepForSequence: cleanup arrives at sequence end)
 			FinishCleanup();
 		}
 	}

@@ -11,7 +11,13 @@ void UMovePresentationAction::OnExecute(EPlaybackMode PlaybackMode)
 	checkf(Context.Actor, TEXT("UMovePresentationAction: Actor must not be null"));
 	checkf(Context.Path.Num() > 0, TEXT("UMovePresentationAction: Path must have at least one segment"));
 
-	TransitionPolicy = Context.TransitionPolicy;
+	if (PlaybackMode == EPlaybackMode::Instant)
+	{
+		ApplyFinalTransform();
+		FinishExecution(EVisualActionResult::Completed);
+		return;
+	}
+
 	CurrentSegmentIndex = 0;
 	SegmentProgress = 0.f;
 
@@ -61,6 +67,8 @@ bool UMovePresentationAction::OnTick(float DeltaTime)
 void UMovePresentationAction::OnCleanup()
 {
 	StopTicker();
+	// Idempotent; covers KeepForSequence cleanup arriving mid-move
+	ApplyFinalTransform();
 	StopVFX();
 	StopSFX();
 	FinishCleanup();

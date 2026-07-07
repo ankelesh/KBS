@@ -33,8 +33,13 @@ public:
 
 	static UPresentationSequencePlayer* Get(const UObject* WorldContextObject);
 
+	// Contract: only while Idle
 	UFUNCTION(BlueprintCallable, Category = "Presentation")
-	void PlaySequence(UPresentationSequence* Sequence, EPlaybackMode PlaybackMode = EPlaybackMode::Animated);
+	void EnqueueSequence(UPresentationSequence* Sequence);
+
+	// Plays the whole queue; contract: only while Idle
+	UFUNCTION(BlueprintCallable, Category = "Presentation")
+	void Play(EPlaybackMode PlaybackMode = EPlaybackMode::Animated);
 
 	UFUNCTION(BlueprintCallable, Category = "Presentation")
 	EPresentationPlayerState GetState() const { return State; }
@@ -43,5 +48,13 @@ public:
 	FOnPresentationComplete OnPresentationComplete;
 
 private:
+	UFUNCTION()
+	void HandleSequenceComplete(UPresentationSequence* Sequence);
+	void PlayNext();
+
+	UPROPERTY()
+	TArray<TObjectPtr<UPresentationSequence>> Queue;
+	int32 QueueIndex = 0;
+	EPlaybackMode CurrentPlaybackMode = EPlaybackMode::Animated;
 	EPresentationPlayerState State = EPresentationPlayerState::Idle;
 };

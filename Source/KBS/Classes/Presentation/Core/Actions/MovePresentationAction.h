@@ -63,6 +63,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Move")
 	FMoveActionContext Context;
 
+	virtual EPresentationTransitionPolicy GetTransitionPolicy() const override { return Context.TransitionPolicy; }
+
 protected:
 	virtual void OnExecute(EPlaybackMode PlaybackMode) override;
 	virtual void OnCleanup() override;
