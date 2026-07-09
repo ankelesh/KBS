@@ -2,6 +2,9 @@
 #include "Presentation/Core/PresentationSequence.h"
 #include "Presentation/Core/Actions/MovePresentationAction.h"
 #include "Presentation/Tactical/Converters/MoveStepConverter.h"
+#include "Presentation/Tactical/Converters/FleeStepConverter.h"
+#include "Presentation/Tactical/Converters/EffectSpawnStepConverter.h"
+#include "Presentation/Tactical/Converters/StatusChangeStepConverter.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
@@ -82,9 +85,37 @@ UPresentationSequence* UTacticalPresentationBuilder::Build_Implementation(FGuid 
 				continue;
 			}
 
-			// TODO: convert FTacLogCombatStep, FTacLogStatAltStep, FTacLogEffectSpawnStep,
-			// FTacLogStatusChangeStep, FTacLogWaitStep, FTacLogFleeStep once corresponding
-			// presentation actions exist.
+			if (const FTacLogFleeStep* FleeStep = Step.GetPtr<FTacLogFleeStep>())
+			{
+				Sequence->Actions.Add(TacticalLogConverters::ConvertFleeStep(*FleeStep, UnitLookup, GridDataManager));
+				continue;
+			}
+
+			if (const FTacLogEffectSpawnStep* EffectSpawnStep = Step.GetPtr<FTacLogEffectSpawnStep>())
+			{
+				Sequence->Actions.Add(TacticalLogConverters::ConvertEffectSpawnStep(*EffectSpawnStep, UnitLookup));
+				continue;
+			}
+
+			if (const FTacLogStatusChangeStep* StatusChangeStep = Step.GetPtr<FTacLogStatusChangeStep>())
+			{
+				Sequence->Actions.Add(TacticalLogConverters::ConvertStatusChangeStep(*StatusChangeStep, UnitLookup));
+				continue;
+			}
+
+			if (Step.GetPtr<FTacLogWaitStep>())
+			{
+				// TODO: no presentation yet - Wait has nothing to visualize today.
+				continue;
+			}
+
+			if (Step.GetPtr<FTacLogStatAltStep>())
+			{
+				// TODO: no presentation yet - visualized via the accompanying EffectSpawnStep instead.
+				continue;
+			}
+
+			// TODO: convert FTacLogCombatStep once a damage-number presentation action exists.
 		}
 	}
 
