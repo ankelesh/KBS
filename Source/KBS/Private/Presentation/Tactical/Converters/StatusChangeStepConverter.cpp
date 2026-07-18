@@ -10,7 +10,7 @@ UFloatingTextPresentationAction* TacticalLogConverters::ConvertStatusChangeStep(
 
 	UFloatingTextPresentationAction* Action = NewObject<UFloatingTextPresentationAction>();
 	Action->Context.Actor = *FoundUnit;
-	Action->Context.Text = StaticEnum<EUnitStatus>()->GetDisplayValueAsText(static_cast<int64>(Step.Status));
+	Action->Context.Text = StaticEnum<EUnitStatus>()->GetDisplayValueAsText(Step.Status);
 	Action->Context.Color = Step.bActivated ? FLinearColor::Yellow : FLinearColor::Gray;
 	return Action;
 }

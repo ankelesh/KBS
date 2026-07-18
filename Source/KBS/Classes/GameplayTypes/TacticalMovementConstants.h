@@ -8,4 +8,5 @@ struct KBS_API FTacMovementConstants
 	static constexpr float DefenderDefaultYaw = 180.0f;
 	static constexpr float DefaultRotationDuration = 0.15f;
 	static constexpr float FallbackMovementDuration = 0.3f;
+	static constexpr float OffFieldExitDistance = 2500.0f;
 };

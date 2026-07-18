@@ -7,6 +7,8 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 
 FString AUnit::GetLogName() const
 {
@@ -213,7 +215,25 @@ void AUnit::NotifyEffectTriggered(UBattleEffect* Effect)
 void AUnit::HandleTurnStart(bool Emits)
 {
 	if (IsDead()) return;
+
+	const bool bWasDefending = BaseStats.Status.IsDefending();
 	BaseStats.Status.ClearStatus(EUnitStatus::Defending);
+
+	if (bWasDefending)
+	{
+		if (UTacLogSubsystem* LogSubsystem = GetWorld()->GetSubsystem<UTacLogSubsystem>())
+		{
+			FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::EffectEnd, ETacLogEventOrigin::Triggered,
+			                                        GetUnitID(), FGuid());
+			FEffectEndPayload Payload;
+			Payload.OwnerUnitId   = GetUnitID();
+			Payload.RemovalReason = EEffectRemovalReason::Expired;
+			Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogStatusChangeStep>(
+				FTacLogStatusChangeStep::Make(GetUnitID(), EUnitStatus::Defending, false)));
+			LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FEffectEndPayload>(MoveTemp(Payload)));
+		}
+	}
+
 	if (Emits) OnUnitTurnStart.Broadcast(this);
 }
 

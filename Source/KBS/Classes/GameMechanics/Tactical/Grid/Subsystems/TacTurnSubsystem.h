@@ -14,6 +14,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogKBSTurn, Log, All);
 class UTacGridSubsystem;
 class UTacAICombatService;
 class UBattleTeam;
+class UTacticalPresentationBuilder;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStart, int32, Turn);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, Turn);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTurnStart, AUnit*, Unit);
@@ -72,6 +73,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void OnPresentationComplete();
 
+	// Builds + plays the spine slice appended since LastPresentedEventId. Returns true if a non-empty
+	// sequence was enqueued+played (caller should park until OnPresentationComplete).
+	bool PresentPendingSlice();
+
 private:
 	struct FTransitionRecord
 	{
@@ -116,6 +121,11 @@ private:
 	UTacGridSubsystem* GridSubsystem = nullptr;
 	UPROPERTY()
 	TObjectPtr<UTacAICombatService> AICombatService;
+	UPROPERTY()
+	TObjectPtr<UTacticalPresentationBuilder> PresentationBuilder;
+
+	FGuid LastPresentedEventId;          // spine cursor: last event already converted+played
+	bool  bAwaitingPresentation = false; // subsystem-level park flag (between-state gate)
 
 	TArray<ETurnState>        PhaseHistory;
 	TArray<FTransitionRecord> TransitionHistory;

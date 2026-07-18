@@ -4,13 +4,11 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
-#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Units/Combat/Weapon.h"
 #include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Tactical/DamageCalculation.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
 
@@ -64,17 +62,6 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, ResolvedTargets.ClickedTarget, true);
 	check(Weapon);
 
-	UPresentationSubsystem::FScopedBatch AttackBatch(
-		UPresentationSubsystem::Get(Owner),
-		FString::Printf(TEXT("Attack_%s"), *Owner->GetName())
-	);
-
-	// Play attack visuals
-	if (Owner->VisualsComponent)
-	{
-		Owner->VisualsComponent->PlayAttackSequence(Owner, ResolvedTargets.ClickedTarget, Weapon->GetAnimTag());
-	}
-
 	// Execute attack through combat subsystem
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
 	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon->GetDescriptor());
@@ -85,8 +72,9 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	Payload.Command           = TargetCell;
 	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogCombatStep>(
 		FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords,
-		                        ResolvedTargets.ClickedTarget->GetUnitID(), HitResults)));
+		                        ResolvedTargets.ClickedTarget->GetUnitID(), HitResults, Weapon->GetAnimTag())));
 	FTacLogEffectSpawnStep::AppendFromHits(Payload.Steps, HitResults);
+	FTacLogStatusChangeStep::AppendDefendingClearedFromHits(Payload.Steps, HitResults);
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
 	ConsumeCharge();

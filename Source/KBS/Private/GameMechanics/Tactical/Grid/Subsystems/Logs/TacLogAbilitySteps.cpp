@@ -1,12 +1,13 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Unit.h"
 
-FTacLogCombatStep FTacLogCombatStep::Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults)
+FTacLogCombatStep FTacLogCombatStep::Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults, FGameplayTag WeaponAnimTag)
 {
 	FTacLogCombatStep Step;
 	Step.AttackerId = AttackerId;
 	Step.AttackerCoords = AttackerCoords;
 	Step.PrimaryTargetId = PrimaryTargetId;
+	Step.WeaponAnimTag = WeaponAnimTag;
 	for (const FCombatHitResult& Hit : HitResults)
 	{
 		FTacLogHitRecord& Rec = Step.HitRecords.AddDefaulted_GetRef();
@@ -34,6 +35,18 @@ void FTacLogEffectSpawnStep::AppendFromHits(TArray<TInstancedStruct<FTacLogStepB
 				OutSteps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogEffectSpawnStep>(
 					FTacLogEffectSpawnStep::Make(Hit.TargetUnit->GetUnitID(), Ref)));
 			}
+		}
+	}
+}
+
+void FTacLogStatusChangeStep::AppendDefendingClearedFromHits(TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps, const TArray<FCombatHitResult>& HitResults)
+{
+	for (const FCombatHitResult& Hit : HitResults)
+	{
+		if (Hit.bDefensiveStanceRemoved)
+		{
+			OutSteps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogStatusChangeStep>(
+				FTacLogStatusChangeStep::Make(Hit.TargetUnit->GetUnitID(), EUnitStatus::Defending, false)));
 		}
 	}
 }

@@ -151,10 +151,15 @@ static FString FormatPayload(const FTacEffectPayload& P, FTacLogFormatCtx& Ctx)
 
 static FString FormatPayload(const FEffectEndPayload& P, FTacLogFormatCtx& Ctx)
 {
-	return FString::Printf(TEXT("%s on %s → %s"),
+	FString Result = FString::Printf(TEXT("%s on %s → %s"),
 		*Ctx.Fx(P.EffectInstanceId, P.EffectAssetId),
 		*Ctx.Unit(P.OwnerUnitId),
 		*ShortRemoval(P.RemovalReason));
+
+	for (const TInstancedStruct<FTacLogStepBase>& Step : P.Steps)
+		Result += TEXT("\n") + DispatchFormatStep(Step, Ctx);
+
+	return Result;
 }
 
 static FString FormatPayload(const FUnitMoveOffFieldPayload& P, FTacLogFormatCtx& Ctx)
@@ -188,6 +193,14 @@ static FString FormatPayload(const FUnitSpawnPayload& P, FTacLogFormatCtx& Ctx)
 		*Origin);
 }
 
+static FString FormatPayload(const FUnitDespawnPayload& P, FTacLogFormatCtx& Ctx)
+{
+	return FString::Printf(TEXT("%s [%s] | %s"),
+		*Ctx.Unit(P.UnitId),
+		*ShortTeam(P.TeamSide),
+		*ShortDespawnReason(P.Reason));
+}
+
 // ── Public dispatch ───────────────────────────────────────────────────────────
 
 FString DispatchFormatPayload(const TInstancedStruct<FTacLogPayload>& Payload, FTacLogFormatCtx& Ctx)
@@ -199,6 +212,7 @@ FString DispatchFormatPayload(const TInstancedStruct<FTacLogPayload>& Payload, F
 	if (const FUnitMoveOffFieldPayload* P = Payload.GetPtr<FUnitMoveOffFieldPayload>()) return FormatPayload(*P, Ctx);
 	if (const FTurnChangePayload*       P = Payload.GetPtr<FTurnChangePayload>())       return FormatPayload(*P, Ctx);
 	if (const FUnitSpawnPayload*        P = Payload.GetPtr<FUnitSpawnPayload>())        return FormatPayload(*P, Ctx);
+	if (const FUnitDespawnPayload*      P = Payload.GetPtr<FUnitDespawnPayload>())      return FormatPayload(*P, Ctx);
 	return TEXT("<no payload>");
 }
 
@@ -209,7 +223,7 @@ FString BuildTacLogLegend()
 	return
 		TEXT("=== Legend ===\n")
 		TEXT("  State    C=Closed  !=Open(error)\n")
-		TEXT("  Type     Ability | EffOn=EffectActivation | EffOff=EffectEnd | Turn=TurnChange | Exit=UnitExitField | Spawn=UnitSpawn\n")
+		TEXT("  Type     Ability | EffOn=EffectActivation | EffOff=EffectEnd | Turn=TurnChange | Exit=UnitExitField | Spawn=UnitSpawn | Despawn=UnitDespawn\n")
 		TEXT("  Origin   Init=Initiated  React=Reaction  Trig=Triggered  Prog=Progressed\n")
 		TEXT("  Team     Atk=Attacker  Def=Defender\n")
 		TEXT("  Hit      HIT  MISS  IMMUNE  WARDED  CANCEL\n")

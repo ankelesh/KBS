@@ -109,6 +109,20 @@ FGameplayTagContainer USummonSpellAbility::BuildTags() const
 
 void USummonSpellAbility::DespawnActiveSummon()
 {
-	ActiveSummon->HandleDeath();
+	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
+	check(LogSubsystem);
+	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitDespawn, ETacLogEventOrigin::Triggered,
+	                                        ActiveSummon->GetUnitID(), FGuid());
+
+	const ETeamSide TeamSide = ActiveSummon->GetTeamSide();
+	const FGuid UnitId = ActiveSummon->GetUnitID();
+	GetGridSubsystem()->DespawnUnit(ActiveSummon.Get());
+
+	FUnitDespawnPayload Payload;
+	Payload.UnitId   = UnitId;
+	Payload.TeamSide = TeamSide;
+	Payload.Reason   = EUnitDespawnReason::Replaced;
+	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FUnitDespawnPayload>(MoveTemp(Payload)));
+
 	ActiveSummon.Reset();
 }
