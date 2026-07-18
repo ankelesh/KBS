@@ -18,6 +18,7 @@ enum class EUnitQuerySource : uint8
 	OnField = 0x01,
 	OffField = 0x02,
 	Corpses = 0x04,
+	PendingDespawn = 0x08, // despawned but not yet finalized - presentation hasn't played the despawn action yet
 };
 
 ENUM_CLASS_FLAGS(EUnitQuerySource)
@@ -130,6 +131,11 @@ public:
 	bool IsUnitOffField(const AUnit* Unit) const;
 	TArray<AUnit*> GetOffFieldUnits() const;
 
+	// Marks a unit as despawned-but-not-finalized; stays resolvable via GetUnits(PendingDespawn) until FinalizeDespawn.
+	void AddPendingDespawn(AUnit* Unit);
+	// Removes the unit from the pending buffer and returns it, for the caller to actually destroy. checkf's presence - broken contract otherwise.
+	AUnit* FinalizeDespawn(FGuid UnitId);
+
 private:
 #if WITH_EDITOR
 	friend class UTacGridEditorInitializer;
@@ -143,6 +149,8 @@ private:
 	TArray<FGridRow> AirLayer;
 	UPROPERTY()
 	TMap<FGuid, TObjectPtr<AUnit>> OffFieldUnits;
+	UPROPERTY()
+	TMap<FGuid, TObjectPtr<AUnit>> PendingDespawnUnits;
 	UPROPERTY()
 	TObjectPtr<ATacBattleGrid> Grid;
 	UPROPERTY()

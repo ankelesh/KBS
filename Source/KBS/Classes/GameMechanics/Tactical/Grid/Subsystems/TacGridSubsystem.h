@@ -3,17 +3,18 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "GameplayTypes/GridCoordinates.h"
+#include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
 #include "TacGridSubsystem.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTacGrid, Log, All);
 
 
-class UGridDataManager;
 class UTacGridMovementService;
 class UTacGridTargetingService;
 class AUnit;
 class UBattleTeam;
 class UUnitDefinition;
+class UTacticalPresentationBuilderConfig;
 enum class EHighlightType : uint8;
 UCLASS()
 class KBS_API UTacGridSubsystem : public UWorldSubsystem
@@ -43,10 +44,21 @@ public:
 	UBattleTeam* GetWinnerTeam();
 
 	bool GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& OutCoordinates) const;
+	FVector GetCellWorldLocation(FTacCoordinates Coords) const { return DataManager->GetCellWorldLocation(Coords); }
 
 	TArray<AUnit*> GetOffFieldUnits() const;
 	bool IsUnitOffField(const AUnit* Unit) const;
 	void PlaceUnitOffField(AUnit* Unit);
+
+	// Optional override asset assigned on the level's UGridConfig. Null if unset - callers fall back to defaults.
+	UTacticalPresentationBuilderConfig* GetPresentationConfig() const;
+
+	// Kills a unit outside combat (summon expiry, replacement, etc.) without leaving a corpse on the
+	// field. Does NOT destroy the unit - it stays in a pending buffer until FinalizeDespawnedUnit is
+	// called once presentation has played the despawn action.
+	void DespawnUnit(AUnit* Unit);
+	// Called by UDespawnPresentationAction::OnCleanup once the despawn's presentation has fully played out.
+	void FinalizeDespawnedUnit(AUnit* Unit);
 
 private:
 	UFUNCTION()

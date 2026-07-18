@@ -69,6 +69,10 @@ protected:
 	virtual void OnExecute(EPlaybackMode PlaybackMode) override;
 	virtual void OnCleanup() override;
 
+	// Extension points for domain-specific subclasses to react to move start/stop.
+	virtual void OnMoveStarted() {}
+	virtual void OnMoveFinished() {}
+
 private:
 	FTSTicker::FDelegateHandle TickerHandle;
 	bool OnTick(float DeltaTime);

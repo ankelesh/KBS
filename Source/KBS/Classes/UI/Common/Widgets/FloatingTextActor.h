@@ -4,7 +4,8 @@
 #include "Containers/Ticker.h"
 #include "FloatingTextActor.generated.h"
 
-class UTextRenderComponent;
+class UWidgetComponent;
+class UFloatingTextWidget;
 
 // Self-contained in-world text popup: rises and fades over a fixed duration, then destroys itself.
 UCLASS()
@@ -19,10 +20,18 @@ public:
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "FloatingText")
-	TObjectPtr<UTextRenderComponent> TextRender;
+	TObjectPtr<UWidgetComponent> WidgetComponent;
+
+	// Assign a Blueprint subclass (TextBlock bound, outline styled) once one exists.
+	UPROPERTY(EditDefaultsOnly, Category = "FloatingText")
+	TSubclassOf<UFloatingTextWidget> WidgetClass;
 
 private:
 	bool OnTick(float DeltaTime);
+	void UpdateFacing();
+
+	// Slow ease for the first FastFadeStart of Duration, quick ease for the remainder.
+	static float ComputeFadeAlpha(float t);
 
 	FTSTicker::FDelegateHandle TickerHandle;
 	FVector StartLocation = FVector::ZeroVector;
@@ -31,4 +40,6 @@ private:
 
 	static constexpr float RiseDistance = 100.f;
 	static constexpr float Duration = 1.2f;
+	static constexpr float FastFadeStart = 0.9f;
+	static constexpr float FastFadeStartAlpha = 0.75f;
 };

@@ -54,6 +54,9 @@ public:
 	virtual EPresentationTransitionPolicy GetTransitionPolicy() const { return TransitionPolicy; }
 	EVisualActionResult GetResult() const { return Result; }
 
+	// Must be called before Execute — Execute() reads TimeoutDuration once to arm the timer.
+	void SetTimeoutDuration(float Duration) { TimeoutDuration = Duration; }
+
 	UPROPERTY(BlueprintAssignable, Category = "Presentation")
 	FOnPresentationExit OnPresentationExit;
 

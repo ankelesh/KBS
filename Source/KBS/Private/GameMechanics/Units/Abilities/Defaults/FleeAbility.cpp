@@ -1,12 +1,11 @@
 #include "GameMechanics/Units/Abilities/Defaults/FleeAbility.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/Tags/Tactical/AbilityTags.h"
-#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-#include "GameplayTypes/TacticalMovementConstants.h"
 
 
 FAbilityExecutionResult UFleeAbility::Execute(FTacCoordinates TargetCell)
@@ -16,14 +15,6 @@ FAbilityExecutionResult UFleeAbility::Execute(FTacCoordinates TargetCell)
 	check(LogSubsystem);
 	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::Ability, ETacLogEventOrigin::Initiated,
 	                                        Owner->GetUnitID(), FGuid());
-
-	// 1) Turn unit to its field side — reverse of normal combat facing
-	const float FleeYaw = (Owner->GetTeamSide() == ETeamSide::Attacker)
-		? FTacMovementConstants::DefenderDefaultYaw
-		: FTacMovementConstants::AttackerDefaultYaw;
-	Owner->GetVisualsComponent()->RotateTowardTarget(FRotator(0.f, FleeYaw, 0.f));
-	if (Owner->GetGridMetadata().HasExtraCell())
-		Owner->GetVisualsComponent()->OnRotationCompletedNative.AddUObject(this, &UFleeAbility::OnFleeRotationCompleted);
 
 	Owner->GetStats().Status.SetFleeing();
 	Owner->OnUnitTurnStart.AddDynamic(this, &UFleeAbility::HandleTurnStarted);
@@ -52,17 +43,13 @@ bool UFleeAbility::CanExecute() const
 	return OwnerCanAct() && CanActByContext() && RemainingCharges > 0;
 }
 
-void UFleeAbility::OnFleeRotationCompleted()
-{
-	Owner->GetVisualsComponent()->OnRotationCompletedNative.RemoveAll(this);
-	Owner->GetVisualsComponent()->ReverseExtraCellOffset();
-}
-
 void UFleeAbility::HandleTurnStarted(AUnit* Unit)
 {
 	const bool bWillFlee = Owner->GetStats().Status.IsFleeing()
 		&& Owner->GetStats().Status.CanAct()
 		&& Owner->GetStats().Status.CanMove();
+
+	const FTacCoordinates LastFieldCoords = Owner->GetGridMetadata().Coords;
 
 	if (bWillFlee)
 		GetGridSubsystem()->PlaceUnitOffField(Owner);
@@ -71,7 +58,7 @@ void UFleeAbility::HandleTurnStarted(AUnit* Unit)
 	check(LogSubsystem);
 	FUnitMoveOffFieldPayload Payload;
 	Payload.UnitId          = Owner->GetUnitID();
-	Payload.LastFieldCoords = Owner->GetGridMetadata().Coords;
+	Payload.LastFieldCoords = LastFieldCoords;
 	Payload.TeamSide        = Owner->GetTeamSide();
 	Payload.bFled           = bWillFlee;
 	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitExitField, ETacLogEventOrigin::Triggered,

@@ -12,6 +12,7 @@ class UDecalComponent;
 class UGridDataManager;
 class UGridHighlightComponent;
 class UGridVisualMeshComponent;
+class UTacticalPresentationBuilderConfig;
 
 #if WITH_EDITOR
 class UTacGridEditorInitializer;
@@ -56,6 +57,9 @@ public:
 	TObjectPtr<UMaterialInterface> FlankCellMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cells|Materials")
 	TObjectPtr<UMaterialInterface> AirCellMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation")
+	TObjectPtr<UTacticalPresentationBuilderConfig> PresentationConfig;
 };
 
 UCLASS()

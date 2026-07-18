@@ -1,38 +1,12 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Presentation/Core/PresentationSequenceAction.h"
+#include "Presentation/Core/Actions/MontagePlaybackHelper.h"
 #include "MontagePresentationAction.generated.h"
 
-class USoundBase;
-class UAudioComponent;
-class UNiagaraSystem;
-class UNiagaraComponent;
-class UAnimMontage;
-class UAnimInstance;
-struct FBranchingPointNotifyPayload;
-
-USTRUCT(BlueprintType)
-struct FMontageActionContext
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
-	TObjectPtr<AActor> Actor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
-	TObjectPtr<UAnimMontage> Montage;
-
-	// If set, fires FinishExecution when this notify name is hit; montage keeps playing until natural end
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage")
-	FName EarlyExitNotifyName = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage|Effects")
-	TObjectPtr<USoundBase> SFX;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage|Effects")
-	TArray<TObjectPtr<UNiagaraSystem>> VFX;
-};
-
+// Single-actor montage action. Thin adapter over UMontagePlaybackHelper, which owns the actual
+// montage/SFX/VFX/timeout mechanics (shared with multi-target actions such as
+// UAoEReactionPresentationAction).
 UCLASS(BlueprintType, Blueprintable)
 class KBS_API UMontagePresentationAction : public UPresentationSequenceAction
 {
@@ -49,20 +23,11 @@ protected:
 	virtual void CancelTimeout() override;
 
 private:
-	FTimerHandle TimeoutHandle;
-	TObjectPtr<UAudioComponent> ActiveSFX;
-	TArray<TObjectPtr<UNiagaraComponent>> ActiveVFX;
-	bool bExitedViaSignal = false;
+	void HandlePlaybackFinished(EVisualActionResult Result);
+	void HandlePlaybackCleanupFinished();
 
-	UAnimInstance* GetAnimInstance() const;
+	UMontagePlaybackHelper* EnsurePlayback();
 
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void OnMontageEndedCleanup(UAnimMontage* Montage, bool bInterrupted);
-	void OnMontageNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& Payload);
-
-	void StartSFX();
-	void StopSFX();
-	void StartVFX();
-	void StopVFX();
-	void StopMontage();
+	UPROPERTY()
+	TObjectPtr<UMontagePlaybackHelper> Playback;
 };

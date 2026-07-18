@@ -1,23 +1,13 @@
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameMechanics/Units/Components/Config/UnitVisualDefinition.h"
-#include "GameplayTypes/Tags/Visual/UnitVisualTags.h"
+#include "GameMechanics/Units/Components/UnitAnimInstance.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/BattleEffects/BattleEffect.h"
-#include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInterface.h"
-#include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
-#include "NiagaraSystem.h"
-#include "NiagaraComponent.h"
-#include "NiagaraFunctionLibrary.h"
-#include "TimerManager.h"
-#include "Kismet/KismetMathLibrary.h"
 UUnitVisualsComponent::UUnitVisualsComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	SetMobility(EComponentMobility::Movable);
 }
 
@@ -26,44 +16,12 @@ void UUnitVisualsComponent::BeginPlay()
 	Super::BeginPlay();
 	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
 	checkf(OwnerUnit, TEXT("UUnitVisualsComponent must be owned by AUnit"));
-	OwnerUnit->OnUnitDied.AddDynamic(this, &UUnitVisualsComponent::OnOwnerDied);
-	OwnerUnit->OnUnitDamaged.AddDynamic(this, &UUnitVisualsComponent::OnOwnerDamaged);
-	OwnerUnit->OnUnitEffectTriggered.AddDynamic(this, &UUnitVisualsComponent::OnOwnerEffectTriggered);
-	OwnerUnit->OnUnitMoved.AddDynamic(this, &UUnitVisualsComponent::OnOwnerMoved);
 	OwnerUnit->OnOrientationChanged.AddUObject(this, &UUnitVisualsComponent::OnOwnerOrientationChanged);
 	OwnerUnit->OnUnitFieldPresenceChange.AddDynamic(this, &UUnitVisualsComponent::OnOwnerFieldPresenceChanged);
 }
 
-void UUnitVisualsComponent::OnOwnerDied(AUnit* Unit)
-{
-	UAnimMontage* DeathMontage = ResolveAnimation(TAG_ANIM_DEATH);
-	if (!DeathMontage)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent [%s]: No montage for Animation.Death"), *GetOwner()->GetName());
-		return;
-	}
-	PlayDeathMontage(DeathMontage);
-}
-
-void UUnitVisualsComponent::OnOwnerDamaged(AUnit* Victim, AUnit* Attacker)
-{
-	if (Victim->IsDead()) return;
-	UAnimMontage* HitMontage = ResolveAnimation(TAG_ANIM_HIT_REACTION);
-	if (!HitMontage)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent [%s]: No montage for Animation.HitReaction"), *GetOwner()->GetName());
-		return;
-	}
-	PlayHitReactionMontage(HitMontage);
-}
-void UUnitVisualsComponent::OnOwnerEffectTriggered(AUnit* OwnerUnit, UBattleEffect* Effect)
-{
-	ShowBattleEffect(Effect);
-}
-
 void UUnitVisualsComponent::OnOwnerOrientationChanged(EUnitOrientation NewOrientation)
 {
-	if (bIsTranslating || bIsFinalRotating) return;
 	GetOwner()->SetActorRotation(OrientationToRotation(NewOrientation));
 	if (VisualsRoot)
 	{
@@ -88,29 +46,6 @@ FRotator UUnitVisualsComponent::OrientationToRotation(EUnitOrientation Orientati
 	return FRotator::ZeroRotator;
 }
 
-void UUnitVisualsComponent::OnOwnerMoved(AUnit* Unit, const FTacMovementVisualData& MovementData)
-{
-	if (MovementData.Segments.IsEmpty()) return;
-
-	ActiveMovement = MovementData;
-	MovementSegmentIndex = 0;
-	bIsTranslating = true;
-	bIsFinalRotating = false;
-
-	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-	FBatchHandle MoveBatch = PresentationSys->BeginBatch(
-		FString::Printf(TEXT("Move_%s"), *GetOwner()->GetName())
-	);
-	CurrentMovementOperation = PresentationSys->RegisterOperation(
-		FString::Printf(TEXT("Move_%s"), *GetOwner()->GetName()),
-		MoveBatch
-	);
-	PresentationSys->EndBatch(MoveBatch);
-
-	SetMovementSpeed(Unit->GetMovementSpeed());
-	SetIsMoving(true);
-}
-
 void UUnitVisualsComponent::ReverseExtraCellOffset()
 {
 	if (VisualsRoot && CachedUnitSize > 1)
@@ -122,37 +57,8 @@ void UUnitVisualsComponent::OnOwnerFieldPresenceChanged(AUnit* Unit, bool bIsOnF
 	VisualsRoot->SetVisibility(bIsOnField, true);
 }
 
-void UUnitVisualsComponent::CompleteMovementOperation()
-{
-	if (CurrentMovementOperation.IsValid())
-	{
-		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-		PresentationSys->UnregisterOperation(CurrentMovementOperation);
-		CurrentMovementOperation = FOperationHandle();
-	}
-}
-void UUnitVisualsComponent::ShowBattleEffect(UBattleEffect* Effect)
-{
-	const UBattleEffectDataAsset* EffectConfig = Effect->GetConfig();
-	if (!EffectConfig || EffectConfig->AppliedVFX.IsNull())
-	{
-		return;
-	}
-	UNiagaraSystem* VFX = EffectConfig->AppliedVFX.Get();
-	if (!VFX)
-	{
-		return;
-	}
-	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
-	SpawnNiagaraEffect(
-		VFX,
-		OwnerUnit->GetActorLocation() + FVector(0, 0, OwnerUnit->GetSimpleCollisionHalfHeight()),
-		EffectConfig->VFXDuration
-	);
-}
 void UUnitVisualsComponent::ClearAllMeshComponents()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::ClearAllMeshComponents - Clearing %d components"), SpawnedMeshComponents.Num());
 	for (int32 i = SpawnedMeshComponents.Num() - 1; i >= 0; --i)
 	{
 		if (SpawnedMeshComponents[i])
@@ -192,11 +98,6 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitVisualDefinition* Defi
 			VisualsRoot->RegisterComponent();
 		}
 	}
-	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Owner=%s, VisualsRoot=%s, This IsRegistered=%s, MeshComponents Count=%d"),
-	//	GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"),
-	//	VisualsRoot ? TEXT("Valid") : TEXT("NULL"),
-	//	IsRegistered() ? TEXT("YES") : TEXT("NO"),
-	//	Definition->MeshComponents.Num());
 	for (const FUnitMeshDescriptor& MeshDesc : Definition->MeshComponents)
 	{
 		if (MeshDesc.MeshType == EUnitMeshType::Skeletal)
@@ -209,17 +110,7 @@ void UUnitVisualsComponent::InitializeFromDefinition(UUnitVisualDefinition* Defi
 		PrimarySkeletalMesh->SetAnimInstanceClass(Definition->AnimationClass);
 		PrimarySkeletalMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 		PrimarySkeletalMesh->InitAnim(true);
-		SetupAnimationDelegates();
 	}
-	//else
-	//{
-	//	UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Cannot init animation - PrimaryMesh: %s, AnimClass: %s"),
-	//		PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"),
-	//		Definition->AnimationClass ? TEXT("Valid") : TEXT("NULL"));
-	//}
-	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent::InitializeFromDefinition COMPLETE - SpawnedMeshComponents: %d, PrimarySkeletalMesh: %s"),
-	//	SpawnedMeshComponents.Num(),
-	//	PrimarySkeletalMesh ? TEXT("Valid") : TEXT("NULL"));
 	if (PrimarySkeletalMesh)
 	{
 		for (USceneComponent* Component : SpawnedMeshComponents)
@@ -248,9 +139,6 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	UPrimitiveComponent* PrimitiveComp = nullptr;
 	if (Descriptor.MeshType == EUnitMeshType::Skeletal)
 	{
-		//UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Processing skeletal mesh, bIsPrimaryMesh=%s, IsNull=%s"),
-		//	Descriptor.bIsPrimaryMesh ? TEXT("TRUE") : TEXT("FALSE"),
-		//	Descriptor.SkeletalMesh.IsNull() ? TEXT("TRUE") : TEXT("FALSE"));
 		if (!Descriptor.SkeletalMesh.IsNull())
 		{
 			USkeletalMeshComponent* SkelMeshComp = NewObject<USkeletalMeshComponent>(
@@ -263,7 +151,6 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 				USkeletalMesh* LoadedMesh = Descriptor.SkeletalMesh.LoadSynchronous();
 				if (LoadedMesh)
 				{
-					//UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Skeletal mesh loaded: %s"), *LoadedMesh->GetName());
 					SkelMeshComp->SetSkeletalMesh(LoadedMesh);
 					SkelMeshComp->SetComponentTickEnabled(true);
 					SkelMeshComp->PrimaryComponentTick.bCanEverTick = true;
@@ -276,7 +163,6 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 					if (Descriptor.bIsPrimaryMesh && !PrimarySkeletalMesh)
 					{
 						PrimarySkeletalMesh = SkelMeshComp;
-					//	UE_LOG(LogTemp, Log, TEXT("UUnitVisualsComponent: Primary skeletal mesh set"));
 					}
 				}
 			}
@@ -326,10 +212,6 @@ void UUnitVisualsComponent::CreateMeshComponent(const FUnitMeshDescriptor& Descr
 	}
 	NewMeshComponent->RegisterComponent();
 	SpawnedMeshComponents.Add(NewMeshComponent);
-	//UE_LOG(LogTemp, Warning, TEXT("UUnitVisualsComponent: Registered %s, AttachParent=%s, IsRegistered=%s"),
-	//	*NewMeshComponent->GetName(),
-	//	NewMeshComponent->GetAttachParent() ? *NewMeshComponent->GetAttachParent()->GetName() : TEXT("NULL"),
-	//	NewMeshComponent->IsRegistered() ? TEXT("YES") : TEXT("NO"));
 	if (PrimitiveComp)
 	{
 		SetupCollisionForMesh(PrimitiveComp);
@@ -384,30 +266,6 @@ void UUnitVisualsComponent::DetachWeaponMesh(UMeshComponent* WeaponMeshComponent
 		WeaponMeshComponent->DestroyComponent();
 	}
 }
-void UUnitVisualsComponent::SetupAnimationDelegates()
-{
-	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
-	checkf(AnimInstance, TEXT("SetupAnimationDelegates: AnimInstance must be valid after InitAnim"));
-	AnimInstance->OnMontageBlendingOut.AddDynamic(this, &UUnitVisualsComponent::HandleMontageBlendingOut);
-	AnimInstance->OnMontageEnded.AddDynamic(this, &UUnitVisualsComponent::HandleMontageEnded);
-}
-
-void UUnitVisualsComponent::PlayAttackMontage(UAnimMontage* Montage, float PlayRate)
-{
-	if (!Montage || !PrimarySkeletalMesh)
-	{
-		return;
-	}
-	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
-	if (!AnimInstance)
-	{
-		return;
-	}
-	if (AnimInstance->Montage_Play(Montage, PlayRate) > 0.0f)
-	{
-		RegisterMontageOperation(Montage);
-	}
-}
 
 UAnimMontage* UUnitVisualsComponent::ResolveAnimation(FGameplayTag Tag) const
 {
@@ -422,306 +280,16 @@ UAnimMontage* UUnitVisualsComponent::ResolveAnimation(FGameplayTag Tag) const
 	return nullptr;
 }
 
-FBatchHandle UUnitVisualsComponent::PlayAttackSequence(AUnit* OwnerUnit, AUnit* Target, FGameplayTag AnimTag)
+void UUnitVisualsComponent::SetIsDead(bool bDead)
 {
-	checkf(OwnerUnit && Target, TEXT("PlayAttackSequence: OwnerUnit and Target must be valid"));
-
-	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-	FBatchHandle Batch = PresentationSys->BeginBatch(
-		FString::Printf(TEXT("AttackSeq_%s"), *OwnerUnit->GetName())
-	);
-
-	const FVector SourceLoc = OwnerUnit->GetActorLocation();
-	const FVector TargetLoc = Target->GetActorLocation();
-	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(SourceLoc, TargetLoc);
-	LookAtRotation.Yaw += MeshYawOffset;
-
-	RegisterRotationOperation(Batch);
-	RotateTowardTarget(LookAtRotation, AttackRotationSpeed);
-
-	if (UAnimMontage* Montage = ResolveAnimation(AnimTag))
-	{
-		if (UAnimInstance* AnimInstance = PrimarySkeletalMesh ? PrimarySkeletalMesh->GetAnimInstance() : nullptr)
-		{
-			if (AnimInstance->Montage_Play(Montage) > 0.0f)
-			{
-				RegisterMontageOperation(Montage, Batch);
-			}
-		}
-	}
-
-	PresentationSys->EndBatch(Batch);
-	return Batch;
+	UUnitAnimInstance* AnimInstance = Cast<UUnitAnimInstance>(PrimarySkeletalMesh->GetAnimInstance());
+	checkf(AnimInstance, TEXT("UUnitVisualsComponent::SetIsDead: unit's AnimBP must be parented to UUnitAnimInstance"));
+	AnimInstance->SetIsDead(bDead);
 }
 
-void UUnitVisualsComponent::PlayHitReactionMontage(UAnimMontage* Montage)
-{
-	if (!Montage || !PrimarySkeletalMesh)
-	{
-		return;
-	}
-	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
-	if (!AnimInstance)
-	{
-		return;
-	}
-	if (AnimInstance->Montage_Play(Montage) > 0.0f)
-	{
-		RegisterMontageOperation(Montage);
-	}
-}
-void UUnitVisualsComponent::PlayDeathMontage(UAnimMontage* Montage)
-{
-	if (!Montage || !PrimarySkeletalMesh)
-	{
-		return;
-	}
-	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
-	if (!AnimInstance)
-	{
-		return;
-	}
-	if (AnimInstance->Montage_Play(Montage, 1.0f, EMontagePlayReturnType::MontageLength, 0.0f, true) > 0.0f)
-	{
-		RegisterMontageOperation(Montage);
-	}
-}
-void UUnitVisualsComponent::StopAllMontages()
-{
-	if (PrimarySkeletalMesh)
-	{
-		UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
-		if (AnimInstance)
-		{
-			AnimInstance->StopAllMontages(0.25f);
-		}
-	}
-}
-void UUnitVisualsComponent::SetMovementSpeed(float Speed)
-{
-	if (!PrimarySkeletalMesh)
-	{
-		return;
-	}
-	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
-	if (AnimInstance)
-	{
-		FProperty* Property = AnimInstance->GetClass()->FindPropertyByName(FName("MovementSpeed"));
-		if (Property && Property->IsA<FFloatProperty>())
-		{
-			Property->SetValue_InContainer(AnimInstance, &Speed);
-		}
-	}
-}
 void UUnitVisualsComponent::SetIsMoving(bool bMoving)
 {
-	if (!PrimarySkeletalMesh)
-	{
-		return;
-	}
-	UAnimInstance* AnimInstance = PrimarySkeletalMesh->GetAnimInstance();
-	if (AnimInstance)
-	{
-		FProperty* Property = AnimInstance->GetClass()->FindPropertyByName(FName("bIsMoving"));
-		if (Property && Property->IsA<FBoolProperty>())
-		{
-			Property->SetValue_InContainer(AnimInstance, &bMoving);
-		}
-	}
-}
-void UUnitVisualsComponent::RotateTowardTarget(FRotator TargetRotation, float Speed)
-{
-	PendingRotation = TargetRotation;
-	CurrentRotationSpeed = Speed;
-	bIsRotating = true;
-}
-void UUnitVisualsComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (bIsTranslating)
-	{
-		AActor* Owner = GetOwner();
-		const FTacMovementSegment& Seg = ActiveMovement.Segments[MovementSegmentIndex];
-		ActiveMovement.CurrentSegmentProgress += DeltaTime;
-		const float t = FMath::Clamp(ActiveMovement.CurrentSegmentProgress / Seg.Duration, 0.0f, 1.0f);
-
-		Owner->SetActorLocation(FMath::Lerp(Seg.Start, Seg.End, t));
-		Owner->SetActorRotation(FMath::RInterpTo(Owner->GetActorRotation(), Seg.TargetRotation, DeltaTime, 720.0f));
-
-		if (t >= 1.0f)
-		{
-			ActiveMovement.CurrentSegmentProgress = 0.0f;
-			++MovementSegmentIndex;
-			if (MovementSegmentIndex >= ActiveMovement.Segments.Num())
-			{
-				Owner->SetActorLocation(ActiveMovement.Segments.Last().End);
-				bIsTranslating = false;
-				SetIsMoving(false);
-				SetMovementSpeed(0.0f);
-
-				if (ActiveMovement.bApplyDefaultRotationAtEnd || ActiveMovement.bApplyFlankRotationAtEnd)
-				{
-					bIsFinalRotating = true;
-				}
-				else
-				{
-					CompleteMovementOperation();
-				}
-			}
-		}
-	}
-
-	if (bIsFinalRotating)
-	{
-		AActor* Owner = GetOwner();
-		const FRotator NewRot = FMath::RInterpTo(Owner->GetActorRotation(), ActiveMovement.TargetRotation, DeltaTime, 360.0f);
-		Owner->SetActorRotation(NewRot);
-		if (FMath::Abs(FRotator::NormalizeAxis(ActiveMovement.TargetRotation.Yaw - NewRot.Yaw)) < 1.0f)
-		{
-			Owner->SetActorRotation(ActiveMovement.TargetRotation);
-			bIsFinalRotating = false;
-			CompleteMovementOperation();
-		}
-	}
-
-	if (bIsRotating)
-	{
-		AActor* Owner = GetOwner();
-		if (Owner)
-		{
-			FRotator CurrentRotation = Owner->GetActorRotation();
-			FRotator NewRotation = FMath::RInterpTo(CurrentRotation, PendingRotation, DeltaTime, CurrentRotationSpeed);
-			Owner->SetActorRotation(NewRotation);
-			float RotationDifference = FMath::Abs((PendingRotation - NewRotation).Yaw);
-			if (RotationDifference < 1.0f)
-			{
-				Owner->SetActorRotation(PendingRotation);
-				bIsRotating = false;
-				CompleteRotationOperation();
-				OnRotationCompleted.Broadcast();
-				OnRotationCompletedNative.Broadcast();
-			}
-		}
-	}
-}
-void UUnitVisualsComponent::HandleMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
-{
-	// Complete subsystem op early on blend-out so downstream systems unblock without waiting for full blend
-	FOperationHandle* Handle = ActiveMontageOperations.Find(Montage);
-	if (Handle && Handle->IsValid())
-	{
-		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-		PresentationSys->UnregisterOperation(*Handle);
-		ActiveMontageOperations.Remove(Montage);
-	}
-}
-
-void UUnitVisualsComponent::HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	// If blend-out didn't fire (e.g. blend time = 0 or immediate stop), complete here
-	FOperationHandle* Handle = ActiveMontageOperations.Find(Montage);
-	if (Handle && Handle->IsValid())
-	{
-		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-		PresentationSys->UnregisterOperation(*Handle);
-		ActiveMontageOperations.Remove(Montage);
-	}
-	OnMontageCompleted.Broadcast(Montage);
-	OnMontageCompletedNative.Broadcast(Montage);
-}
-UNiagaraComponent* UUnitVisualsComponent::SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration)
-{
-	if (!System)
-	{
-		return nullptr;
-	}
-	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		GetWorld(),
-		System,
-		WorldLocation,
-		FRotator::ZeroRotator,
-		FVector::OneVector,
-		true,
-		true,
-		ENCPoolMethod::None,
-		true
-	);
-
-	if (NiagaraComponent && Duration > 0.0f)
-	{
-		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-		if (PresentationSys)
-		{
-			// Create RAII scoped operation for VFX
-			TSharedPtr<UPresentationSubsystem::FScopedOperation> VFXOp =
-				MakeShared<UPresentationSubsystem::FScopedOperation>(
-					PresentationSys,
-					FString::Printf(TEXT("VFX: %s"), *System->GetName())
-				);
-
-			FVFXTrackingData TrackingData;
-			TrackingData.ScopedOperation = VFXOp;
-
-			FTimerHandle TimerHandle;
-			FTimerDelegate TimerDelegate;
-			TimerDelegate.BindUObject(this, &UUnitVisualsComponent::OnVFXCompleted, NiagaraComponent);
-			GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, Duration, false);
-			TrackingData.TimerHandle = TimerHandle;
-
-			ActiveVFXOperations.Add(NiagaraComponent, TrackingData);
-		}
-	}
-
-	return NiagaraComponent;
-}
-
-void UUnitVisualsComponent::OnVFXCompleted(UNiagaraComponent* Component)
-{
-	if (!Component)
-	{
-		return;
-	}
-
-	FVFXTrackingData* TrackingData = ActiveVFXOperations.Find(Component);
-	if (TrackingData)
-	{
-		// ScopedOperation will auto-complete when removed from map
-		ActiveVFXOperations.Remove(Component);
-	}
-}
-
-void UUnitVisualsComponent::RegisterRotationOperation(FBatchHandle BatchHandle)
-{
-	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-	CurrentRotationOperation = PresentationSys->RegisterOperation(
-		FString::Printf(TEXT("Rotation_%s"), *GetOwner()->GetName()),
-		BatchHandle
-	);
-}
-
-void UUnitVisualsComponent::RegisterMontageOperation(UAnimMontage* Montage, FBatchHandle BatchHandle)
-{
-	// Montages with bEnableAutoBlendOut=false hold the last frame forever and never fire end/blendout events.
-	// Treat them as fire-and-forget — don't register with the subsystem or we'd stall indefinitely.
-	if (!Montage->bEnableAutoBlendOut)
-	{
-		return;
-	}
-	UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-	FOperationHandle Handle = PresentationSys->RegisterOperation(
-		FString::Printf(TEXT("Montage_%s_%s"), *GetOwner()->GetName(), *Montage->GetName()),
-		BatchHandle
-	);
-	ActiveMontageOperations.Add(Montage, Handle);
-}
-
-void UUnitVisualsComponent::CompleteRotationOperation()
-{
-	if (CurrentRotationOperation.IsValid())
-	{
-		UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(this);
-		PresentationSys->UnregisterOperation(CurrentRotationOperation);
-		CurrentRotationOperation = FOperationHandle();
-	}
+	UUnitAnimInstance* AnimInstance = Cast<UUnitAnimInstance>(PrimarySkeletalMesh->GetAnimInstance());
+	checkf(AnimInstance, TEXT("UUnitVisualsComponent::SetIsMoving: unit's AnimBP must be parented to UUnitAnimInstance"));
+	AnimInstance->SetIsMoving(bMoving);
 }

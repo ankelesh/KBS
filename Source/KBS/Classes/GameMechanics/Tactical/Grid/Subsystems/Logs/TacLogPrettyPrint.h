@@ -29,6 +29,18 @@ inline FString ShortType(ETacLogEventType T)
 	case ETacLogEventType::TurnChange:       return TEXT("Turn");
 	case ETacLogEventType::UnitExitField:    return TEXT("Exit");
 	case ETacLogEventType::UnitSpawn:        return TEXT("Spawn");
+	case ETacLogEventType::UnitDespawn:      return TEXT("Despawn");
+	}
+	return TEXT("?");
+}
+
+inline FString ShortDespawnReason(EUnitDespawnReason R)
+{
+	switch (R)
+	{
+	case EUnitDespawnReason::DurationExpired: return TEXT("Expired");
+	case EUnitDespawnReason::SummonerDied:    return TEXT("SummonerDied");
+	case EUnitDespawnReason::Replaced:        return TEXT("Replaced");
 	}
 	return TEXT("?");
 }

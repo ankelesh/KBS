@@ -23,6 +23,7 @@ void UMovePresentationAction::OnExecute(EPlaybackMode PlaybackMode)
 
 	StartSFX();
 	StartVFX();
+	OnMoveStarted();
 
 	TickerHandle = FTSTicker::GetCoreTicker().AddTicker(
 		FTickerDelegate::CreateUObject(this, &UMovePresentationAction::OnTick), 0.f);
@@ -33,6 +34,7 @@ bool UMovePresentationAction::OnTick(float DeltaTime)
 	if (!Context.Actor || CurrentSegmentIndex >= Context.Path.Num())
 	{
 		ApplyFinalTransform();
+		OnMoveFinished();
 		FinishExecution(EVisualActionResult::Completed);
 		return false;
 	}
@@ -56,6 +58,7 @@ bool UMovePresentationAction::OnTick(float DeltaTime)
 		if (CurrentSegmentIndex >= Context.Path.Num())
 		{
 			ApplyFinalTransform();
+			OnMoveFinished();
 			FinishExecution(EVisualActionResult::Completed);
 			return false;
 		}
@@ -69,6 +72,7 @@ void UMovePresentationAction::OnCleanup()
 	StopTicker();
 	// Idempotent; covers KeepForSequence cleanup arriving mid-move
 	ApplyFinalTransform();
+	OnMoveFinished();
 	StopVFX();
 	StopSFX();
 	FinishCleanup();

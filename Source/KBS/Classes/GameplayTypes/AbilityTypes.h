@@ -24,9 +24,6 @@ struct FAbilityResult
 	bool bInvalidInput = false;
 
 	UPROPERTY(BlueprintReadOnly)
-	bool bPresentationRunning = false;
-
-	UPROPERTY(BlueprintReadOnly)
 	bool bBattleEnded = false;
 };
 

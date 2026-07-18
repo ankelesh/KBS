@@ -11,6 +11,15 @@ enum class ETacLogEventType : uint8
 	TurnChange       UMETA(DisplayName = "Turn Change"),
 	UnitExitField    UMETA(DisplayName = "Unit Exit Field"),
 	UnitSpawn        UMETA(DisplayName = "Unit Spawn"),
+	UnitDespawn      UMETA(DisplayName = "Unit Despawn"),
+};
+
+UENUM(BlueprintType)
+enum class EUnitDespawnReason : uint8
+{
+	DurationExpired,
+	SummonerDied,
+	Replaced,
 };
 
 UENUM(BlueprintType)

@@ -138,6 +138,8 @@ struct FCombatHitResult
 	// Actual roll value (0-100). Meaningful only when HitChance >= 0.
 	UPROPERTY()
 	float AccuracyRoll = -1.0f;
+	UPROPERTY()
+	bool bDefensiveStanceRemoved = false;
 
 	static FCombatHitResult ProcessingError()
 	{

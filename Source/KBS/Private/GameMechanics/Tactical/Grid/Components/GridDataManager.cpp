@@ -443,6 +443,11 @@ TArray<AUnit*> UGridDataManager::GetUnits(EUnitQuerySource Sources) const
 					for (const TObjectPtr<AUnit>& Corpse : Stack.GetAll())
 						if (Corpse) Result.Add(Corpse->GetUnitID(), Corpse);
 	}
+	if (EnumHasAnyFlags(Sources, EUnitQuerySource::PendingDespawn))
+	{
+		for (const auto& Pair : PendingDespawnUnits)
+			if (Pair.Value) Result.Add(Pair.Key, Pair.Value);
+	}
 
 	TArray<TObjectPtr<AUnit>> Out;
 	Result.GenerateValueArray(Out);
@@ -532,6 +537,20 @@ TArray<AUnit*> UGridDataManager::GetOffFieldUnits() const
 	TArray<TObjectPtr<AUnit>> Values;
 	OffFieldUnits.GenerateValueArray(Values);
 	return Values;
+}
+
+void UGridDataManager::AddPendingDespawn(AUnit* Unit)
+{
+	checkf(Unit, TEXT("AddPendingDespawn: Unit must not be null"));
+	PendingDespawnUnits.Add(Unit->GetUnitID(), Unit);
+}
+
+AUnit* UGridDataManager::FinalizeDespawn(FGuid UnitId)
+{
+	checkf(PendingDespawnUnits.Contains(UnitId), TEXT("FinalizeDespawn: unit not in pending-despawn buffer"));
+	AUnit* Unit = PendingDespawnUnits[UnitId];
+	PendingDespawnUnits.Remove(UnitId);
+	return Unit;
 }
 
 void UGridDataManager::RemoveUnitFromGrid(AUnit* Unit)

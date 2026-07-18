@@ -9,6 +9,8 @@ DEFINE_LOG_CATEGORY(LogTacGrid);
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridHighlightComponent.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacSubsystemControl.h"
+#include "GameMechanics/Units/Components/UnitVisualsComponent.h"
+#include "Presentation/Tactical/TacticalPresentationBuilderConfig.h"
 
 void UTacGridSubsystem::RegisterManager(UGridDataManager* InDataManager)
 {
@@ -65,7 +67,8 @@ TArray<AUnit*> UTacGridSubsystem::GetAllAliveUnits()
 TArray<AUnit*> UTacGridSubsystem::GetAllUnits()
 {
 	if (!DataManager) return TArray<AUnit*>();
-	return DataManager->GetUnits(EUnitQuerySource::OnField | EUnitQuerySource::OffField | EUnitQuerySource::Corpses);
+	return DataManager->GetUnits(EUnitQuerySource::OnField | EUnitQuerySource::OffField
+		| EUnitQuerySource::Corpses | EUnitQuerySource::PendingDespawn);
 }
 
 TArray<AUnit*> UTacGridSubsystem::GetDeadUnits()
@@ -164,6 +167,48 @@ bool UTacGridSubsystem::IsUnitOffField(const AUnit* Unit) const
 void UTacGridSubsystem::PlaceUnitOffField(AUnit* Unit)
 {
 	DataManager->PlaceUnitOffField(Unit);
+}
+
+UTacticalPresentationBuilderConfig* UTacGridSubsystem::GetPresentationConfig() const
+{
+	const ATacBattleGrid* Grid = DataManager ? DataManager->GetGrid() : nullptr;
+	return Grid && Grid->Config ? Grid->Config->PresentationConfig : nullptr;
+}
+
+void UTacGridSubsystem::DespawnUnit(AUnit* Unit)
+{
+	checkf(Unit, TEXT("DespawnUnit: Unit must not be null"));
+	const FTacCoordinates Coords = Unit->GetGridMetadata().Coords;
+	const bool bWasOnField = Unit->GetGridMetadata().IsOnField();
+
+	Unit->HandleDeath();
+
+	// HandleUnitDied (bound to OnUnitDied) already pushed a corpse via the generic death path -
+	// despawns aren't combat deaths, so undo that; nothing should appear on the field.
+	if (bWasOnField)
+	{
+		DataManager->PopCorpse(Coords);
+	}
+
+	// Stays resolvable (UnitLookup, EUnitQuerySource::PendingDespawn) until presentation finalizes it.
+	DataManager->AddPendingDespawn(Unit);
+}
+
+void UTacGridSubsystem::FinalizeDespawnedUnit(AUnit* Unit)
+{
+	checkf(Unit, TEXT("FinalizeDespawnedUnit: Unit must not be null"));
+	AUnit* Despawned = DataManager->FinalizeDespawn(Unit->GetUnitID());
+	DataManager->RemoveUnitFromGrid(Despawned);
+
+	// Actual actor destruction is deferred pending investigation of turn-order/ability-event-subsystem
+	// cleanup - for now, finalize just hides the unit's model (same as a fully-cleared corpse).
+	for (USceneComponent* MeshComp : Despawned->GetVisualsComponent()->GetAllMeshComponents())
+	{
+		if (MeshComp)
+		{
+			MeshComp->SetVisibility(false, true);
+		}
+	}
 }
 
 void UTacGridSubsystem::HandleUnitDied(AUnit* Unit)

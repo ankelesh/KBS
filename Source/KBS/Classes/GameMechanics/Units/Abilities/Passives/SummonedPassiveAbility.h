@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameMechanics/Units/Abilities/UnitAbility.h"
+#include "GameplayTypes/LogTypesLibrary.h"
 #include "SummonedPassiveAbility.generated.h"
 
 UCLASS()
@@ -29,5 +30,5 @@ private:
 	void HandleSummonerDied(AUnit* Unit);
 	UFUNCTION()
 	void HandleOwnerDied(AUnit* Unit);
-	void DespawnSelf();
+	void DespawnSelf(EUnitDespawnReason Reason);
 };

@@ -52,7 +52,8 @@ void UTargetDOTBattleEffect::OnTurnEnd()
 	Payload.SourceId         = FGuid();
 	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogCombatStep>(
 		FTacLogCombatStep::Make(FGuid(), FTacCoordinates(), Owner->GetUnitID(),
-		                        TArray<FCombatHitResult>{HitResult})));
+		                        TArray<FCombatHitResult>{HitResult}, FGameplayTag())));
+	FTacLogStatusChangeStep::AppendDefendingClearedFromHits(Payload.Steps, TArray<FCombatHitResult>{HitResult});
 	LogSub->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FTacEffectPayload>(MoveTemp(Payload)));
 
 	DecrementDuration();

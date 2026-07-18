@@ -1,9 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameplayTypes/GridCoordinates.h"
-#include "GameplayTypes/TacMovementTypes.h"
 #include "GameplayTagContainer.h"
 #include "UnitVisualsComponent.generated.h"
 class UUnitVisualDefinition;
@@ -11,13 +9,7 @@ class UUnitAnimationSet;
 class USkeletalMeshComponent;
 class UStaticMesh;
 class UAnimMontage;
-class UNiagaraSystem;
-class UNiagaraComponent;
 class UBattleEffect;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageCompleted, UAnimMontage*, Montage);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRotationCompleted);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnMontageCompletedNative, UAnimMontage*);
-DECLARE_MULTICAST_DELEGATE(FOnRotationCompletedNative);
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UUnitVisualsComponent : public USceneComponent
 {
@@ -33,28 +25,12 @@ public:
 	void DetachWeaponMesh(UMeshComponent* WeaponMeshComponent);
 	USkeletalMeshComponent* GetPrimarySkeletalMesh() const { return PrimarySkeletalMesh; }
 	const TArray<TObjectPtr<USceneComponent>>& GetAllMeshComponents() const { return SpawnedMeshComponents; }
-	void PlayAttackMontage(UAnimMontage* Montage, float PlayRate = 1.0f);
-	void PlayHitReactionMontage(UAnimMontage* Montage);
-	void PlayDeathMontage(UAnimMontage* Montage);
-	void StopAllMontages();
-	void SetMovementSpeed(float Speed);
-	void SetIsMoving(bool bMoving);
-	void RotateTowardTarget(FRotator TargetRotation, float Speed = 360.0f);
-	bool IsRotating() const { return bIsRotating; }
 	void SetCellSize(float InCellSize) { CachedCellSize = InCellSize; }
-	UNiagaraComponent* SpawnNiagaraEffect(UNiagaraSystem* System, FVector WorldLocation, float Duration);
 	void ReverseExtraCellOffset();
 	// Resolves a montage by tag with parent-tag fallback (e.g. Animation.Attack.Slash -> Animation.Attack)
 	UAnimMontage* ResolveAnimation(FGameplayTag Tag) const;
-	FBatchHandle PlayAttackSequence(class AUnit* OwnerUnit, class AUnit* Target, FGameplayTag AnimTag);
-	void ShowBattleEffect(UBattleEffect* Effect);
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	UPROPERTY(BlueprintAssignable, Category = "Animation")
-	FOnMontageCompleted OnMontageCompleted;
-	UPROPERTY(BlueprintAssignable, Category = "Animation")
-	FOnRotationCompleted OnRotationCompleted;
-	FOnMontageCompletedNative OnMontageCompletedNative;
-	FOnRotationCompletedNative OnRotationCompletedNative;
+	void SetIsDead(bool bDead);
+	void SetIsMoving(bool bMoving);
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USceneComponent> VisualsRoot;
@@ -65,51 +41,12 @@ protected:
 private:
 	void CreateMeshComponent(const struct FUnitMeshDescriptor& Descriptor, UUnitVisualDefinition* Definition);
 	void SetupCollisionForMesh(UPrimitiveComponent* MeshComponent);
-	void SetupAnimationDelegates();
-	UFUNCTION() void HandleMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
-	UFUNCTION() void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	UFUNCTION() void OnOwnerDied(AUnit* Unit);
-	UFUNCTION() void OnOwnerDamaged(AUnit* Victim, AUnit* Attacker);
-	UFUNCTION() void OnOwnerEffectTriggered(AUnit* OwnerUnit, UBattleEffect* Effect);
-	UFUNCTION() void OnOwnerMoved(AUnit* Unit, const FTacMovementVisualData& MovementData);
 	UFUNCTION() void OnOwnerFieldPresenceChanged(AUnit* Unit, bool bIsOnField);
 	void OnOwnerOrientationChanged(EUnitOrientation NewOrientation);
 	static FRotator OrientationToRotation(EUnitOrientation Orientation);
 
 	TObjectPtr<UUnitAnimationSet> AnimationSet;
 
-	// Attack/ability rotation
-	FRotator PendingRotation;
-	bool bIsRotating = false;
-	float CurrentRotationSpeed = 360.0f;
-
-	static constexpr float AttackRotationSpeed = 540.0f;
-	static constexpr float MeshYawOffset = -90.0f;
-
 	int32 CachedUnitSize = 1;
 	float CachedCellSize = 200.0f;
-
-	// Presentation operation tracking
-	FOperationHandle CurrentRotationOperation;
-	TMap<TObjectPtr<UAnimMontage>, FOperationHandle> ActiveMontageOperations;
-
-	// Movement sequence state
-	FTacMovementVisualData ActiveMovement;
-	int32 MovementSegmentIndex = 0;
-	bool bIsTranslating = false;
-	bool bIsFinalRotating = false;
-	FOperationHandle CurrentMovementOperation;
-	void CompleteMovementOperation();
-
-	void RegisterRotationOperation(FBatchHandle BatchHandle = FBatchHandle());
-	void CompleteRotationOperation();
-	void RegisterMontageOperation(UAnimMontage* Montage, FBatchHandle BatchHandle = FBatchHandle());
-
-	struct FVFXTrackingData
-	{
-		FTimerHandle TimerHandle;
-		TSharedPtr<class UPresentationSubsystem::FScopedOperation> ScopedOperation;
-	};
-	TMap<TObjectPtr<UNiagaraComponent>, FVFXTrackingData> ActiveVFXOperations;
-	void OnVFXCompleted(UNiagaraComponent* Component);
 };

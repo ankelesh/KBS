@@ -5,7 +5,6 @@
 #include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
@@ -50,13 +49,6 @@ FAbilityResult UTacAbilityExecutorService::Execute(UUnitAbility* Ability, FTacCo
 		Result.bBattleEnded = !GridSubsystem->IsBothTeamsAnyUnitAlive();
 	}
 
-	// Check presentation status
-	if (UPresentationSubsystem* PresentationSys = UPresentationSubsystem::Get(Owner))
-	{
-		Result.bPresentationRunning = !PresentationSys->IsIdle();
-	}
-
-	
 	OnAbilityCompleted.Broadcast(Ability, TargetCell, Result);
 	Ability->BroadcastUsage();
 	return Result;

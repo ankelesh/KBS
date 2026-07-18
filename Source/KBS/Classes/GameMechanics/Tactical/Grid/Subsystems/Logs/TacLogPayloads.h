@@ -62,6 +62,9 @@ struct KBS_API FEffectEndPayload : public FTacLogPayload
 
 	UPROPERTY()
 	EEffectRemovalReason RemovalReason = EEffectRemovalReason::Expired;
+
+	UPROPERTY()
+	TArray<TInstancedStruct<FTacLogStepBase>> Steps;
 };
 
 USTRUCT(BlueprintType)
@@ -93,6 +96,16 @@ struct KBS_API FUnitSpawnPayload : public FTacLogPayload
 	UPROPERTY() FGuid SummonerUnitId;         // invalid guid = initial placement
 	UPROPERTY() FPrimaryAssetId UnitDefinitionId;
 	UPROPERTY() bool bIsSummon = false;
+};
+
+USTRUCT(BlueprintType)
+struct KBS_API FUnitDespawnPayload : public FTacLogPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY() FGuid UnitId;
+	UPROPERTY() ETeamSide TeamSide = ETeamSide::Attacker;
+	UPROPERTY() EUnitDespawnReason Reason = EUnitDespawnReason::DurationExpired;
 };
 
 USTRUCT(BlueprintType)

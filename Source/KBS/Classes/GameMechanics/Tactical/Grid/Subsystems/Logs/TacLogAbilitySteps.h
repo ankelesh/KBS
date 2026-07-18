@@ -202,6 +202,9 @@ struct KBS_API FTacLogStatusChangeStep : public FTacLogStepBase
 		Step.ModifierId  = InModifierId;
 		return Step;
 	}
+
+	// Appends one Defending-cleared step per hit that removed the target's defensive stance.
+	static void AppendDefendingClearedFromHits(TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps, const TArray<FCombatHitResult>& HitResults);
 };
 
 USTRUCT()
@@ -221,5 +224,10 @@ struct KBS_API FTacLogCombatStep : public FTacLogStepBase
 	UPROPERTY()
 	TArray<FTacLogHitRecord> HitRecords;
 
-	static FTacLogCombatStep Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults);
+	// Snapshot of the weapon's swing animation tag at simulation time - not re-derived at replay
+	// time, since the attacker's loadout/position may have changed by then.
+	UPROPERTY()
+	FGameplayTag WeaponAnimTag;
+
+	static FTacLogCombatStep Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults, FGameplayTag WeaponAnimTag);
 };

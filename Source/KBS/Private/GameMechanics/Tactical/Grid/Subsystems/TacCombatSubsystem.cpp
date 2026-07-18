@@ -229,7 +229,10 @@ void UTacCombatSubsystem::ExecuteSideEffectApplicationPhase(FCombatContext& Cont
 	}
 
 	if (SideEffects.bRemovesDefensiveStance)
+	{
+		Result.bDefensiveStanceRemoved = Hit.Target->GetStats().Status.IsDefending();
 		Hit.Target->GetStats().Status.ClearStatus(EUnitStatus::Defending);
+	}
 }
 
 void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit,
