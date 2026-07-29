@@ -7,6 +7,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "KbsGameInstance.h"
 
 #if WITH_EDITOR
 #include "GameMechanics/Tactical/Grid/Editor/TacGridEditorInitializer.h"
@@ -24,6 +25,7 @@ ATacBattleGrid::ATacBattleGrid()
 	DataManager = CreateDefaultSubobject<UGridDataManager>(TEXT("DataManager"));
 	HighlightComponent = CreateDefaultSubobject<UGridHighlightComponent>(TEXT("HighlightComponent"));
 	InputRouter = CreateDefaultSubobject<UTacGridInputRouter>(TEXT("InputRouter"));
+	RuntimeInitializer = CreateDefaultSubobject<UGridRuntimeInitializer>(TEXT("RuntimeInitializer"));
 
 #if WITH_EDITOR
 	EditorInitializer = CreateDefaultSubobject<UTacGridEditorInitializer>(TEXT("EditorInitializer"));
@@ -60,9 +62,16 @@ void ATacBattleGrid::BeginPlay()
 	UTacGridSubsystem* GridSubsystem = World->GetSubsystem<UTacGridSubsystem>();
 	checkf(GridSubsystem, TEXT("TacBattleGrid: Failed to get TacGridSubsystem"));
 
-	// TODO: Move to subsystems
+	UKbsGameInstance* GI = GetGameInstance<UKbsGameInstance>();
+	if (GI && GI->HasPendingBattle())
+	{
+		const FTacticalBattleSetup& Setup = GI->GetPendingBattle();
+		Player1ControlledTeam = Setup.GetPlayerTeamSide();
+		RuntimeInitializer->SpawnFromBattleSetup(Setup, DefaultUnitClass);
+		RuntimeInitializer->SetupUnitEventBindings();
+	}
 #if WITH_EDITOR
-	if (EditorInitializer)
+	else if (EditorInitializer)
 	{
 		EditorInitializer->SpawnAndPlaceUnits();
 		EditorInitializer->SetupUnitEventBindings();
