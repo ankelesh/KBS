@@ -6,6 +6,7 @@
 #include "BattleTeam.h"
 #include "GameplayTypes/GridCoordinates.h"
 #include "Editor/TacGridEditorInitializer.h"
+#include "Components/GridRuntimeInitializer.h"
 #include "TacBattleGrid.generated.h"
 
 class UDecalComponent;
@@ -35,6 +36,11 @@ public:
 	TObjectPtr<UMaterialInterface> FriendlyDecalMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Teams")
 	ETeamSide PlayerTeamSide = ETeamSide::Attacker;
+	// Team-local col 0..1 maps to absolute col: Attacker=[StartCol, StartCol+1], Defender=[StartCol, StartCol+1]
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Teams|Placement")
+	int32 AttackerStartCol = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Teams|Placement")
+	int32 DefenderStartCol = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|VFX", meta = (DisplayName = "Niagara Systems (indexed by EHighlightType)"))
 	TArray<TObjectPtr<class UNiagaraSystem>> HighlightNiagaraSystems;
@@ -69,6 +75,7 @@ public:
 	// Component exposure
 	UGridDataManager* GetDataManager() { return DataManager; }
 	UGridHighlightComponent* GetHighlightComponent() { return HighlightComponent; }
+	UGridConfig* GetConfig() const { return Config; }
 	float GetCellSize() const { return Config ? Config->CellSize : 200.0f; }
 	float GetAirLayerHeight() const { return Config ? Config->AirLayerHeight : 500.0f; }
 	float GetMeshZOffset() const { return Config ? Config->MeshZOffset : 2.0f; }
@@ -112,6 +119,12 @@ private:
 	// Logic
 	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
 	TObjectPtr<class UTacGridInputRouter> InputRouter;
+	UPROPERTY(VisibleAnywhere, Category = "BattleGrid|Components")
+	TObjectPtr<UGridRuntimeInitializer> RuntimeInitializer;
+
+	// BP_Unit class used when spawning from runtime battle setup (always the same BP wrapper)
+	UPROPERTY(EditDefaultsOnly, Category = "BattleGrid|Runtime")
+	TSubclassOf<AUnit> DefaultUnitClass;
 
 
 #if WITH_EDITORONLY_DATA
