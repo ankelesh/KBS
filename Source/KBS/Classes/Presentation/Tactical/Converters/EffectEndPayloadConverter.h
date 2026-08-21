@@ -1,13 +1,14 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "Presentation/PresentationBuildContext.h"
 
 struct FEffectEndPayload;
 class UFloatingTextPresentationAction;
-class AUnit;
 
 namespace TacticalLogConverters
 {
 	// Converts an effect expiry into a floating "<EffectName> ended" label.
-	// UnitLookup must contain Payload.OwnerUnitId - an effect end payload referencing an untracked unit is a broken log contract.
-	UFloatingTextPresentationAction* ConvertEffectEndPayload(const FEffectEndPayload& Payload, const TMap<FGuid, AUnit*>& UnitLookup);
+	// Payload.OwnerUnitId must be present in Context.UnitLookup - an effect end payload referencing
+	// an untracked unit is a broken log contract (unit is present in UnitLookup).
+	UFloatingTextPresentationAction* ConvertEffectEndPayload(const FEffectEndPayload& Payload, const FPresentationBuildContext& Context);
 }

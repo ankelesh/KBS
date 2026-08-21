@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Presentation/Core/PresentationSequenceAction.h"
+#include "Presentation/Core/Actions/ParallelChainsPresentationAction.h"
 #include "Presentation/Core/Actions/MontagePlaybackHelper.h"
 #include "AoEReactionPresentationAction.generated.h"
 
@@ -38,7 +38,7 @@ struct FAoEReactionChain
 // only thing that gets to coordinate action lifecycles, so this action stays a single leaf in the
 // sequence rather than nesting actions inside itself.
 UCLASS(BlueprintType, Blueprintable)
-class KBS_API UAoEReactionPresentationAction : public UPresentationSequenceAction
+class KBS_API UAoEReactionPresentationAction : public UParallelChainsPresentationAction
 {
 	GENERATED_BODY()
 
@@ -57,7 +57,5 @@ private:
 	TArray<TObjectPtr<UMontagePlaybackHelper>> ActiveHelpers;
 
 	TArray<int32> ChainCursors;
-	EPlaybackMode CurrentPlaybackMode = EPlaybackMode::Animated;
-	int32 RemainingChains = 0;
 	int32 PendingCleanupCount = 0;
 };

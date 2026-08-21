@@ -3,14 +3,16 @@
 #include "GameMechanics/Units/Unit.h"
 #include "Presentation/Tactical/Actions/FloatingTextPresentationAction.h"
 
-UFloatingTextPresentationAction* TacticalLogConverters::ConvertUnitSpawnPayload(const FUnitSpawnPayload& Payload, const TMap<FGuid, AUnit*>& UnitLookup)
+UFloatingTextPresentationAction* TacticalLogConverters::ConvertUnitSpawnPayload(const FUnitSpawnPayload& Payload, const FPresentationBuildContext& Context)
 {
-	AUnit* const* FoundUnit = UnitLookup.Find(Payload.SpawnedUnitId);
-	checkf(FoundUnit, TEXT("Unit spawn payload references unit %s not found on grid"), *Payload.SpawnedUnitId.ToString());
+	AUnit* const* FoundUnit = Context.UnitLookup->Find(Payload.SpawnedUnitId);
+	checkf(FoundUnit, TEXT("Unit spawn payload references unit %s - unit is present in UnitLookup"), *Payload.SpawnedUnitId.ToString());
+
+	const FLinearColor Color = Context.Config ? Context.Config->UnitSpawnedColor : FLinearColor::White;
 
 	UFloatingTextPresentationAction* Action = NewObject<UFloatingTextPresentationAction>();
 	Action->Context.Actor = *FoundUnit;
 	Action->Context.Text = NSLOCTEXT("UnitSpawnPayloadConverter", "Spawned", "Spawned");
-	Action->Context.Color = FLinearColor::White;
+	Action->Context.Color = Color;
 	return Action;
 }
