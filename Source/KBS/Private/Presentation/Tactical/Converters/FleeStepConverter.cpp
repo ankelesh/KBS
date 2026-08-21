@@ -5,13 +5,13 @@
 #include "GameplayTypes/TacticalMovementConstants.h"
 #include "Presentation/Core/Actions/MovePresentationAction.h"
 
-UMovePresentationAction* TacticalLogConverters::ConvertFleeStep(const FTacLogFleeStep& Step, const TMap<FGuid, AUnit*>& UnitLookup, UTacGridSubsystem* GridSubsystem)
+UMovePresentationAction* TacticalLogConverters::ConvertFleeStep(const FTacLogFleeStep& Step, const FPresentationBuildContext& Context)
 {
-	AUnit* const* FoundUnit = UnitLookup.Find(Step.UnitId);
-	checkf(FoundUnit, TEXT("Flee step references unit %s not found on grid"), *Step.UnitId.ToString());
+	AUnit* const* FoundUnit = Context.UnitLookup->Find(Step.UnitId);
+	checkf(FoundUnit, TEXT("Flee step references unit %s - unit is present in UnitLookup"), *Step.UnitId.ToString());
 	AUnit* Unit = *FoundUnit;
 
-	const FVector Pos = GridSubsystem->GetCellWorldLocation(Step.UnitCoords);
+	const FVector Pos = Context.GridSubsystem->GetCellWorldLocation(Step.UnitCoords);
 	const float FleeYaw = (Step.TeamSide == ETeamSide::Attacker)
 		? FTacMovementConstants::DefenderDefaultYaw
 		: FTacMovementConstants::AttackerDefaultYaw;

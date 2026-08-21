@@ -9,18 +9,18 @@ void UAoEReactionPresentationAction::OnExecute(EPlaybackMode PlaybackMode)
 	CurrentPlaybackMode = PlaybackMode;
 	ChainCursors.Init(0, Chains.Num());
 
-	RemainingChains = 0;
+	int32 ActiveChains = 0;
 	for (const FAoEReactionChain& Chain : Chains)
 	{
 		if (!Chain.Steps.IsEmpty())
 		{
-			++RemainingChains;
+			++ActiveChains;
 		}
 	}
 
-	if (RemainingChains == 0)
+	InitRemainingChains(ActiveChains);
+	if (ActiveChains == 0)
 	{
-		FinishExecution(EVisualActionResult::Completed);
 		return;
 	}
 
@@ -35,10 +35,7 @@ void UAoEReactionPresentationAction::StartChainStep(int32 ChainIndex, int32 Step
 	const TArray<FAoEReactionStep>& Steps = Chains[ChainIndex].Steps;
 	if (!Steps.IsValidIndex(StepIndex))
 	{
-		if (--RemainingChains == 0)
-		{
-			FinishExecution(EVisualActionResult::Completed);
-		}
+		NotifyChainFinished();
 		return;
 	}
 
@@ -62,7 +59,8 @@ void UAoEReactionPresentationAction::StartChainStep(int32 ChainIndex, int32 Step
 
 	Helper->OnFinished.BindLambda([this, ChainIndex](EVisualActionResult StepResult)
 	{
-		UE_LOG(LogAoEReaction, Log, TEXT("Chain %d step %d finished with result %d"), ChainIndex, ChainCursors[ChainIndex], (int32)StepResult);
+		UE_LOG(LogAoEReaction, Log, TEXT("Chain %d step %d finished with result %d"),
+			ChainIndex, ChainCursors[ChainIndex], (int32)StepResult);
 		StartChainStep(ChainIndex, ChainCursors[ChainIndex] + 1);
 	});
 

@@ -6,10 +6,10 @@
 #include "Engine/AssetManager.h"
 #include "NiagaraSystem.h"
 
-UVfxPresentationAction* TacticalLogConverters::ConvertTacEffectPayload(const FTacEffectPayload& Payload, const TMap<FGuid, AUnit*>& UnitLookup)
+UVfxPresentationAction* TacticalLogConverters::ConvertTacEffectPayload(const FTacEffectPayload& Payload, const FPresentationBuildContext& Context)
 {
-	AUnit* const* FoundUnit = UnitLookup.Find(Payload.OwnerUnitId);
-	checkf(FoundUnit, TEXT("Effect trigger payload references unit %s not found on grid"), *Payload.OwnerUnitId.ToString());
+	AUnit* const* FoundUnit = Context.UnitLookup->Find(Payload.OwnerUnitId);
+	checkf(FoundUnit, TEXT("Effect trigger payload references unit %s - unit is present in UnitLookup"), *Payload.OwnerUnitId.ToString());
 
 	const UBattleEffectDataAsset* EffectAsset = Cast<UBattleEffectDataAsset>(
 		UAssetManager::Get().GetPrimaryAssetObject(Payload.EffectAssetId));

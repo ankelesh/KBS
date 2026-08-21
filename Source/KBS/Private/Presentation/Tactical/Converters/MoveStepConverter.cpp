@@ -5,14 +5,14 @@
 #include "Presentation/Tactical/Actions/TacticalMovePresentationAction.h"
 #include "GameplayTypes/TacticalMovementConstants.h"
 
-UMovePresentationAction* TacticalLogConverters::ConvertMoveStep(const FTacLogMoveStep& Step, const TMap<FGuid, AUnit*>& UnitLookup, UTacGridSubsystem* GridSubsystem)
+UMovePresentationAction* TacticalLogConverters::ConvertMoveStep(const FTacLogMoveStep& Step, const FPresentationBuildContext& Context)
 {
-	AUnit* const* FoundUnit = UnitLookup.Find(Step.UnitId);
-	checkf(FoundUnit, TEXT("Move step references unit %s not found on grid"), *Step.UnitId.ToString());
+	AUnit* const* FoundUnit = Context.UnitLookup->Find(Step.UnitId);
+	checkf(FoundUnit, TEXT("Move step references unit %s - unit is present in UnitLookup"), *Step.UnitId.ToString());
 	AUnit* Unit = *FoundUnit;
 
-	const FVector Start = GridSubsystem->GetCellWorldLocation(Step.FromCoords);
-	const FVector End = GridSubsystem->GetCellWorldLocation(Step.ToCoords);
+	const FVector Start = Context.GridSubsystem->GetCellWorldLocation(Step.FromCoords);
+	const FVector End = Context.GridSubsystem->GetCellWorldLocation(Step.ToCoords);
 	const float Duration = FVector::Dist(Start, End) / Unit->GetMovementSpeed();
 	FRotator TargetRotation = (End - Start).Rotation();
 	TargetRotation.Yaw += FTacMovementConstants::ModelForwardOffset;
