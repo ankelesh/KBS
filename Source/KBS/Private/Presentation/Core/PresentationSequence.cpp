@@ -1,6 +1,5 @@
 #include "Presentation/Core/PresentationSequence.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogKBSPresentation, Log, All);
+#include "Presentation/KBSPresentationLog.h"
 
 void UPresentationSequence::Play(EPlaybackMode PlaybackMode)
 {
