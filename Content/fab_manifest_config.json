@@ -1,0 +1,40 @@
+{
+  "skeleton": [
+    "Animation",
+    "Characters",
+    "Environment",
+    "Environment/Characters",
+    "Environment/Characters/Levels",
+    "Environment/Characters/Textures",
+    "Environment/Foliage",
+    "Environment/Landscape",
+    "Environment/Props",
+    "SFX",
+    "VFX"
+  ],
+  "module": [
+    "Animation/ArcherPolygonmaker",
+    "Animation/AwesomeSwordAnimationV1",
+    "Animation/FreeAnimationLibrary",
+    "Animation/FreeSampleAnimationSet",
+    "Animation/MC_Sample",
+    "Animation/MageBundleSamples",
+    "Characters/Creatures",
+    "Environment/Characters/Game_ready_crow",
+    "Environment/Characters/Hand_Painted_Paladin_Knight_-_Rigged___Game_Ready",
+    "Environment/Characters/Medieval_Peasant",
+    "Environment/Characters/Medieval_infantryman",
+    "Environment/Characters/ST_Characters_JC",
+    "Environment/Characters/Skeleton_warrior",
+    "Environment/Characters/UltimateHorsePack",
+    "Environment/Characters/Undead_Mage",
+    "Environment/Foliage/Light_Foliage",
+    "Environment/Foliage/Mobile_Trees",
+    "Environment/Landscape/ForestLandscape",
+    "Environment/Props/Battle-Worn_Medieval_Sword",
+    "Environment/Props/LakeTown",
+    "SFX/Essential_Foosteps_SK",
+    "SFX/RealisticSwordSoundEffects",
+    "VFX/KTP_Effect"
+  ]
+}
