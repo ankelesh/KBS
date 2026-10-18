@@ -12,6 +12,7 @@ public class KBSEditorTarget : TargetRules
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 		ExtraModuleNames.Add("KBS");
         ExtraModuleNames.AddRange(new string[] { "KBS", "KBSTests" });
+        ExtraModuleNames.Add("KBSEditorTools");
         if (Configuration != UnrealTargetConfiguration.Shipping)
         {
             ExtraModuleNames.Add("KBSTests");
