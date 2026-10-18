@@ -6,7 +6,6 @@
 class UNiagaraSystem;
 class USoundBase;
 class AProjectilePresentationActor;
-class UAbilityStepPresenter;
 
 UENUM(BlueprintType)
 enum class EDeliveryTopology : uint8
@@ -93,8 +92,4 @@ public:
     // Cross-cutting: ambient effects that do not mirror a log step type.
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
     FAmbientPresentation Ambient;
-
-    // Declare only; override mechanism not implemented.
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
-    TSubclassOf<UAbilityStepPresenter> ConverterOverride;
 };

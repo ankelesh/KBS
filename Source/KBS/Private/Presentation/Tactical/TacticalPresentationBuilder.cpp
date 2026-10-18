@@ -210,8 +210,8 @@ UPresentationSequence* UTacticalPresentationBuilder::Build_Implementation(FGuid 
 	if (bDump)
 	{
 		UE_LOG(LogKBSPresentation, Log,
-			TEXT("[PresentationDump] Build complete: %d actions assembled, %d slots skipped"),
-			TotalActions, SkippedSlots);
+			TEXT("[PresentationDump] Build complete: %d actions assembled"),
+			TotalActions);
 
 		for (int32 i = 0; i < TotalActions; ++i)
 		{

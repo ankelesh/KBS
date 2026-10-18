@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameplayTypes/GridCoordinates.h"
+#include "TacTurnState.generated.h"
 
 class FTacTurnOrder;
 
