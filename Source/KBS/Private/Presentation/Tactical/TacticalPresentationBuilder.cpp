@@ -40,62 +40,6 @@ void UTacticalPresentationBuilder::SetConfig(UTacticalPresentationBuilderConfig*
 	Config = InConfig;
 }
 
-void UTacticalPresentationBuilder::BeginPreload(const TArray<FPrimaryAssetId>& AbilityAssetIds, const TArray<FSoftObjectPath>& WeaponDeliveryPaths, FSimpleDelegate OnComplete)
-{
-	// Phase 1: collect manifest soft paths from ability assets and weapon delivery defaults.
-	// Ability assets are already loaded synchronously by the simulation layer (unchanged per spec).
-	TArray<FSoftObjectPath> ManifestPaths;
-	for (const FPrimaryAssetId& Id : AbilityAssetIds)
-	{
-		const UUnitAbilityDefinition* AbilityDef = Cast<UUnitAbilityDefinition>(
-			UAssetManager::Get().GetPrimaryAssetObject(Id));
-		if (AbilityDef && !AbilityDef->Presentation.IsNull())
-		{
-			ManifestPaths.AddUnique(AbilityDef->Presentation.ToSoftObjectPath());
-		}
-	}
-	for (const FSoftObjectPath& Path : WeaponDeliveryPaths)
-	{
-		if (Path.IsValid())
-		{
-			ManifestPaths.AddUnique(Path);
-		}
-	}
-
-	if (ManifestPaths.IsEmpty())
-	{
-		OnComplete.ExecuteIfBound();
-		return;
-	}
-
-	FStreamableManager& SM = UAssetManager::Get().GetStreamableManager();
-
-	// Phase 1 async load: manifest assets.
-	ManifestHandle = SM.RequestAsyncLoad(ManifestPaths,
-		[this, ManifestPaths, OnComplete]()
-		{
-			// Phase 2: collect inner soft refs (VFX/SFX) from newly-loaded manifests.
-			TArray<FSoftObjectPath> ContentPaths;
-			for (const FSoftObjectPath& Path : ManifestPaths)
-			{
-				if (const UAbilityPresentationAsset* Manifest = Cast<UAbilityPresentationAsset>(Path.ResolveObject()))
-				{
-					Manifest->Combat.CollectSoftPaths(ContentPaths);
-				}
-			}
-
-			if (ContentPaths.IsEmpty())
-			{
-				OnComplete.ExecuteIfBound();
-				return;
-			}
-
-			FStreamableManager& SM2 = UAssetManager::Get().GetStreamableManager();
-			ContentHandle = SM2.RequestAsyncLoad(ContentPaths,
-				[OnComplete]() { OnComplete.ExecuteIfBound(); });
-		});
-}
-
 namespace
 {
 	// Steps live inside payloads that carry a Steps array (ability use, effect activation).
@@ -118,21 +62,12 @@ namespace
 		return nullptr;
 	}
 
-	// Resolves the presentation manifest for an ability-use payload.
-	// Ability assets are synchronously loaded (unchanged per spec); manifest was preloaded.
-	// Returns nullptr if the ability has no manifest assigned or the asset is unloaded.
+	// Returns nullptr if the ability has no manifest assigned.
 	UAbilityPresentationAsset* ResolveManifest(const FAbilityUsePayload& AbilityPayload)
 	{
-		// AbilityAssetId type is "AbilityDefinition"; the simulation loads these synchronously
-		// before the log event is written, so GetPrimaryAssetObject resolves without a disk load.
 		const UUnitAbilityDefinition* AbilityDef = Cast<UUnitAbilityDefinition>(
 			UAssetManager::Get().GetPrimaryAssetObject(AbilityPayload.AbilityAssetId));
-		if (!AbilityDef)
-		{
-			return nullptr;
-		}
-		// Manifest was preloaded asynchronously via BeginPreload; Get() resolves synchronously here.
-		return AbilityDef->Presentation.Get();
+		return AbilityDef ? AbilityDef->Presentation : nullptr;
 	}
 }
 

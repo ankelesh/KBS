@@ -34,7 +34,7 @@ struct FWeaponData
 
 	// Default delivery presentation for abilities that use this weapon and carry no ability-level manifest.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	TSoftObjectPtr<UAbilityPresentationAsset> DefaultDelivery;
+	TObjectPtr<UAbilityPresentationAsset> DefaultDelivery;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;

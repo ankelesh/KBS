@@ -55,7 +55,7 @@ public:
 
 	// Optional visual manifest. Absent = legal, but combat-capable abilities should assign one.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
-	TSoftObjectPtr<UAbilityPresentationAsset> Presentation;
+	TObjectPtr<UAbilityPresentationAsset> Presentation;
 
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 };
