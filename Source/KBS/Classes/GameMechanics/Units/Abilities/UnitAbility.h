@@ -20,6 +20,7 @@ class UTacGridCombatSystem;
 class UTacGridTargetingService;
 class UTacTurnSubsystem;
 class UTacAbilityExecutorService;
+class UTacLogSubsystem;
 struct FCombatContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbility*, Ability, bool, Available);
@@ -52,6 +53,7 @@ public:
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
 	int32 GetRemainingCharges() const { return RemainingCharges; }
+	const FGuid& GetAbilityId() const { return AbilityId; }
 	FString GetDebugString() const;
 	AUnit* GetOwner() const { return Owner; }
 	void SetOwner(AUnit* NewOwner) { Owner = NewOwner; }
@@ -75,6 +77,7 @@ protected:
 	UTacCombatSubsystem* GetCombatSubsystem() const;
 	UTacAbilityExecutorService* GetExecutorService() const;
 	UTacTurnSubsystem* GetTurnSubsystem() const;
+	UTacLogSubsystem* GetLogSubsystem() const;
 	FAbilityContext* GetContext() const;
 	
 	// Behavior
@@ -92,6 +95,9 @@ protected:
 	TObjectPtr<AUnit> Owner;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	bool bIsCurrent = false;
+
+	UPROPERTY(SaveGame)
+	FGuid AbilityId = FGuid::NewGuid();
 
 	mutable FGameplayTagContainer CachedTags;
 	mutable bool bTagsCached = false;

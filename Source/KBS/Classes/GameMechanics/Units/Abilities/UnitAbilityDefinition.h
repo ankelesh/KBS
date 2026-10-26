@@ -2,12 +2,14 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTags.h"
+#include "Misc/DataValidation.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/AbilityTypes.h"
 #include "UnitAbilityDefinition.generated.h"
 
 class UBattleEffect;
 class UUnitAbility;
+class UAbilityPresentationAsset;
 
 USTRUCT(BlueprintType)
 struct FAbilityConditionalTag
@@ -27,6 +29,7 @@ class KBS_API UUnitAbilityDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	FPrimaryAssetId GetPrimaryAssetId() const override { return FPrimaryAssetId("AbilityDefinition", GetFName()); }
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	TSubclassOf<UUnitAbility> AbilityClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
@@ -49,4 +52,10 @@ public:
 	FAbilityConditionalTag LookupTag;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability|Tags")
 	FGameplayTagContainer ExtraTags;
+
+	// Optional visual manifest. Absent = legal, but combat-capable abilities should assign one.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
+	TObjectPtr<UAbilityPresentationAsset> Presentation;
+
+	virtual EDataValidationResult IsDataValid(FDataValidationContext& Context) const override;
 };

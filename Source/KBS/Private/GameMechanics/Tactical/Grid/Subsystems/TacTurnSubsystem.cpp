@@ -1,6 +1,8 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
 DEFINE_LOG_CATEGORY(LogKBSTurn);
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/TacTurnOrder.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/BattleInitializationState.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/RoundStartState.h"
@@ -9,21 +11,19 @@ DEFINE_LOG_CATEGORY(LogKBSTurn);
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/TurnEndState.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/RoundEndState.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TurnStateMachine/States/BattleEndState.h"
-#include "GameMechanics/Tactical/PresentationSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacSubsystemControl.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacAICombatService.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
+#include "Presentation/Tactical/TacticalPresentationBuilder.h"
+#include "Presentation/Core/PresentationSequencePlayer.h"
+#include "Presentation/Core/PresentationSequence.h"
 
 void UTacTurnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
-	if (UPresentationSubsystem* PresentationSys = GetWorld()->GetSubsystem<UPresentationSubsystem>())
-	{
-		PresentationSys->OnAllPresentationsComplete.AddDynamic(this, &UTacTurnSubsystem::OnPresentationComplete);
-	}
 	if (UTacGridSubsystem* GridSubsys = GetWorld()->GetSubsystem<UTacGridSubsystem>())
 	{
 		GridSubsystem = GridSubsys;
@@ -35,6 +35,15 @@ void UTacTurnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	AICombatService->Initialize(GridSubsystem, CombatSubsystem);
 	UTacSubsystemControl* Control = GetWorld()->GetSubsystem<UTacSubsystemControl>();
 	Control->GridReadyForStart.AddDynamic(this, &UTacTurnSubsystem::GridAvailable);
+
+	PresentationBuilder = NewObject<UTacticalPresentationBuilder>(this);
+	PresentationBuilder->SetGridSubsystem(GridSubsystem);
+	PresentationBuilder->SetLogSubsystem(GetWorld()->GetSubsystem<UTacLogSubsystem>());
+
+	if (UPresentationSequencePlayer* Player = UPresentationSequencePlayer::Get(this))
+	{
+		Player->OnPresentationComplete.AddDynamic(this, &UTacTurnSubsystem::OnPresentationComplete);
+	}
 }
 
 void UTacTurnSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -48,9 +57,9 @@ void UTacTurnSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UTacTurnSubsystem::Deinitialize()
 {
 	// Unsubscribe from presentation delegate
-	if (UPresentationSubsystem* PresentationSys = GetWorld()->GetSubsystem<UPresentationSubsystem>())
+	if (UPresentationSequencePlayer* Player = UPresentationSequencePlayer::Get(this))
 	{
-		PresentationSys->OnAllPresentationsComplete.RemoveDynamic(this, &UTacTurnSubsystem::OnPresentationComplete);
+		Player->OnPresentationComplete.RemoveDynamic(this, &UTacTurnSubsystem::OnPresentationComplete);
 	}
 
 	if (CurrentState)
@@ -67,6 +76,9 @@ void UTacTurnSubsystem::Deinitialize()
 
 void UTacTurnSubsystem::GridAvailable()
 {
+	// DataManager (and thus the grid's config) only exists once RegisterManager has run - safe from here on.
+	PresentationBuilder->SetConfig(GridSubsystem->GetPresentationConfig());
+
 	UTacSubsystemControl* Control = GetWorld()->GetSubsystem<UTacSubsystemControl>();
 	Control->NotifyTurnReady();
 }
@@ -131,6 +143,11 @@ void UTacTurnSubsystem::AttemptTransition()
 
 void UTacTurnSubsystem::AttemptTransition(int32 Depth)
 {
+	if (bAwaitingPresentation)
+	{
+		return;
+	}
+
 	if (Depth >= 100)
 	{
 		DumpInfiniteLoopDiagnostics();
@@ -139,9 +156,15 @@ void UTacTurnSubsystem::AttemptTransition(int32 Depth)
 	}
 	check(CurrentState);
 
-	// Check win condition - if battle ended, force to battle end state
+	// Check win condition - if battle ended, present the final slice (so despawns finalize) then
+	// force to battle end state.
 	if (CurrentState->CheckWinCondition())
 	{
+		if (PresentPendingSlice())
+		{
+			bAwaitingPresentation = true;
+			return;
+		}
 		TransitionToState(ETurnState::EBattleEndState);
 		return;
 	}
@@ -154,7 +177,13 @@ void UTacTurnSubsystem::AttemptTransition(int32 Depth)
 		return;
 	}
 
-	// Free to transition - do ONE transition
+	// Free to transition - present whatever the state's Enter() appended, then do ONE transition
+	if (PresentPendingSlice())
+	{
+		bAwaitingPresentation = true;
+		return;
+	}
+
 	ETurnState NextStateEnum = CurrentState->NextState();
 	TransitionToState(NextStateEnum);
 
@@ -193,10 +222,34 @@ void UTacTurnSubsystem::AbilityClicked(UUnitAbility* Ability)
 void UTacTurnSubsystem::OnPresentationComplete()
 {
 	check(CurrentState);
+	bAwaitingPresentation = false;
 	RecordEvent(TEXT("PresentationComplete"));
 	PendingTrigger = TEXT("PresentationComplete");
 	CurrentState->OnPresentationComplete();
 	AttemptTransition();
+}
+
+bool UTacTurnSubsystem::PresentPendingSlice()
+{
+	UTacLogSubsystem* Log = GetWorld()->GetSubsystem<UTacLogSubsystem>();
+	const TArray<FGuid>& Spine = Log->GetSpine();
+	if (Spine.IsEmpty() || Spine.Last() == LastPresentedEventId)
+	{
+		return false;
+	}
+
+	const FGuid To = Spine.Last();
+	UPresentationSequence* Seq = PresentationBuilder->Build(LastPresentedEventId, To);
+	LastPresentedEventId = To;
+
+	if (Seq && Seq->Actions.Num() > 0)
+	{
+		UPresentationSequencePlayer* Player = UPresentationSequencePlayer::Get(this);
+		Player->EnqueueSequence(Seq);
+		Player->Play();
+		return true;
+	}
+	return false;
 }
 
 void UTacTurnSubsystem::Wait()
@@ -332,24 +385,50 @@ void UTacTurnSubsystem::DumpInfiniteLoopDiagnostics() const
 	}
 }
 
+static void BroadcastWithTurnChangeLog(UWorld* World, ETurnChangeKind Kind, FGuid InstigatorId, ETeamSide Team, int32 Round, int32 TurnNum, TFunctionRef<void()> Broadcast)
+{
+	UTacLogSubsystem* Log = World->GetSubsystem<UTacLogSubsystem>();
+	FGuid Id = Log ? Log->OpenEvent(ETacLogEventType::TurnChange, ETacLogEventOrigin::Initiated, InstigatorId, FGuid(), Round, TurnNum) : FGuid();
+	Broadcast();
+	if (!Log) return;
+	TInstancedStruct<FTacLogPayload> Payload;
+	Payload.InitializeAs<FTurnChangePayload>();
+	FTurnChangePayload& P = Payload.GetMutable<FTurnChangePayload>();
+	P.ChangeKind   = Kind;
+	P.NewTurnOwner = InstigatorId;
+	P.NewTurnTeam  = Team;
+	Log->CloseEvent(Id, MoveTemp(Payload));
+}
+
+
 void UTacTurnSubsystem::BroadcastRoundStart()
 {
-	OnRoundStart.Broadcast(CurrentRound);
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Round, FGuid(), ETeamSide::Attacker, CurrentRound, 0,
+		[this]{ OnRoundStart.Broadcast(CurrentRound); });
 }
 
 void UTacTurnSubsystem::BroadcastRoundEnd()
 {
-	OnRoundEnd.Broadcast(CurrentRound);
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Round, FGuid(), ETeamSide::Attacker, CurrentRound, 0,
+		[this]{ OnRoundEnd.Broadcast(CurrentRound); });
 }
 
 void UTacTurnSubsystem::BroadcastTurnStart()
 {
-	OnTurnStart.Broadcast(TurnOrder->GetCurrentUnit());
+	AUnit* Unit = TurnOrder->GetCurrentUnit();
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Turn,
+		Unit ? Unit->GetUnitID() : FGuid(), Unit ? Unit->GetTeamSide() : ETeamSide::Attacker,
+		CurrentRound, ++CurrentTurnNumber,
+		[this, Unit]{ OnTurnStart.Broadcast(Unit); });
 }
 
 void UTacTurnSubsystem::BroadcastTurnEnd()
 {
-	OnTurnEnd.Broadcast(TurnOrder->GetCurrentUnit());
+	AUnit* Unit = TurnOrder->GetCurrentUnit();
+	BroadcastWithTurnChangeLog(GetWorld(), ETurnChangeKind::Turn,
+		Unit ? Unit->GetUnitID() : FGuid(), Unit ? Unit->GetTeamSide() : ETeamSide::Attacker,
+		CurrentRound, CurrentTurnNumber,
+		[this, Unit]{ OnTurnEnd.Broadcast(Unit); });
 }
 
 void UTacTurnSubsystem::BroadcastBattleEnd()

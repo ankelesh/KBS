@@ -2,12 +2,45 @@
 #include "CoreMinimal.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
 #include "GameplayTypes/DamageTypes.h"
+#include "GameplayTypes/LogTypesLibrary.h"
 #include "CombatTypes.generated.h"
 
 class AUnit;
 class UBattleEffect;
 class UUnitAbility;
 class UCombatDescriptor;
+
+USTRUCT()
+struct FAppliedEffectRef
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FPrimaryAssetId AssetId;
+
+	UPROPERTY()
+	FGuid InstanceId;
+
+	UPROPERTY()
+	int32 FinalDuration = 0;
+
+	UPROPERTY()
+	EEffectApplicationOutcome Outcome = EEffectApplicationOutcome::Rejected;
+
+	// Effect application roll data. -1 = no roll required (bIsAccuracyDependent false).
+	UPROPERTY()
+	float AppChance = -1.0f;
+	UPROPERTY()
+	float AppRoll = -1.0f;
+
+	bool WasApplied() const
+	{
+		return Outcome == EEffectApplicationOutcome::Applied
+			|| Outcome == EEffectApplicationOutcome::Replaced
+			|| Outcome == EEffectApplicationOutcome::Stacked
+			|| Outcome == EEffectApplicationOutcome::Refreshed;
+	}
+};
 
 USTRUCT(BlueprintType)
 struct FDamageResult
@@ -89,8 +122,8 @@ struct FCombatHitResult
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FDamageResult DamageResult;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 EffectsApplied = 0;
+	UPROPERTY()
+	TArray<FAppliedEffectRef> AppliedEffects;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<AUnit> TargetUnit = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -99,6 +132,14 @@ struct FCombatHitResult
 	bool bProcessingSucceeded = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EHitOutcome HitOutcome = EHitOutcome::Miss;
+	// Computed accuracy chance (0-100). -1 means no roll was required (guaranteed hit).
+	UPROPERTY()
+	float HitChance = -1.0f;
+	// Actual roll value (0-100). Meaningful only when HitChance >= 0.
+	UPROPERTY()
+	float AccuracyRoll = -1.0f;
+	UPROPERTY()
+	bool bDefensiveStanceRemoved = false;
 
 	static FCombatHitResult ProcessingError()
 	{

@@ -5,6 +5,7 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacTurnSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
@@ -154,6 +155,14 @@ UTacTurnSubsystem* UUnitAbility::GetTurnSubsystem() const
 	UWorld* World = Owner->GetWorld();
 	if (!World) return nullptr;
 	return World->GetSubsystem<UTacTurnSubsystem>();
+}
+
+UTacLogSubsystem* UUnitAbility::GetLogSubsystem() const
+{
+	if (!Owner) return nullptr;
+	UWorld* World = Owner->GetWorld();
+	if (!World) return nullptr;
+	return World->GetSubsystem<UTacLogSubsystem>();
 }
 
 FAbilityContext* UUnitAbility::GetContext() const

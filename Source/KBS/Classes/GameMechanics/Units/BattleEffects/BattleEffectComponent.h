@@ -4,6 +4,7 @@
 #include "GameplayTypes/TacMovementTypes.h"
 #include "GameplayTags.h"
 #include "GameplayTypes/EffectTypes.h"
+#include "GameplayTypes/LogTypesLibrary.h"
 #include "BattleEffectComponent.generated.h"
 class UBattleEffect;
 class AUnit;
@@ -16,7 +17,7 @@ class KBS_API UBattleEffectComponent : public UActorComponent
 public:
 	UBattleEffectComponent();
 	virtual void BeginPlay() override;
-	bool AddEffect(UBattleEffect* Effect);
+	EEffectApplicationOutcome AddEffect(UBattleEffect* Effect);
 	void RemoveEffect(UBattleEffect* Effect);
 	void RemoveEffect(FName StackingId);
 	void RemoveEffect(const FGuid EffectId);

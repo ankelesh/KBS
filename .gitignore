@@ -2,7 +2,6 @@ Binaries
 DerivedDataCache
 Intermediate
 Saved
-Content
 .vscode
 .vs
 *.VC.db
@@ -15,4 +14,9 @@ Content
 *.xcworkspace
 nul
 .idea
-Plugins
+*.DotSettings.user
+
+# FAB downloaded content: folder skeleton kept, files ignored — see Content/Fab_manifest.txt
+Content/Fab/**/*
+!Content/Fab/**/
+!Content/Fab/**/.gitkeep

@@ -13,7 +13,8 @@ void UTacCombatStatisticsService::ProcessStatistics(const FCombatHitResult& Resu
 	{
 		Stats.Misses++;
 	}
-	Stats.EffectsApplied += Result.EffectsApplied;
+	for (const FAppliedEffectRef& Ref : Result.AppliedEffects)
+		if (Ref.WasApplied()) Stats.EffectsApplied++;
 }
 
 void UTacCombatStatisticsService::ResetStatistics()

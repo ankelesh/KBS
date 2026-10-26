@@ -17,6 +17,7 @@ public:
 	// Damage calculations
 	static float CalculateHitChance(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target);
 	static FDamageResult CalculateDamage(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target);
+	static FDamageResult CalculateDamageNoAttacker(UCombatDescriptor* Descriptor, AUnit* Target);
 	static float CalculateEffectApplication(AUnit* Attacker, UBattleEffect* Effect, AUnit* Target);
 	static FDamageResult CalculateHeal(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target);
 
@@ -31,7 +32,10 @@ public:
 	// Combat resolution
 	static FPreviewHitResult PreviewDamage(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target);
 
-	static bool PerformAccuracyRoll(float HitChance);
+	static bool PerformAccuracyRoll(float HitChance, float& OutRoll);
 	static bool IsFriendlyReach(ETargetReach Reach);
 	static EDamageSource SelectBestDamageSource(const TSet<EDamageSource>& DamageSources, AUnit* Target);
+
+private:
+	static FDamageResult CalculateDamageInternal(UCombatDescriptor* Descriptor, AUnit* Target, bool bOnFlank);
 };

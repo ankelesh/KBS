@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "BattleEffectDataAsset.h"
-#include "GameplayTypes/DamageTypes.h"
+#include "GameMechanics/Units/Combat/CombatDescriptorData.h"
 #include "DOTBattleEffectDataAsset.generated.h"
 
 UCLASS(BlueprintType)
@@ -13,5 +13,5 @@ public:
 	int32 Duration = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DOT Effect")
-	float EffectMagnitude = 0.0f;
+	FCombatDescriptorData TickDescriptor;
 };

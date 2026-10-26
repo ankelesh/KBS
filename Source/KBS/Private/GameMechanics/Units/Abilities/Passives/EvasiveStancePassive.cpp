@@ -1,6 +1,9 @@
 #include "GameMechanics/Units/Abilities/Passives/EvasiveStancePassive.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameplayTypes/CombatTypes.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEvasiveStance, Log, All);
 
@@ -30,6 +33,21 @@ void UEvasiveStancePassive::OnBeingTargeted(FCombatContext& Context, FHitInstanc
 {
 	Context.Attacker->GetStats().Accuracy.AddFlatModifier(ModifierID, AccuracyPenalty);
 	Hit.Interfere(this);
+
+	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
+	check(LogSubsystem);
+	FUnitStatDelta Delta;
+	Delta.Accuracy = AccuracyPenalty;
+	FAbilityUsePayload Payload;
+	Payload.AbilityAssetId    = Config->GetPrimaryAssetId();
+	Payload.AbilityInstanceId = AbilityId;
+	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogStatAltStep>(
+		FTacLogStatAltStep::Make(Owner->GetUnitID(), Context.Attacker->GetUnitID(), Delta,
+		                         EStatModifierRemovalPolicy::InstaRemove)));
+	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::Ability, ETacLogEventOrigin::Reaction,
+	                                        Owner->GetUnitID(), LogSubsystem->FindLatestEvent());
+	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
+
 	UE_LOG(LogEvasiveStance, Log,
 		TEXT("[EvasiveStance] %s being targeted by %s — applied %d accuracy penalty (now %d)"),
 		*Owner->GetLogName(), *Context.Attacker->GetLogName(),

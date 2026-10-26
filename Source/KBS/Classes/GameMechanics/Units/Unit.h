@@ -162,7 +162,7 @@ public:
 	void HandleHit(const FDamageResult& Result, AUnit* Attacker, bool Emits = true);
 	void ChangeUnitHP(int32 Delta, bool Emits = true);
 	void ConsumeWard(EDamageSource Source, bool Emits = true);
-	bool ApplyEffect(UBattleEffect* Effect, bool Emits = true);
+	EEffectApplicationOutcome ApplyEffect(UBattleEffect* Effect, bool Emits = true);
 	void NotifyEffectTriggered(UBattleEffect* Effect);
 	void HandleDeath(bool Emits = true);
 

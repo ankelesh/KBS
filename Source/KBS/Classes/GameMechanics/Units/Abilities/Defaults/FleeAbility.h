@@ -17,5 +17,4 @@ public:
 private:
 	UFUNCTION()
 	void HandleTurnStarted(AUnit* Unit);
-	void OnFleeRotationCompleted();
 };

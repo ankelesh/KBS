@@ -72,6 +72,35 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveReactionAttack(AUnit* Attac
 	return ResolveAttackInternal(Context);
 }
 
+FCombatHitResult UTacCombatSubsystem::ResolveEffectTick(AUnit* Target, UCombatDescriptor* Descriptor, float HitChance)
+{
+	checkf(Target && Descriptor, TEXT("ResolveEffectTick: null Target or Descriptor"));
+
+	float Roll = -1.0f;
+	if (Descriptor->IsRequiringAccuracyRoll())
+	{
+		if (!FDamageCalculation::PerformAccuracyRoll(HitChance, Roll))
+		{
+			FCombatHitResult Miss = FCombatHitResult::Miss(Target);
+			Miss.HitChance    = HitChance;
+			Miss.AccuracyRoll = Roll;
+			return Miss;
+		}
+	}
+
+	FDamageResult Damage = FDamageCalculation::CalculateDamageNoAttacker(Descriptor, Target);
+	Target->HandleHit(Damage, nullptr);
+
+	FCombatHitResult Result;
+	Result.TargetUnit   = Target;
+	Result.bHit         = true;
+	Result.HitOutcome   = EHitOutcome::Hit;
+	Result.DamageResult = Damage;
+	Result.HitChance    = Descriptor->IsRequiringAccuracyRoll() ? HitChance : -1.0f;
+	Result.AccuracyRoll = Roll;
+	return Result;
+}
+
 TArray<FCombatHitResult> UTacCombatSubsystem::ResolveAttackInternal(FCombatContext& Context)
 {
 	TArray<FCombatHitResult> Results;
@@ -155,13 +184,14 @@ void UTacCombatSubsystem::ExecuteCalculationPhase(FCombatContext& Context, FHitI
 	OutResult.TargetUnit = Hit.Target;
 	if (Context.AttackerDescriptor->IsRequiringAccuracyRoll())
 	{
-		OutResult.bHit = FDamageCalculation::PerformAccuracyRoll(
-			FDamageCalculation::CalculateHitChance(Context.Attacker, Context.AttackerDescriptor, Hit.Target));
+		OutResult.HitChance = FDamageCalculation::CalculateHitChance(Context.Attacker, Context.AttackerDescriptor, Hit.Target);
+		OutResult.bHit      = FDamageCalculation::PerformAccuracyRoll(OutResult.HitChance, OutResult.AccuracyRoll);
 	}
 	else
 	{
 		OutResult.bHit = true;
 	}
+	OutResult.HitOutcome = OutResult.bHit ? EHitOutcome::Hit : EHitOutcome::Miss;
 
 	if (OutResult.bHit && Context.MagnitudePolicy == EMagnitudePolicy::Damage)
 	{
@@ -199,7 +229,10 @@ void UTacCombatSubsystem::ExecuteSideEffectApplicationPhase(FCombatContext& Cont
 	}
 
 	if (SideEffects.bRemovesDefensiveStance)
+	{
+		Result.bDefensiveStanceRemoved = Hit.Target->GetStats().Status.IsDefending();
 		Hit.Target->GetStats().Status.ClearStatus(EUnitStatus::Defending);
+	}
 }
 
 void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FCombatContext& Context, FHitInstance& Hit,
@@ -217,20 +250,23 @@ void UTacCombatSubsystem::ExecuteEffectApplicationPhase(FCombatContext& Context,
 
 	for (UBattleEffect* Effect : Context.AttackerDescriptor->GetEffects())
 	{
+		float EffectChance = -1.0f;
+		float EffectRoll   = -1.0f;
 		if (Effect->IsRequringRoll())
 		{
-			if (!FDamageCalculation::PerformAccuracyRoll(
-				FDamageCalculation::CalculateEffectApplication(Context.Attacker, Effect, Hit.Target)))
+			EffectChance = FDamageCalculation::CalculateEffectApplication(Context.Attacker, Effect, Hit.Target);
+			if (!FDamageCalculation::PerformAccuracyRoll(EffectChance, EffectRoll))
 			{
+				Result.AppliedEffects.Add({Effect->GetConfig()->GetPrimaryAssetId(), FGuid(), 0,
+					EEffectApplicationOutcome::RollMissed, EffectChance, EffectRoll});
 				continue;
 			}
 		}
 		TObjectPtr<UBattleEffect> EffectCopy = DuplicateObject(Effect, Hit.Target);
 		EffectCopy->PrepareForApply(Context.Attacker, Hit.Target);
-		if (Hit.Target->ApplyEffect(EffectCopy))
-		{
-			++Result.EffectsApplied;
-		}
+		const EEffectApplicationOutcome Outcome = Hit.Target->ApplyEffect(EffectCopy);
+		Result.AppliedEffects.Add({EffectCopy->GetConfig()->GetPrimaryAssetId(), EffectCopy->GetEffectId(),
+			EffectCopy->GetDuration(), Outcome, EffectChance, EffectRoll});
 	}
 }
 

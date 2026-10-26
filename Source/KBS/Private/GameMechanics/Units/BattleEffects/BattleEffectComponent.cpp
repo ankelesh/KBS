@@ -40,9 +40,9 @@ void UBattleEffectComponent::BeginPlay()
 	OwnerUnit->OnUnitDied.AddDynamic(this, &UBattleEffectComponent::OnOwnerDied);
 }
 
-bool UBattleEffectComponent::AddEffect(UBattleEffect* NewEffect)
+EEffectApplicationOutcome UBattleEffectComponent::AddEffect(UBattleEffect* NewEffect)
 {
-	if (!CheckAndLogEffect(NewEffect, GetOwnerUnit())) { return false; }
+	if (!CheckAndLogEffect(NewEffect, GetOwnerUnit())) { return EEffectApplicationOutcome::Rejected; }
 
 	const FName StackId = NewEffect->GetStackingId();
 
@@ -50,56 +50,66 @@ bool UBattleEffectComponent::AddEffect(UBattleEffect* NewEffect)
 	if (StackId.IsNone())
 	{
 		ApplyEffect(NewEffect);
-		return true;
+		return EEffectApplicationOutcome::Applied;
 	}
 
 	UBattleEffect* Existing = FindByStackingId(StackId);
 	if (!Existing)
 	{
 		ApplyEffect(NewEffect);
-		return true;
+		return EEffectApplicationOutcome::Applied;
 	}
 
 	const UBattleEffectDataAsset* Config = NewEffect->GetConfig();
 	switch (Config->StackPolicy)
 	{
 	case EEffectStackPolicy::Unique:
-		return false;
+		return EEffectApplicationOutcome::Rejected;
 
 	case EEffectStackPolicy::AlwaysReplaced:
 		RemoveEffect(Existing);
 		ApplyEffect(NewEffect);
-		return true;
+		return EEffectApplicationOutcome::Replaced;
 
 	case EEffectStackPolicy::RefreshOld:
 		Existing->RefreshDuration(NewEffect->GetDuration());
-		return false;
+		return EEffectApplicationOutcome::Refreshed;
 
 	case EEffectStackPolicy::RefreshOrReplace:
 		{
 			const EReapplyDecision Decision = Existing->HandleReapply(NewEffect);
 			ExecuteReapplyDecision(Decision, Existing, NewEffect);
-			return Decision == EReapplyDecision::New;
+			switch (Decision)
+			{
+			case EReapplyDecision::New:             return EEffectApplicationOutcome::Replaced;
+			case EReapplyDecision::OverrideDuration: return EEffectApplicationOutcome::Refreshed;
+			default:                                return EEffectApplicationOutcome::Rejected;
+			}
 		}
 
 	case EEffectStackPolicy::StackInfinite:
 		ApplyEffect(NewEffect);
-		return true;
+		return EEffectApplicationOutcome::Stacked;
 
 	case EEffectStackPolicy::Stack:
 		if (CountByStackingId(StackId) >= Config->MaxStacks)
-			return false;
+			return EEffectApplicationOutcome::Rejected;
 		ApplyEffect(NewEffect);
-		return true;
+		return EEffectApplicationOutcome::Stacked;
 
 	case EEffectStackPolicy::Custom:
 		{
 			const EReapplyDecision Decision = Existing->HandleReapply(NewEffect);
 			ExecuteReapplyDecision(Decision, Existing, NewEffect);
-			return Decision == EReapplyDecision::New;
+			switch (Decision)
+			{
+			case EReapplyDecision::New:             return EEffectApplicationOutcome::Replaced;
+			case EReapplyDecision::OverrideDuration: return EEffectApplicationOutcome::Refreshed;
+			default:                                return EEffectApplicationOutcome::Rejected;
+			}
 		}
 	}
-	return false;
+	return EEffectApplicationOutcome::Rejected;
 }
 
 void UBattleEffectComponent::RemoveEffect(UBattleEffect* Effect)

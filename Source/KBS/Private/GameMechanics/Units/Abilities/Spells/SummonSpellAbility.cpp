@@ -3,6 +3,8 @@
 #include "GameMechanics/Units/Abilities/Passives/SummonedPassiveAbility.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameMechanics/Units/Unit.h"
@@ -38,12 +40,39 @@ FAbilityExecutionResult USummonSpellAbility::Execute(FTacCoordinates TargetCell)
 	);
 	if (!NewUnit) return FAbilityExecutionResult::MakeFail();
 
+	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
+	FGuid SpawnEventId;
+	if (LogSubsystem)
+	{
+		FString TypeName = SummonConfig->SummonedUnitDefinition
+			? SummonConfig->SummonedUnitDefinition->UnitName : TEXT("Unit");
+		LogSubsystem->RegisterUnit(NewUnit->GetUnitID(), TypeName);
+		FGuid ParentId = LogSubsystem->FindClosestEvent(ETacLogEventType::Ability);
+		SpawnEventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitSpawn,
+			ETacLogEventOrigin::Triggered, Owner->GetUnitID(), ParentId);
+	}
+
 	USummonedPassiveAbility* Passive = NewObject<USummonedPassiveAbility>(this);
 	Passive->InitAsSummonedPassive(NewUnit, Owner,
 		SummonConfig->bDespawnOnCasterDeath, SummonConfig->SummonDurationTurns);
 	NewUnit->GetAbilityInventory()->AddPassiveAbility(Passive);
 
 	ActiveSummon = NewUnit;
+
+	if (LogSubsystem && SpawnEventId.IsValid())
+	{
+		FUnitSpawnPayload Payload;
+		Payload.SpawnedUnitId  = NewUnit->GetUnitID();
+		Payload.SpawnCoords    = TargetCell;
+		Payload.TeamSide       = OwnerTeam->GetTeamSide();
+		Payload.SummonerUnitId = Owner->GetUnitID();
+		Payload.bIsSummon      = true;
+		if (SummonConfig->SummonedUnitDefinition)
+			Payload.UnitDefinitionId = SummonConfig->SummonedUnitDefinition->GetPrimaryAssetId();
+		LogSubsystem->CloseEvent(SpawnEventId,
+			TInstancedStruct<FTacLogPayload>::Make<FUnitSpawnPayload>(MoveTemp(Payload)));
+	}
+
 	ConsumeCharge();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
@@ -80,6 +109,20 @@ FGameplayTagContainer USummonSpellAbility::BuildTags() const
 
 void USummonSpellAbility::DespawnActiveSummon()
 {
-	ActiveSummon->HandleDeath();
+	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
+	check(LogSubsystem);
+	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitDespawn, ETacLogEventOrigin::Triggered,
+	                                        ActiveSummon->GetUnitID(), FGuid());
+
+	const ETeamSide TeamSide = ActiveSummon->GetTeamSide();
+	const FGuid UnitId = ActiveSummon->GetUnitID();
+	GetGridSubsystem()->DespawnUnit(ActiveSummon.Get());
+
+	FUnitDespawnPayload Payload;
+	Payload.UnitId   = UnitId;
+	Payload.TeamSide = TeamSide;
+	Payload.Reason   = EUnitDespawnReason::Replaced;
+	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FUnitDespawnPayload>(MoveTemp(Payload)));
+
 	ActiveSummon.Reset();
 }

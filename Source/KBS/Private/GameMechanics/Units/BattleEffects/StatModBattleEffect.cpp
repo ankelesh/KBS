@@ -1,6 +1,9 @@
 #include "GameMechanics/Units/BattleEffects/StatModBattleEffect.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/StatModBattleEffectDataAsset.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 
 void UStatModBattleEffect::Initialize(UBattleEffectDataAsset* InConfig)
 {
@@ -32,6 +35,20 @@ void UStatModBattleEffect::OnApplied()
 		*Owner->GetName(),
 		*Config->Name.ToString(),
 		Duration);
+
+	UTacLogSubsystem* LogSub = Owner->GetWorld()->GetSubsystem<UTacLogSubsystem>();
+	checkf(LogSub, TEXT("UTacLogSubsystem missing"));
+	FGuid EventId = LogSub->OpenEvent(ETacLogEventType::EffectActivation, ETacLogEventOrigin::Triggered,
+	                                  Owner->GetUnitID(), LogSub->FindLatestEvent());
+	FTacEffectPayload Payload;
+	Payload.EffectAssetId    = Config->GetPrimaryAssetId();
+	Payload.EffectInstanceId = EffectId;
+	Payload.OwnerUnitId      = Owner->GetUnitID();
+	Payload.SourceId         = FGuid();
+	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogStatAltStep>(
+		FTacLogStatAltStep::Make(FGuid(), Owner->GetUnitID(), AppliedDelta,
+		                         EStatModifierRemovalPolicy::DurationControlled)));
+	LogSub->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FTacEffectPayload>(MoveTemp(Payload)));
 }
 
 void UStatModBattleEffect::OnRemoved()
@@ -44,6 +61,19 @@ void UStatModBattleEffect::OnRemoved()
 	UE_LOG(LogTemp, Log, TEXT("%s: StatMod effect '%s' removed"),
 		*Owner->GetName(),
 		*Config->Name.ToString());
+
+	if (!IsExpired()) return;
+
+	UTacLogSubsystem* LogSub = Owner->GetWorld()->GetSubsystem<UTacLogSubsystem>();
+	checkf(LogSub, TEXT("UTacLogSubsystem missing"));
+	FGuid EventId = LogSub->OpenEvent(ETacLogEventType::EffectEnd, ETacLogEventOrigin::Triggered,
+	                                  Owner->GetUnitID(), LogSub->FindLatestEvent());
+	FEffectEndPayload Payload;
+	Payload.EffectAssetId    = Config->GetPrimaryAssetId();
+	Payload.EffectInstanceId = EffectId;
+	Payload.OwnerUnitId      = Owner->GetUnitID();
+	Payload.RemovalReason    = EEffectRemovalReason::Expired;
+	LogSub->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FEffectEndPayload>(MoveTemp(Payload)));
 }
 
 EReapplyDecision UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect)
@@ -63,44 +93,8 @@ void UStatModBattleEffect::ApplyStatModifications()
 		return;
 	}
 
-	FUnitCoreStats& Stats = Owner->GetStats();
-	const FGuid& EffId = GetEffectId();
-
-	// Apply stat modifiers (0 = no modification)
-	AppliedMaxHealthMod = Cfg->MaxHealthModifier;
-	if (AppliedMaxHealthMod != 0)
-	{
-		Stats.Health.AddMaxModifier(EffId, AppliedMaxHealthMod, true);
-	}
-
-	AppliedInitiativeMod = Cfg->InitiativeModifier;
-	if (AppliedInitiativeMod != 0)
-	{
-		Stats.Initiative.AddFlatModifier(EffId, AppliedInitiativeMod);
-	}
-
-	AppliedAccuracyMod = Cfg->AccuracyModifier;
-	if (AppliedAccuracyMod != 0)
-	{
-		Stats.Accuracy.AddFlatModifier(EffId, AppliedAccuracyMod);
-	}
-
-	// Apply immunities
-	AppliedImmunities = Cfg->ImmunitiesToGrant.Array();
-	for (EDamageSource Immunity : AppliedImmunities)
-	{
-		Stats.Defense.Immunities.AddModifier(EffId, Immunity, true);
-	}
-
-	// Apply armour modifiers
-	for (const auto& ArmorPair : Cfg->ArmourModifiers)
-	{
-		if (ArmorPair.Value != 0)
-		{
-			AppliedArmourMods.Add(ArmorPair.Key, ArmorPair.Value);
-			Stats.Defense.Armour.AddFlatModifier(EffId, ArmorPair.Value, ArmorPair.Key);
-		}
-	}
+	AppliedDelta = Cfg->Delta;
+	Owner->GetStats().ApplyDelta(AppliedDelta, GetEffectId());
 }
 
 void UStatModBattleEffect::RemoveStatModifications()
@@ -110,39 +104,6 @@ void UStatModBattleEffect::RemoveStatModifications()
 		return;
 	}
 
-	FUnitCoreStats& Stats = Owner->GetStats();
-	const FGuid& EffId = GetEffectId();
-
-	// Remove using cached amounts
-	if (AppliedMaxHealthMod != 0)
-	{
-		Stats.Health.RemoveMaxModifier(EffId, AppliedMaxHealthMod);
-		AppliedMaxHealthMod = 0;
-	}
-
-	if (AppliedInitiativeMod != 0)
-	{
-		Stats.Initiative.RemoveFlatModifier(EffId, AppliedInitiativeMod);
-		AppliedInitiativeMod = 0;
-	}
-
-	if (AppliedAccuracyMod != 0)
-	{
-		Stats.Accuracy.RemoveFlatModifier(EffId, AppliedAccuracyMod);
-		AppliedAccuracyMod = 0;
-	}
-
-	// Remove immunities
-	for (EDamageSource Immunity : AppliedImmunities)
-	{
-		Stats.Defense.Immunities.RemoveModifier(EffId, Immunity, true);
-	}
-	AppliedImmunities.Empty();
-
-	// Remove armour modifications
-	for (const auto& ArmorPair : AppliedArmourMods)
-	{
-		Stats.Defense.Armour.RemoveFlatModifier(EffId, ArmorPair.Value, ArmorPair.Key);
-	}
-	AppliedArmourMods.Empty();
+	Owner->GetStats().RemoveDelta(AppliedDelta, GetEffectId());
+	AppliedDelta.Reset();
 }
