@@ -72,7 +72,7 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	Payload.Command           = TargetCell;
 	Payload.Steps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogCombatStep>(
 		FTacLogCombatStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords,
-		                        ResolvedTargets.ClickedTarget->GetUnitID(), HitResults, Weapon->GetAnimTag())));
+		                        ResolvedTargets.ClickedTarget->GetUnitID(), HitResults, Weapon->GetAnimTag(), Weapon->GetDeliveryManifestPath())));
 	FTacLogEffectSpawnStep::AppendFromHits(Payload.Steps, HitResults);
 	FTacLogStatusChangeStep::AppendDefendingClearedFromHits(Payload.Steps, HitResults);
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));

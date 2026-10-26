@@ -1,13 +1,14 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Unit.h"
 
-FTacLogCombatStep FTacLogCombatStep::Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults, FGameplayTag WeaponAnimTag)
+FTacLogCombatStep FTacLogCombatStep::Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults, FGameplayTag WeaponAnimTag, FSoftObjectPath WeaponDeliveryManifest)
 {
 	FTacLogCombatStep Step;
 	Step.AttackerId = AttackerId;
 	Step.AttackerCoords = AttackerCoords;
 	Step.PrimaryTargetId = PrimaryTargetId;
 	Step.WeaponAnimTag = WeaponAnimTag;
+	Step.WeaponDeliveryManifest = MoveTemp(WeaponDeliveryManifest);
 	for (const FCombatHitResult& Hit : HitResults)
 	{
 		FTacLogHitRecord& Rec = Step.HitRecords.AddDefaulted_GetRef();

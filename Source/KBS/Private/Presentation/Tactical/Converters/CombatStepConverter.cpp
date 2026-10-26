@@ -84,17 +84,24 @@ namespace
 		}
 	}
 
-	// Builds the delivery action for this combat step from the manifest's Combat block.
-	// Returns nullptr when topology is None or manifest is absent.
+	// Builds the delivery action for this combat step. Uses the ability-level manifest when set,
+	// falls back to the weapon's delivery manifest snapshotted in the step.
+	// Returns nullptr when no manifest is available or topology is None.
 	UDeliveryPresentationAction* MakeDeliveryAction(const FTacLogCombatStep& Step,
 	                                                const FPresentationBuildContext& Context)
 	{
-		if (!Context.Manifest || Context.Manifest->Combat.IsEmpty())
+		const UAbilityPresentationAsset* Manifest = Context.Manifest;
+		if (!Manifest && !Step.WeaponDeliveryManifest.IsNull())
+		{
+			Manifest = Cast<UAbilityPresentationAsset>(Step.WeaponDeliveryManifest.ResolveObject());
+		}
+
+		if (!Manifest || Manifest->Combat.IsEmpty())
 		{
 			return nullptr;
 		}
 
-		const FDeliveryPresentation& Delivery = Context.Manifest->Combat;
+		const FDeliveryPresentation& Delivery = Manifest->Combat;
 
 		AUnit* const* FoundAttacker = Context.UnitLookup->Find(Step.AttackerId);
 		if (!FoundAttacker)

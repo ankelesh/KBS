@@ -7,6 +7,7 @@
 #include "WeaponDataAsset.generated.h"
 
 class UCombatDescriptorDataAsset;
+class UAbilityPresentationAsset;
 
 // Sentinel conventions for InlineDescriptor merge (used by EDescriptorOverridePolicy):
 //   BaseMagnitude      → -1          (skip if -1)
@@ -30,6 +31,10 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	FGameplayTag AnimTag;
+
+	// Default delivery presentation for abilities that use this weapon and carry no ability-level manifest.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TSoftObjectPtr<UAbilityPresentationAsset> DefaultDelivery;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	ECombatDescriptorDesignation Designation = ECombatDescriptorDesignation::AllPurpose;

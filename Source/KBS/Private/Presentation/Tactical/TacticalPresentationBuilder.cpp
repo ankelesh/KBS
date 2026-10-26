@@ -40,9 +40,9 @@ void UTacticalPresentationBuilder::SetConfig(UTacticalPresentationBuilderConfig*
 	Config = InConfig;
 }
 
-void UTacticalPresentationBuilder::BeginPreload(const TArray<FPrimaryAssetId>& AbilityAssetIds, FSimpleDelegate OnComplete)
+void UTacticalPresentationBuilder::BeginPreload(const TArray<FPrimaryAssetId>& AbilityAssetIds, const TArray<FSoftObjectPath>& WeaponDeliveryPaths, FSimpleDelegate OnComplete)
 {
-	// Phase 1: collect manifest soft paths from ability assets.
+	// Phase 1: collect manifest soft paths from ability assets and weapon delivery defaults.
 	// Ability assets are already loaded synchronously by the simulation layer (unchanged per spec).
 	TArray<FSoftObjectPath> ManifestPaths;
 	for (const FPrimaryAssetId& Id : AbilityAssetIds)
@@ -52,6 +52,13 @@ void UTacticalPresentationBuilder::BeginPreload(const TArray<FPrimaryAssetId>& A
 		if (AbilityDef && !AbilityDef->Presentation.IsNull())
 		{
 			ManifestPaths.AddUnique(AbilityDef->Presentation.ToSoftObjectPath());
+		}
+	}
+	for (const FSoftObjectPath& Path : WeaponDeliveryPaths)
+	{
+		if (Path.IsValid())
+		{
+			ManifestPaths.AddUnique(Path);
 		}
 	}
 

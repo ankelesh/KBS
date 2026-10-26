@@ -24,12 +24,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Presentation|Tactical")
 	void SetConfig(UTacticalPresentationBuilderConfig* InConfig);
 
-	// Async-preloads all presentation manifests and their visual content for the given ability assets.
-	// Call at battle entry with the full squad's ability set. OnComplete fires when all content is
-	// resident; Build() must not be called before OnComplete fires.
-	// AbilityAsset soft-ptr resolution is left synchronous (per Stage 5 spec).
+	// Async-preloads all presentation manifests and their visual content.
+	// AbilityAssetIds: ability primary asset ids for the battle's full ability set.
+	// WeaponDeliveryPaths: soft paths to UAbilityPresentationAsset from weapon DefaultDelivery fields.
+	// OnComplete fires when all content is resident; Build() must not be called before it fires.
 	UFUNCTION(BlueprintCallable, Category = "Presentation|Tactical")
-	void BeginPreload(const TArray<FPrimaryAssetId>& AbilityAssetIds, FSimpleDelegate OnComplete);
+	void BeginPreload(const TArray<FPrimaryAssetId>& AbilityAssetIds, const TArray<FSoftObjectPath>& WeaponDeliveryPaths, FSimpleDelegate OnComplete);
 
 protected:
 	virtual UPresentationSequence* Build_Implementation(FGuid FromEventId, FGuid ToEventId) override;

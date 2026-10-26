@@ -224,10 +224,13 @@ struct KBS_API FTacLogCombatStep : public FTacLogStepBase
 	UPROPERTY()
 	TArray<FTacLogHitRecord> HitRecords;
 
-	// Snapshot of the weapon's swing animation tag at simulation time - not re-derived at replay
-	// time, since the attacker's loadout/position may have changed by then.
+	// Snapshots of weapon state at simulation time - not re-derived at replay time, since the
+	// attacker's loadout/position may have changed by then.
 	UPROPERTY()
 	FGameplayTag WeaponAnimTag;
 
-	static FTacLogCombatStep Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults, FGameplayTag WeaponAnimTag);
+	UPROPERTY()
+	FSoftObjectPath WeaponDeliveryManifest;
+
+	static FTacLogCombatStep Make(FGuid AttackerId, FTacCoordinates AttackerCoords, FGuid PrimaryTargetId, const TArray<FCombatHitResult>& HitResults, FGameplayTag WeaponAnimTag, FSoftObjectPath WeaponDeliveryManifest = {});
 };
