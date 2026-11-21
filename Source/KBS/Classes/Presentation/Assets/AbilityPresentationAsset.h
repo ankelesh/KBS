@@ -26,19 +26,19 @@ struct FDeliveryPresentation
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Delivery",
         meta = (EditCondition = "Topology != EDeliveryTopology::None", EditConditionHides))
-    TSoftObjectPtr<UNiagaraSystem> TrailVFX;
+    TObjectPtr<UNiagaraSystem> TrailVFX;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Delivery",
         meta = (EditCondition = "Topology != EDeliveryTopology::None", EditConditionHides))
-    TSoftObjectPtr<UNiagaraSystem> ImpactVFX;
+    TObjectPtr<UNiagaraSystem> ImpactVFX;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Delivery",
         meta = (EditCondition = "Topology != EDeliveryTopology::None", EditConditionHides))
-    TSoftObjectPtr<USoundBase> TrailSFX;
+    TObjectPtr<USoundBase> TrailSFX;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Delivery",
         meta = (EditCondition = "Topology != EDeliveryTopology::None", EditConditionHides))
-    TSoftObjectPtr<USoundBase> ImpactSFX;
+    TObjectPtr<USoundBase> ImpactSFX;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Delivery",
         meta = (EditCondition = "Topology != EDeliveryTopology::None", EditConditionHides, ClampMin = "1.0"))
@@ -52,10 +52,12 @@ struct FDeliveryPresentation
         meta = (EditCondition = "Topology != EDeliveryTopology::None", EditConditionHides, ClampMin = "0.0"))
     float MaxStaggerDelay = 0.f;
 
-    bool IsEmpty() const { return Topology == EDeliveryTopology::None; }
+    // Attacker skeletal-mesh socket the projectile launches from.
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Delivery",
+        meta = (EditCondition = "Topology != EDeliveryTopology::None", EditConditionHides))
+    FName MuzzleSocket = TEXT("hand_l_weapon");
 
-    // Appends paths of all soft refs that require async preloading.
-    void CollectSoftPaths(TArray<FSoftObjectPath>& OutPaths) const;
+    bool IsEmpty() const { return Topology == EDeliveryTopology::None; }
 };
 
 // TODO: move-phase visual overrides (walk/run animation set, speed curve overrides).

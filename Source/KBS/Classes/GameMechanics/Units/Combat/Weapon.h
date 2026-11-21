@@ -16,7 +16,7 @@ public:
 
 	UCombatDescriptor* GetDescriptor() const { return Descriptor; }
 	FGameplayTag GetAnimTag() const;
-	FSoftObjectPath GetDeliveryManifestPath() const { return Config.DefaultDelivery.ToSoftObjectPath(); }
+	FSoftObjectPath GetDeliveryManifestPath() const { return FSoftObjectPath(Config.DefaultDelivery); }
 	FText GetDisplayName() const;
 	const FText& GetDescription() const;
 	bool IsUsableForAutoAttack() const { return Config.Designation != ECombatDescriptorDesignation::Spells; }

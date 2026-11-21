@@ -249,6 +249,10 @@ FVector UGridDataManager::GetCellWorldLocation(FTacCoordinates Coords) const
 	}
 	return FTacCoordinates::CellToWorldLocation(Coords.Row, Coords.Col, Coords.Layer, GridWorldLocation, Grid->Config->CellSize, Grid->Config->AirLayerHeight);
 }
+FVector UGridDataManager::GetCellCenterWorldLocation(FTacCoordinates Coords) const
+{
+	return GetCellWorldLocation(Coords) + FVector(0.f, 0.f, Grid->Config->CellSize * 0.5f);
+}
 UBattleTeam* UGridDataManager::GetTeamBySide(ETeamSide Side) const
 {
 	return Side == ETeamSide::Attacker ? AttackerTeam : DefenderTeam;

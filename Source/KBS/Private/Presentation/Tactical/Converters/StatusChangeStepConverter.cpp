@@ -1,4 +1,5 @@
 #include "Presentation/Tactical/Converters/StatusChangeStepConverter.h"
+#include "Presentation/Tactical/TacticalPresentationBuilderConfig.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Unit.h"
 #include "Presentation/Tactical/Actions/FloatingTextPresentationAction.h"

@@ -45,6 +45,7 @@ public:
 
 	bool GetUnitCoordinates(const AUnit* Unit, FTacCoordinates& OutCoordinates) const;
 	FVector GetCellWorldLocation(FTacCoordinates Coords) const { return DataManager->GetCellWorldLocation(Coords); }
+	FVector GetCellCenterWorldLocation(FTacCoordinates Coords) const { return DataManager->GetCellCenterWorldLocation(Coords); }
 
 	TArray<AUnit*> GetOffFieldUnits() const;
 	bool IsUnitOffField(const AUnit* Unit) const;

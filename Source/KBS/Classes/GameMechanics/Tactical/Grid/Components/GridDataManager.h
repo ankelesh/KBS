@@ -87,6 +87,8 @@ public:
 	// Exit:  1-cell → team default; 2-cell → orientation unchanged.
 	void SetUnitOnFlank(AUnit* Unit, bool bOnFlank);
 	FVector GetCellWorldLocation(FTacCoordinates Coords) const;
+	// Cell floor location raised by half a cell: the volumetric centre, used as a projectile target.
+	FVector GetCellCenterWorldLocation(FTacCoordinates Coords) const;
 
 	UBattleTeam* GetTeamBySide(ETeamSide Side) const;
 	UBattleTeam* GetAttackerTeam() const { return AttackerTeam; }

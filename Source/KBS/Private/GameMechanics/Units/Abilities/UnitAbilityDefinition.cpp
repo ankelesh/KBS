@@ -6,7 +6,7 @@ EDataValidationResult UUnitAbilityDefinition::IsDataValid(FDataValidationContext
 
 	// Abilities with combat effects should declare a presentation manifest so projectiles,
 	// delivery topology, etc. are properly authored. Absent is legal but designers should know.
-	if (!BattleEffects.IsEmpty() && Presentation.IsNull())
+	if (!BattleEffects.IsEmpty() && !Presentation)
 	{
 		Context.AddWarning(FText::Format(
 			NSLOCTEXT("AbilityValidation", "MissingPresentation",

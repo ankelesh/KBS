@@ -1,4 +1,5 @@
 #include "Presentation/Tactical/Converters/EffectSpawnStepConverter.h"
+#include "Presentation/Tactical/TacticalPresentationBuilderConfig.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffectDataAsset.h"

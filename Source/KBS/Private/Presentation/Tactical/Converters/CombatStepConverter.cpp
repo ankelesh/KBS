@@ -13,6 +13,9 @@
 #include "Presentation/Core/Actions/MontagePresentationAction.h"
 #include "Presentation/Tactical/Actions/AoEReactionPresentationAction.h"
 #include "Math/RandomStream.h"
+#include "NiagaraSystem.h"
+#include "Sound/SoundBase.h"
+#include "Components/SkeletalMeshComponent.h"
 
 namespace
 {
@@ -110,7 +113,10 @@ namespace
 			return nullptr;
 		}
 		AActor* WorldContextActor = *FoundAttacker;
-		const FVector AttackerPos = Context.GridSubsystem->GetCellWorldLocation(Step.AttackerCoords);
+		USkeletalMeshComponent* AttackerMesh = (*FoundAttacker)->GetVisualsComponent()->GetPrimarySkeletalMesh();
+		checkf(AttackerMesh->DoesSocketExist(Delivery.MuzzleSocket),
+			TEXT("Delivery MuzzleSocket '%s' missing on attacker mesh"), *Delivery.MuzzleSocket.ToString());
+		const FVector AttackerPos = AttackerMesh->GetSocketLocation(Delivery.MuzzleSocket);
 
 		UNiagaraSystem* TrailVFX  = Delivery.TrailVFX.Get();
 		UNiagaraSystem* ImpactVFX = Delivery.ImpactVFX.Get();
@@ -126,7 +132,7 @@ namespace
 			for (int32 HitIdx = 0; HitIdx < Step.HitRecords.Num(); ++HitIdx)
 			{
 				const FTacLogHitRecord& Hit = Step.HitRecords[HitIdx];
-				const FVector TargetPos = Context.GridSubsystem->GetCellWorldLocation(Hit.TargetCoords);
+				const FVector TargetPos = Context.GridSubsystem->GetCellCenterWorldLocation(Hit.TargetCoords);
 
 				FProjectileActionContext Proj;
 				Proj.WorldContextActor = WorldContextActor;
@@ -158,7 +164,7 @@ namespace
 		{
 			checkf(Context.AbilityPayload,
 				TEXT("SingleToPoint delivery requires an ability-use payload for the Command coordinate"));
-			const FVector TargetPos = Context.GridSubsystem->GetCellWorldLocation(Context.AbilityPayload->Command);
+			const FVector TargetPos = Context.GridSubsystem->GetCellCenterWorldLocation(Context.AbilityPayload->Command);
 
 			FProjectileActionContext Proj;
 			Proj.WorldContextActor = WorldContextActor;
@@ -181,7 +187,7 @@ namespace
 			{
 				const FTacLogHitRecord& Hit = Step.HitRecords[HitIdx];
 				FDeliveryVfxChain VfxChain;
-				VfxChain.Location         = Context.GridSubsystem->GetCellWorldLocation(Hit.TargetCoords);
+				VfxChain.Location         = Context.GridSubsystem->GetCellCenterWorldLocation(Hit.TargetCoords);
 				VfxChain.ImpactVFX        = ImpactVFX;
 				VfxChain.WorldContextActor = WorldContextActor;
 				Action->VfxChains.Add(VfxChain);

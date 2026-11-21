@@ -1,4 +1,5 @@
 #include "Presentation/Tactical/Converters/UnitSpawnPayloadConverter.h"
+#include "Presentation/Tactical/TacticalPresentationBuilderConfig.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
 #include "GameMechanics/Units/Unit.h"
 #include "Presentation/Tactical/Actions/FloatingTextPresentationAction.h"
