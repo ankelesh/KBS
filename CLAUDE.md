@@ -1,39 +1,55 @@
-## Project KBS (UE5/C++)
+# Project KBS (UE 5.8 / C++, Rider)
+
 ## Context
-Strategy turn-based game. Learning developer.
+Turn-based tactical strategy game. Solo dev: strong C++, still learning UE idioms.
+Architecture: gameplay logic in C++, exposed to Blueprints via thin wrappers.
 
 ## Paths
-$SRC = ./Source/KBS/
-$TST = ./Source/KBSTests/
-$AST = ./Content/
-$H = Classes/
-$CPP = Private/
-$GM = GameMechanics/
-$TACT = $GM/Tactical/
-$UNITS = $GM/Units/
-$TYPES = GameplayTypes/
-$UI = $H/UI/
+Headers: ./Source/KBS/Classes/<sub>/
+Impl:    ./Source/KBS/Private/<sub>/
+Subdirs (same under both):
+- GameMechanics/            core mechanics
+- GameMechanics/Tactical/   tactical combat
+- GameMechanics/Units/      units
+- GameplayTypes/            shared types/enums/structs
+- UI/                       UI (headers only under Classes/UI/)
+Tests: ./Source/KBSTests/
+Main map: ./Content/BaseTestGround.umap
 
-Note: Headers in $SRC$H{path}, Impl in $SRC$CPP{path}
-Main scene: $AST/BaseTestGround.umap
+## Never touch
+Intermediate/, Binaries/, Saved/, DerivedDataCache/, *.generated.h
+Never edit .uasset/.umap as files (use the editor asset tooling below)
 
-## Guidelines
-- Ask, don't assume
-- Show WHERE to add code, not full rewrites
-- Self-doc code; critical comments only
-- Minimal explanations unless requested
-- If .h only change, skip .cpp mentions
-- Do not read cpp's if you don't need implementation - use signatures from .h, they are valid.
-- Do not check owned members and subsystems on nullptr. If you need to be sure that subsystem exists, make checkf once, on init.
-- Prefer checkf to nullptr graceful handling - we have contract that if function needs domain object, it should never receive nullptr or fail hard.
+## Tooling (Rider MCP)
+- Prefer Rider MCP tools over grep/file scans: symbol search, find usages, file structure.
+- After editing, check Rider inspections/problems for touched files.
+- Builds: only via Rider MCP, Development Editor, incremental. Never call UBT/Build.bat from shell.
+- Report errors only; summarize warnings as a count unless asked.
+- If UE editor is running (Live Coding), don't build — ask me.
 
-## Response protocol
-1. **Plan:** What I'll do (bullets)
-2. **Result:** Modified [files]
-3. **Notes:** Only if deviated
+## Asset tooling (editor MCP)
+- Assets are read/edited only via the running editor: `ue_execute_python` + scripts in ./MCPTools/ (use the `ue-asset-tools` skill). Editor-API edits are allowed when the task needs them.
+- Writes: /Game/_KBS/ only, never /Game/Fab/. Dry-run first, then apply. Existing assets need `allow_existing`.
+- The Rider MCP build tool can report "failed without diagnostics" on successful builds; the real result is in %LOCALAPPDATA%\UnrealBuildTool\Log.txt ("Result:").
+- New module/UCLASS changes need an editor restart; no builds while the editor runs.
 
-## Constraints
-Don't build or test anything
+## Coding rules
+- Read .h for signatures; open .cpp only when implementation matters.
+- Header-only change → don't mention .cpp.
+- Contracts over defensive code: domain objects are never null.
+  - No nullptr checks on owned members/subsystems.
+  - Required subsystems: one checkf at init.
+  - Required params: checkf, never graceful fallback.
+- Self-documenting code; comments only for non-obvious intent.
+- Header changes to UCLASS/USTRUCT layout need an editor restart (no Live Coding) — flag it.
 
-## Error handling
-Try alternatives automatically. If 2+ repeats fail, stop and report
+## Collaboration
+- Design/architecture ambiguity → ask before acting.
+- Tool/command failure → try alternatives; after 2 failed attempts on the same problem, stop and report.
+- Show where to add code; no full-file rewrites.
+- Minimal explanations unless asked.
+
+## Response format
+1. **Plan** — bullets
+2. **Result** — modified files
+3. **Notes** — only if deviated from plan

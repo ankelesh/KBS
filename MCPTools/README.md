@@ -1,6 +1,6 @@
 # MCPTools
 
-Read-only Unreal Editor Python scripts, run through `mcp__rider__ue_execute_python` (rootFolder `E:\Projects\unreal_projects\KBS`).
+Unreal Editor Python scripts (read and, with `apply`, write), run through `mcp__rider__ue_execute_python` (rootFolder `E:\Projects\unreal_projects\KBS`).
 Each reads a global `args` dict. Output is capped well under 10k chars; `limit` bounds the listing. Assets default to `/Game/_KBS` (never `/Game/Fab` unless passed as `path`). `_common.py` is shared helper code loaded by each script. Snapshots go to `_out/` (git-ignored).
 
 ## dump_assets.py

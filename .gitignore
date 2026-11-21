@@ -20,3 +20,6 @@ nul
 Content/Fab/**/*
 !Content/Fab/**/
 !Content/Fab/**/.gitkeep
+# Local/generated
+.claude/settings.local.json
+*.slnx
