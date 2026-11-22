@@ -142,7 +142,7 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 	}
 	if (Weapons.Num() == 1)
 	{
-		return Weapons[0]->GetDescriptor();
+		return Unit->CanUseWeapon(*Weapons[0]) ? Weapons[0]->GetDescriptor() : nullptr;
 	}
 	auto GetReachScore = [](ETargetReach Reach) -> int32
 		{
@@ -166,6 +166,7 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 	for (UWeapon* W : Weapons)
 	{
 		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
+		if (!Unit->CanUseWeapon(*W)) continue;
 		UCombatDescriptor* Descriptor = W->GetDescriptor();
 		const FCombatDescriptorStats& Stats = Descriptor->GetStats();
 		int32 Score = GetReachScore(Stats.TargetReach);
@@ -284,6 +285,7 @@ UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Targe
 	for (UWeapon* W : Weapons)
 	{
 		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
+		if (!Attacker->CanUseWeapon(*W)) continue;
 		UCombatDescriptor* Descriptor = W->GetDescriptor();
 		if (!CanReachTarget(Descriptor->GetStats().TargetReach)) continue;
 

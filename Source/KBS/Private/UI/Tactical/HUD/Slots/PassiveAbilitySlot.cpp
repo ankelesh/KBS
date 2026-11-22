@@ -63,7 +63,7 @@ void UPassiveAbilitySlot::Clear()
 	SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UPassiveAbilitySlot::OnAbilityTriggered(int32 ChargesLeft, bool bAvailable)
+void UPassiveAbilitySlot::OnAbilityTriggered(int32 UsesLeft, bool bAvailable)
 {
 	// Only process if we're listening to events
 	if (!bIsListeningToEvents || !BoundAbility)

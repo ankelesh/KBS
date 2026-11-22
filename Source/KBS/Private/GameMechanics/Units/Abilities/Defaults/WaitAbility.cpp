@@ -1,4 +1,5 @@
 #include "GameMechanics/Units/Abilities/Defaults/WaitAbility.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
@@ -29,7 +30,7 @@ FAbilityExecutionResult UWaitAbility::Execute(FTacCoordinates TargetCell)
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
 	UE_LOG(LogTemp, Log, TEXT("%s uses Wait - reinserted into queue with modified initiative"), *Owner->GetName());
-	ConsumeCharge();
+	ConsumeUse();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
@@ -37,12 +38,12 @@ FAbilityExecutionResult UWaitAbility::Execute(FTacCoordinates TargetCell)
 bool UWaitAbility::CanExecute(FTacCoordinates TargetCell) const
 {
 	check(Owner);
-	return RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
+	return RemainingUses > 0 && OwnerCanAct() && CanActByContext();
 }
 
 bool UWaitAbility::CanExecute() const
 {
-	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
+	return Owner && RemainingUses > 0 && OwnerCanAct() && CanActByContext();
 }
 
 void UWaitAbility::Subscribe()
@@ -61,7 +62,7 @@ void UWaitAbility::Unsubscribe()
 
 void UWaitAbility::HandleRoundEnd(int32)
 {
-	RestoreCharges();
+	RestoreUses();
 }
 
 FGameplayTagContainer UWaitAbility::BuildTags() const

@@ -6,6 +6,10 @@
 #include "GameMechanics/Units/BattleEffects/BattleEffectComponent.h"
 #include "GameMechanics/Units/BattleEffects/BattleEffect.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
+#include "GameMechanics/Units/Components/UnitChargeComponent.h"
+#include "GameMechanics/Units/Components/UnitActionHistoryComponent.h"
+#include "GameMechanics/Units/Components/Config/UnitChargeComponentConfig.h"
+#include "GameMechanics/Units/Components/Config/UnitActionHistoryCmpConfig.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
@@ -48,6 +52,7 @@ void AUnit::BeginPlay()
 	}
 	BaseStats.InitFromBase(UnitDefinition->BaseStatsTemplate);
 	InitializeWeapons(UnitDefinition);
+	InitializeComponents(UnitDefinition);
 	AbilityInventory->InitializeFromDefinition(UnitDefinition, this);
 }
 
@@ -100,8 +105,65 @@ void AUnit::SwapVisualDefinition(UUnitVisualDefinition* NewVisual)
 	}
 }
 
+UUnitChargeComponent& AUnit::GetCharges() const
+{
+	UUnitChargeComponent* Charges = FindComponentByClass<UUnitChargeComponent>();
+	checkf(Charges, TEXT("%s has no UUnitChargeComponent"), *GetLogName());
+	return *Charges;
+}
+
+bool AUnit::CanUseWeapon(const UWeapon& Weapon) const
+{
+	const FUnitChargeCost Cost = Weapon.GetChargeCost();
+	return !Cost.Tag.IsValid() || GetCharges().HasCharge(Cost.Tag, Cost.Amount);
+}
+
+FUnitChargeCost AUnit::PayWeaponCost(const UWeapon& Weapon)
+{
+	const FUnitChargeCost Cost = Weapon.GetChargeCost();
+	if (Cost.Tag.IsValid())
+	{
+		GetCharges().DecrementCharge(Cost.Tag, Cost.Amount);
+	}
+	return Cost;
+}
+
+void AUnit::InitializeComponents(const UUnitDefinition* Definition)
+{
+	for (const FUnitComponentEntry& Entry : Definition->ComponentEntries)
+	{
+		checkf(Entry.ComponentClass, TEXT("%s: component entry without class"), *Definition->GetName());
+		UActorComponent* Component = NewObject<UActorComponent>(this, Entry.ComponentClass);
+
+		if (const FUnitChargeComponentConfig* ChargeConfig = Entry.Config.GetPtr<FUnitChargeComponentConfig>())
+		{
+			CastChecked<UUnitChargeComponent>(Component)->InitializeFromConfig(*ChargeConfig);
+		}
+		else if (const FUnitActionHistoryCmpConfig* HistoryConfig = Entry.Config.GetPtr<FUnitActionHistoryCmpConfig>())
+		{
+			CastChecked<UUnitActionHistoryComponent>(Component)->InitializeFromConfig(*HistoryConfig);
+		}
+		else
+		{
+			checkf(false, TEXT("%s: unsupported component config for %s"), *Definition->GetName(),
+			       *Entry.ComponentClass->GetName());
+		}
+
+		Component->RegisterComponent();
+	}
+
+	for (const TObjectPtr<UWeapon>& Weapon : Weapons)
+	{
+		const FUnitChargeCost Cost = Weapon->GetChargeCost();
+		checkf(!Cost.Tag.IsValid() || GetCharges().IsTracked(Cost.Tag),
+		       TEXT("%s: weapon '%s' costs charge '%s' that no charge component tracks"), *Definition->GetName(),
+		       *Weapon->GetDisplayName().ToString(), *Cost.Tag.ToString());
+	}
+}
+
 void AUnit::InitializeWeapons(const UUnitDefinition* Definition)
 {
+	Weapons.Empty();
 	for (const FWeaponData& WeaponData : Definition->DefaultWeapons)
 	{
 		TObjectPtr<UWeapon> NewWeapon = NewObject<UWeapon>(this);

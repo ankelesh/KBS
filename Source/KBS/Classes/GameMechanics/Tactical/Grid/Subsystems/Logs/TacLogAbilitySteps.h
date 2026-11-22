@@ -93,6 +93,36 @@ struct KBS_API FTacLogFleeStep : public FTacLogStepBase
 	}
 };
 
+// A unit's charge resource (UUnitChargeComponent) changed as part of an ability use.
+USTRUCT()
+struct KBS_API FTacLogChargeStep : public FTacLogStepBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGuid UnitId;
+
+	UPROPERTY()
+	FGameplayTag ChargeTag;
+
+	// Negative = spent, positive = restored.
+	UPROPERTY()
+	int32 Delta = 0;
+
+	UPROPERTY()
+	int32 NewValue = 0;
+
+	static FTacLogChargeStep Make(FGuid InUnitId, const FGameplayTag& InChargeTag, int32 InDelta, int32 InNewValue)
+	{
+		FTacLogChargeStep Step;
+		Step.UnitId = InUnitId;
+		Step.ChargeTag = InChargeTag;
+		Step.Delta = InDelta;
+		Step.NewValue = InNewValue;
+		return Step;
+	}
+};
+
 USTRUCT()
 struct KBS_API FTacLogMoveStep : public FTacLogStepBase
 {

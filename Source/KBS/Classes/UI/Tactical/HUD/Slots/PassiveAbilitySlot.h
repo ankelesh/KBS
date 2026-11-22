@@ -39,7 +39,7 @@ protected:
 
 private:
 	UFUNCTION()
-	void OnAbilityTriggered(int32 ChargesLeft, bool bAvailable);
+	void OnAbilityTriggered(int32 UsesLeft, bool bAvailable);
 
 public:
 	// Blueprint hook called when passive ability triggers - implement to show flash VFX

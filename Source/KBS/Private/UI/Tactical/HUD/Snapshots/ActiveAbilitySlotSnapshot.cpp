@@ -21,12 +21,12 @@ void UActiveAbilitySlotSnapshot::SetupFromAbility(UUnitAbility* Ability)
 		AbilityIcon->SetVisibility(ESlateVisibility::Visible);
 	}
 
-	// Set charges if ability has explicit charges
+	// Set uses if ability has explicit uses
 	if (ChargesText)
 	{
-		if (Ability->HasExplicitCharges())
+		if (Ability->HasExplicitUses())
 		{
-			FString ChargesStr = FString::Printf(TEXT("%d/%d"), DisplayData.RemainingCharges, DisplayData.MaxCharges);
+			FString ChargesStr = FString::Printf(TEXT("%d/%d"), DisplayData.RemainingUses, DisplayData.MaxUses);
 			ChargesText->SetText(FText::FromString(ChargesStr));
 			ChargesText->SetVisibility(ESlateVisibility::Visible);
 		}

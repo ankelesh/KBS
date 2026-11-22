@@ -11,6 +11,12 @@ static FString FormatStep(const FTacLogWaitStep& S, FTacLogFormatCtx& Ctx)
 	return FString::Printf(TEXT("- Wait    %s"), *Ctx.Unit(S.UnitId));
 }
 
+static FString FormatStep(const FTacLogChargeStep& S, FTacLogFormatCtx& Ctx)
+{
+	return FString::Printf(TEXT("- Charge  %s %s %+d → %d"),
+		*Ctx.Unit(S.UnitId), *S.ChargeTag.ToString(), S.Delta, S.NewValue);
+}
+
 static FString FormatStep(const FTacLogFleeStep& S, FTacLogFormatCtx& Ctx)
 {
 	return FString::Printf(TEXT("- Flee    %s@(%d,%d) [%s]"),
@@ -115,6 +121,7 @@ static FString DispatchFormatStep(const TInstancedStruct<FTacLogStepBase>& Step,
 {
 	if (const FTacLogWaitStep*         S = Step.GetPtr<FTacLogWaitStep>())         return FormatStep(*S, Ctx);
 	if (const FTacLogFleeStep*         S = Step.GetPtr<FTacLogFleeStep>())         return FormatStep(*S, Ctx);
+	if (const FTacLogChargeStep*       S = Step.GetPtr<FTacLogChargeStep>())       return FormatStep(*S, Ctx);
 	if (const FTacLogMoveStep*         S = Step.GetPtr<FTacLogMoveStep>())         return FormatStep(*S, Ctx);
 	if (const FTacLogStatAltStep*      S = Step.GetPtr<FTacLogStatAltStep>())      return FormatStep(*S, Ctx);
 	if (const FTacLogStatusChangeStep* S = Step.GetPtr<FTacLogStatusChangeStep>()) return FormatStep(*S, Ctx);

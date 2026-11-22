@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "StructUtils/InstancedStruct.h"
 #include "GameplayTypes/DamageTypes.h"
 #include "GameplayTypes/AbilityTypes.h"
 #include "GameplayTypes/TargetingDescriptor.h"
@@ -11,6 +12,7 @@
 
 class UUnitAbilityDefinition;
 struct FPreviewHitResult;
+struct FTacLogStepBase;
 
 class AUnit;
 class UTacGridSubsystem;
@@ -24,7 +26,7 @@ class UTacLogSubsystem;
 struct FCombatContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityAvailabilityChange, const UUnitAbility*, Ability, bool, Available);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityUsed, int32, ChargesLeft, bool, Available);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityUsed, int32, UsesLeft, bool, Available);
 UCLASS(Abstract, Blueprintable)
 class KBS_API UUnitAbility : public UObject
 {
@@ -40,9 +42,9 @@ public:
 
 	virtual FTargetingDescriptor GetTargeting() const;
 	virtual bool IsPassive() const;
-	virtual bool HasExplicitCharges() const { return false; }
+	virtual bool HasExplicitUses() const { return false; }
 	virtual TMap<FTacCoordinates, FPreviewHitResult> DamagePreview(FTacCoordinates TargetCell) const {return {};};
-	// Default: RestoreCharges(). Override to change or suppress (e.g. abilities that restore on round end).
+	// Default: RestoreUses(). Override to change or suppress (e.g. abilities that restore on round end).
 	virtual void HandleTurnEnd();
 	virtual void Subscribe() {};
 	virtual void Unsubscribe() {};
@@ -52,14 +54,14 @@ public:
 	virtual FGameplayTagContainer BuildTags() const; // override per ability class
 	
 	UUnitAbilityDefinition* GetConfig() const { return Config; }
-	int32 GetRemainingCharges() const { return RemainingCharges; }
+	int32 GetRemainingUses() const { return RemainingUses; }
 	const FGuid& GetAbilityId() const { return AbilityId; }
 	FString GetDebugString() const;
 	AUnit* GetOwner() const { return Owner; }
 	void SetOwner(AUnit* NewOwner) { Owner = NewOwner; }
 	void ChangeSelection(bool bIsSelected);
-	virtual void ConsumeCharge();
-	virtual void RestoreCharges();
+	virtual void ConsumeUse();
+	virtual void RestoreUses();
 	void BroadcastUsage() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Display")
@@ -85,12 +87,15 @@ protected:
 	bool CanActByContext() const;
 	bool OwnerCanAct() const;
 	void SetCompletionTag() const;
-	
+	// Records a change of one of the owner's charge resources (Delta < 0 = spent) with its current value.
+	// No-op for an invalid tag so callers can pass "free" costs through.
+	void AppendChargeStep(TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps, const FGameplayTag& ChargeTag, int32 Delta) const;
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<UUnitAbilityDefinition> Config;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
-	int32 RemainingCharges = 0;
+	int32 RemainingUses = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<AUnit> Owner;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")

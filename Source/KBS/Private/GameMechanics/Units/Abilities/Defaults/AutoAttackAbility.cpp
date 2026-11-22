@@ -32,7 +32,7 @@ TMap<FTacCoordinates, FPreviewHitResult> UAutoAttackAbility::DamagePreview(FTacC
 		UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, Target, true);
 		if (!Weapon) continue;
 
-		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, Weapon->GetDescriptor(), Target);
+		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, ResolveAttackDescriptor(Weapon->GetDescriptor()), Target);
 		FTacCoordinates TargetCoords = Target->GetGridMetadata().Coords;
 		Results.Add(TargetCoords, Preview);
 	}
@@ -64,7 +64,8 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 
 	// Execute attack through combat subsystem
 	TArray<AUnit*> AllTargets = ResolvedTargets.GetAllTargets();
-	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, Weapon->GetDescriptor());
+	UCombatDescriptor* AttackDescriptor = ResolveAttackDescriptor(Weapon->GetDescriptor());
+	TArray<FCombatHitResult> HitResults = CombatSubsystem->ResolveAttack(Owner, AllTargets, AttackDescriptor);
 
 	FAbilityUsePayload Payload;
 	Payload.AbilityAssetId    = Config->GetPrimaryAssetId();
@@ -75,9 +76,13 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 		                        ResolvedTargets.ClickedTarget->GetUnitID(), HitResults, Weapon->GetAnimTag(), Weapon->GetDeliveryManifestPath())));
 	FTacLogEffectSpawnStep::AppendFromHits(Payload.Steps, HitResults);
 	FTacLogStatusChangeStep::AppendDefendingClearedFromHits(Payload.Steps, HitResults);
+
+	const FUnitChargeCost PaidCost = Owner->PayWeaponCost(*Weapon);
+	AppendChargeStep(Payload.Steps, PaidCost.Tag, -PaidCost.Amount);
+	OnAttackResolved(AttackDescriptor, Payload.Steps);
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
-	ConsumeCharge();
+	ConsumeUse();
 	SetCompletionTag();
 
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
@@ -85,7 +90,7 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 
 bool UAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
+	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
@@ -94,7 +99,7 @@ bool UAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 
 bool UAutoAttackAbility::CanExecute() const
 {
-	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
+	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	if (!TargetingService) return false;
@@ -104,7 +109,7 @@ bool UAutoAttackAbility::CanExecute() const
 
 EAbilityTurnReleasePolicy UAutoAttackAbility::DecideTurnRelease() const
 {
-	if (RemainingCharges > 0)
+	if (RemainingUses > 0)
 		return EAbilityTurnReleasePolicy::Locked;
 	return Super::DecideTurnRelease();
 }
@@ -117,7 +122,7 @@ FTargetingDescriptor UAutoAttackAbility::GetTargeting() const
 	}
 	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
 	{
-		return Weapon->GetTargeting();
+		return ResolveAttackDescriptor(Weapon)->GetTargeting();
 	}
 	return FTargetingDescriptor{};
 }
@@ -125,15 +130,20 @@ FTargetingDescriptor UAutoAttackAbility::GetTargeting() const
 FGameplayTagContainer UAutoAttackAbility::BuildTags() const
 {
 	FGameplayTagContainer Tags = Super::BuildTags();
-	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
+	if (UCombatDescriptor* WeaponDescriptor = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
 	{
-		const EMagnitudePolicy Policy = Weapon->GetMagnitudePolicy();
-		// AutoAttack alters Damage policy to its own class tag; other policies map generically
-		if (Policy == EMagnitudePolicy::Damage)
-			Tags.AddTag(TAG_ABILITY_AUTOATTACK);
-		else if (FGameplayTag PolicyTag = AbilityTagUtils::TagFromPolicy(Policy); PolicyTag.IsValid())
-			Tags.AddTag(PolicyTag);
-		AbilityTagUtils::AddEffectTags(Tags, Weapon->GetEffects());
+		TArray<UCombatDescriptor*> Descriptors;
+		GatherTagDescriptors(WeaponDescriptor, Descriptors);
+		for (UCombatDescriptor* Descriptor : Descriptors)
+		{
+			const EMagnitudePolicy Policy = Descriptor->GetMagnitudePolicy();
+			// AutoAttack alters Damage policy to its own class tag; other policies map generically
+			if (Policy == EMagnitudePolicy::Damage)
+				Tags.AddTag(TAG_ABILITY_AUTOATTACK);
+			else if (FGameplayTag PolicyTag = AbilityTagUtils::TagFromPolicy(Policy); PolicyTag.IsValid())
+				Tags.AddTag(PolicyTag);
+			AbilityTagUtils::AddEffectTags(Tags, Descriptor->GetEffects());
+		}
 	}
 	return Tags;
 }

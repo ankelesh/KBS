@@ -91,9 +91,9 @@ private:
 	void OnAbilityAvailabilityChanged(const UUnitAbility* Ability, bool bAvailable);
 
 	UFUNCTION()
-	void OnAbilityUsed(int32 ChargesLeft, bool bAvailable);
+	void OnAbilityUsed(int32 UsesLeft, bool bAvailable);
 
-	void UpdateChargesDisplay(); // Shows charges if Ability->HasExplicitCharges() is true
+	void UpdateChargesDisplay(); // Shows uses if Ability->HasExplicitUses() is true
 	void UpdateNameDisplay();   // Shows ability name if bExpandedView && AbilityNameText
 
 	// Visual state application - C++ handles essential state, calls BP hooks for styling

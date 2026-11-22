@@ -3,6 +3,7 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTypes/CombatDescriptorTypes.h"
 #include "WeaponDataAsset.h"
+#include "GameMechanics/Units/Components/Config/UnitChargeCost.h"
 #include "Weapon.generated.h"
 
 class UCombatDescriptor;
@@ -21,6 +22,8 @@ public:
 	const FText& GetDescription() const;
 	bool IsUsableForAutoAttack() const { return Config.Designation != ECombatDescriptorDesignation::Spells; }
 	bool IsUsableForSpells() const { return Config.Designation != ECombatDescriptorDesignation::AutoAttacks; }
+	// What one attack costs; invalid Tag means free. The owning unit decides whether it can pay.
+	FUnitChargeCost GetChargeCost() const { return FUnitChargeCost{Config.ChargeTag, Config.ChargeCost}; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")

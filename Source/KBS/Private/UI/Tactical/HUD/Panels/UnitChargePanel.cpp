@@ -118,7 +118,7 @@ void UUnitChargePanel::RebuildSlots(UUnitChargeComponent* Component)
 			continue;
 		}
 
-		ChargeSlot->SetupSlot(Tag, Component->GetCharge(Tag), Component->GetChargeName(Tag), nullptr);
+		ChargeSlot->SetupSlot(Tag, Component->GetCharge(Tag), Component->GetChargeName(Tag), Component->GetChargeIcon(Tag));
 		ChargeSlotContainer->AddChild(ChargeSlot);
 		SlotMap.Add(Tag, ChargeSlot);
 	}

@@ -1,4 +1,5 @@
 #include "GameMechanics/Units/Abilities/Defaults/DefendAbility.h"
+#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
 #include "GameMechanics/Units/Unit.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
@@ -25,19 +26,19 @@ FAbilityExecutionResult UDefendAbility::Execute(FTacCoordinates TargetCell)
 		FTacLogStatusChangeStep::Make(Owner->GetUnitID(), EUnitStatus::Defending, true)));
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
-	ConsumeCharge();
+	ConsumeUse();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
 bool UDefendAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
+	return Owner && RemainingUses > 0 && OwnerCanAct() && CanActByContext();
 }
 
 bool UDefendAbility::CanExecute() const
 {
-	return Owner && RemainingCharges > 0 && OwnerCanAct() && CanActByContext();
+	return Owner && RemainingUses > 0 && OwnerCanAct() && CanActByContext();
 }
 
 FGameplayTagContainer UDefendAbility::BuildTags() const

@@ -110,7 +110,7 @@ void UActiveAbilitySlot::SetAbility(UUnitAbility* NewAbility)
 		}
 
 		// Determine initial state using display data - goes to Enabled, not Selected
-		if (DisplayData.RemainingCharges == 0 || !DisplayData.bCanExecuteThisTurn)
+		if (DisplayData.RemainingUses == 0 || !DisplayData.bCanExecuteThisTurn)
 		{
 			CurrentState = EAbilitySlotState::Disabled;
 			ApplyDisabledVisuals();
@@ -189,7 +189,7 @@ void UActiveAbilitySlot::OnAbilityAvailabilityChanged(const UUnitAbility* Abilit
 	UpdateChargesDisplay();
 }
 
-void UActiveAbilitySlot::OnAbilityUsed(int32 ChargesLeft, bool bAvailable)
+void UActiveAbilitySlot::OnAbilityUsed(int32 UsesLeft, bool bAvailable)
 {
 	OnAbilityAvailabilityChanged(BoundAbility, bAvailable);
 }
@@ -295,12 +295,12 @@ void UActiveAbilitySlot::UpdateChargesDisplay()
 {
 	if (!Charges || !BoundAbility) return;
 
-	// Show charges only if ability has explicit charges
-	if (BoundAbility->HasExplicitCharges())
+	// Show uses only if ability has explicit uses
+	if (BoundAbility->HasExplicitUses())
 	{
 		FAbilityDisplayData DisplayData = BoundAbility->GetAbilityDisplayData();
 		Charges->SetVisibility(ESlateVisibility::Visible);
-		FString ChargesText = FString::Printf(TEXT("%d/%d"), DisplayData.RemainingCharges, DisplayData.MaxCharges);
+		FString ChargesText = FString::Printf(TEXT("%d/%d"), DisplayData.RemainingUses, DisplayData.MaxUses);
 		Charges->SetText(FText::FromString(ChargesText));
 	}
 	else

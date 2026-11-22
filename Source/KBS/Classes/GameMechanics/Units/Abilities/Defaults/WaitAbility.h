@@ -13,7 +13,7 @@ public:
 	virtual bool CanExecute() const override;
 
 	virtual FGameplayTagContainer BuildTags() const override;
-	virtual void HandleTurnEnd() override {} // charges restore on round end via Subscribe, not per-turn
+	virtual void HandleTurnEnd() override {} // uses restore on round end via Subscribe, not per-turn
 	virtual void Subscribe() override;
 	virtual void Unsubscribe() override;
 

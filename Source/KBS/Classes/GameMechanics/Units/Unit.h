@@ -5,6 +5,7 @@
 #include "GameMechanics/Units/Stats/UnitStats.h"
 #include "UnitDisplayData.h"
 #include "UnitGridMetadata.h"
+#include "GameMechanics/Units/Components/Config/UnitChargeCost.h"
 #include "GameMechanics/Tactical/Grid/BattleTeam.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameplayTypes/TacMovementTypes.h"
@@ -18,6 +19,7 @@ class UBattleEffect;
 class UAbilityInventoryComponent;
 class UUnitVisualsComponent;
 class UWeapon;
+class UUnitChargeComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitClicked, AUnit*, ClickedUnit, FKey, ButtonPressed);
 
@@ -212,6 +214,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UUnitVisualsComponent* GetVisualsComponent() { return VisualsComponent; }
 
+	// Contract: callers only exist for units whose definition includes a charge component.
+	UUnitChargeComponent& GetCharges() const;
+
+	// A weapon is usable unless it has a charge cost this unit can't currently pay.
+	bool CanUseWeapon(const UWeapon& Weapon) const;
+	// Returns what was paid (invalid Tag when the weapon is free).
+	FUnitChargeCost PayWeaponCost(const UWeapon& Weapon);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UUnitVisualsComponent> VisualsComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -237,6 +247,7 @@ private:
 	FUnitGridMetadata GridMetadata;
 	void NotifyOrientationChanged(); // Only UGridDataManager (friend) may call this.
 	void InitializeWeapons(const UUnitDefinition* Definition);
+	void InitializeComponents(const UUnitDefinition* Definition);
 };
 
 typedef TArray<TObjectPtr<AUnit>> FUnitArray;

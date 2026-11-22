@@ -191,6 +191,12 @@ UPresentationSequence* UTacticalPresentationBuilder::Build_Implementation(FGuid 
 				continue;
 			}
 
+			if (Step.GetPtr<FTacLogChargeStep>())
+			{
+				// TODO: no presentation yet - UUnitChargePanel follows the component's OnChargeChanged live.
+				continue;
+			}
+
 			if (Step.GetPtr<FTacLogStatAltStep>())
 			{
 				// TODO: no presentation yet - visualized via the accompanying EffectSpawnStep instead.

@@ -9,6 +9,8 @@
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridMovementService.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 #include "GameMechanics/Units/Abilities/AbilityInventoryComponent.h"
+#include "GameMechanics/Units/Components/UnitChargeComponent.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameplayTypes/AbilityTypesLibrary.h"
 
 FGameplayTagContainer UUnitAbility::GetTags() const
@@ -32,7 +34,7 @@ void UUnitAbility::InitializeFromDefinition(UUnitAbilityDefinition* InDefinition
 	Owner = InOwner;
 	if (Config)
 	{
-		RemainingCharges = Config->MaxCharges;
+		RemainingUses = Config->MaxUses;
 	}
 }
 
@@ -59,7 +61,7 @@ bool UUnitAbility::IsPassive() const
 
 void UUnitAbility::HandleTurnEnd()
 {
-	RestoreCharges();
+	RestoreUses();
 }
 
 void UUnitAbility::ChangeSelection(bool bIsSelected)
@@ -67,25 +69,25 @@ void UUnitAbility::ChangeSelection(bool bIsSelected)
 	bIsCurrent = bIsSelected;
 }
 
-void UUnitAbility::ConsumeCharge()
+void UUnitAbility::ConsumeUse()
 {
-	if (RemainingCharges > 0)
+	if (RemainingUses > 0)
 	{
-		RemainingCharges--;
+		RemainingUses--;
 	}
 }
 
-void UUnitAbility::RestoreCharges()
+void UUnitAbility::RestoreUses()
 {
 	if (Config)
 	{
-		RemainingCharges = Config->MaxCharges;
+		RemainingUses = Config->MaxUses;
 	}
 }
 
 void UUnitAbility::BroadcastUsage() const
 {
-	OnAbilityUsed.Broadcast(RemainingCharges, CanExecute());
+	OnAbilityUsed.Broadcast(RemainingUses, CanExecute());
 }
 
 FString UUnitAbility::GetDebugString() const
@@ -93,8 +95,8 @@ FString UUnitAbility::GetDebugString() const
 	if (!Config)
 		return TEXT("<no config> [?/?] explicit:no");
 	return FString::Printf(TEXT("%s [%d/%d] explicit:%s"),
-		*Config->AbilityName, RemainingCharges, Config->MaxCharges,
-		HasExplicitCharges() ? TEXT("yes") : TEXT("no"));
+		*Config->AbilityName, RemainingUses, Config->MaxUses,
+		HasExplicitUses() ? TEXT("yes") : TEXT("no"));
 }
 
 FAbilityDisplayData UUnitAbility::GetAbilityDisplayData() const
@@ -106,8 +108,8 @@ FAbilityDisplayData UUnitAbility::GetAbilityDisplayData() const
 	}
 	DisplayData.AbilityName = Config->AbilityName;
 	DisplayData.Icon = Config->Icon;
-	DisplayData.RemainingCharges = RemainingCharges;
-	DisplayData.MaxCharges = Config->MaxCharges;
+	DisplayData.RemainingUses = RemainingUses;
+	DisplayData.MaxUses = Config->MaxUses;
 	DisplayData.bIsEmpty = false;
 	DisplayData.bCanExecuteThisTurn = CanExecute();
 	DisplayData.TargetingInfo = UAbilityTypesLibrary::TargetReachToString(Config->Targeting);
@@ -198,3 +200,14 @@ void UUnitAbility::SetCompletionTag() const
 			Context->AddTag(Config->CompletionTag.ConditionalTag, Config->CompletionTag.bIsPersistent);
 }
 
+
+void UUnitAbility::AppendChargeStep(TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps, const FGameplayTag& ChargeTag,
+                                    int32 Delta) const
+{
+	if (!ChargeTag.IsValid())
+	{
+		return;
+	}
+	OutSteps.Add(TInstancedStruct<FTacLogStepBase>::Make<FTacLogChargeStep>(
+		FTacLogChargeStep::Make(Owner->GetUnitID(), ChargeTag, Delta, Owner->GetCharges().GetCharge(ChargeTag))));
+}

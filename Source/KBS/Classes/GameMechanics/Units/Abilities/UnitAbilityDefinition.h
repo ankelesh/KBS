@@ -37,7 +37,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	TObjectPtr<UTexture2D> Icon;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
-	int32 MaxCharges = 1;
+	int32 MaxUses = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	ETargetReach Targeting = ETargetReach::AnyEnemy;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")

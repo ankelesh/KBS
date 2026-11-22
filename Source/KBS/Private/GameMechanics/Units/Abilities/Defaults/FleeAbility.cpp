@@ -27,7 +27,7 @@ FAbilityExecutionResult UFleeAbility::Execute(FTacCoordinates TargetCell)
 		FTacLogFleeStep::Make(Owner->GetUnitID(), Owner->GetGridMetadata().Coords, Owner->GetTeamSide())));
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
-	ConsumeCharge();
+	ConsumeUse();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
@@ -40,7 +40,7 @@ bool UFleeAbility::CanExecute(FTacCoordinates TargetCell) const
 bool UFleeAbility::CanExecute() const
 {
 	check(Owner);
-	return OwnerCanAct() && CanActByContext() && RemainingCharges > 0;
+	return OwnerCanAct() && CanActByContext() && RemainingUses > 0;
 }
 
 void UFleeAbility::HandleTurnStarted(AUnit* Unit)

@@ -9,6 +9,7 @@ void UUnitChargeComponent::InitializeFromConfig(const FUnitChargeComponentConfig
 		ChargePool.Add(Entry.Tag, StartValue);
 		ChargeCaps.Add(Entry.Tag, Entry.CounterMax);
 		ChargeNames.Add(Entry.Tag, Entry.DisplayName);
+		ChargeIcons.Add(Entry.Tag, Entry.Icon);
 	}
 }
 
@@ -60,5 +61,29 @@ TArray<FGameplayTag> UUnitChargeComponent::GetTrackedTags() const
 int32 UUnitChargeComponent::GetCharge(const FGameplayTag& Tag) const
 {
 	const int32* Current = ChargePool.Find(Tag);
-	return Current ? *Current : 0;
+	checkf(Current, TEXT("UUnitChargeComponent::GetCharge - Tag not registered: %s"), *Tag.ToString());
+	return *Current;
+}
+
+int32 UUnitChargeComponent::GetChargeCap(const FGameplayTag& Tag) const
+{
+	const int32* Cap = ChargeCaps.Find(Tag);
+	checkf(Cap, TEXT("UUnitChargeComponent::GetChargeCap - Tag not registered: %s"), *Tag.ToString());
+	return *Cap;
+}
+
+bool UUnitChargeComponent::HasCharge(const FGameplayTag& Tag, int32 Amount) const
+{
+	return GetCharge(Tag) >= Amount;
+}
+
+bool UUnitChargeComponent::IsFull(const FGameplayTag& Tag) const
+{
+	return GetCharge(Tag) >= GetChargeCap(Tag);
+}
+
+TSoftObjectPtr<UTexture2D> UUnitChargeComponent::GetChargeIcon(const FGameplayTag& Tag) const
+{
+	const TSoftObjectPtr<UTexture2D>* Icon = ChargeIcons.Find(Tag);
+	return Icon ? *Icon : TSoftObjectPtr<UTexture2D>();
 }

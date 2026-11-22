@@ -70,7 +70,7 @@ private:
 
 // Positive stat (min=0, no max)
 USTRUCT(BlueprintType)
-struct FUnitStatPositive
+struct KBS_API FUnitStatPositive
 {
 	GENERATED_BODY()
 

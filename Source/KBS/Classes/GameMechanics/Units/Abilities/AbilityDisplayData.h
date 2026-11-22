@@ -10,9 +10,9 @@ struct KBS_API FAbilityDisplayData
 	UPROPERTY(BlueprintReadWrite, Category = "Ability Display")
 	TObjectPtr<UTexture2D> Icon = nullptr;
 	UPROPERTY(BlueprintReadWrite, Category = "Ability Display")
-	int32 RemainingCharges = 0;
+	int32 RemainingUses = 0;
 	UPROPERTY(BlueprintReadWrite, Category = "Ability Display")
-	int32 MaxCharges = -1;
+	int32 MaxUses = -1;
 	UPROPERTY(BlueprintReadWrite, Category = "Ability Display")
 	bool bCanExecuteThisTurn = false;
 	UPROPERTY(BlueprintReadWrite, Category = "Ability Display")

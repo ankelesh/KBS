@@ -45,7 +45,7 @@ FAbilityExecutionResult UMovementAbility::Execute(FTacCoordinates TargetCell)
 		FTacLogMoveStep::Make(Owner->GetUnitID(), FromCoords, TargetCell, MoveDef->bIsAnimated)));
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
-	ConsumeCharge();
+	ConsumeUse();
 	SetCompletionTag();
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
@@ -53,7 +53,7 @@ FAbilityExecutionResult UMovementAbility::Execute(FTacCoordinates TargetCell)
 bool UMovementAbility::CanExecute(FTacCoordinates TargetCell) const
 {
 	check(Owner);
-	if (RemainingCharges <= 0) return false;
+	if (RemainingUses <= 0) return false;
 	if (!CanActByContext()) return false;
 	if (!Owner->GetStats().Status.CanMove()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();
@@ -64,7 +64,7 @@ bool UMovementAbility::CanExecute(FTacCoordinates TargetCell) const
 bool UMovementAbility::CanExecute() const
 {
 	check(Owner);
-	if (!RemainingCharges) return false;
+	if (!RemainingUses) return false;
 	if (!CanActByContext()) return false;
 	if (!Owner->GetStats().Status.CanMove()) return false;
 	UTacGridTargetingService* TargetingService = GetTargetingService();

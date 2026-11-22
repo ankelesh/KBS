@@ -88,14 +88,14 @@ FAbilityExecutionResult UOffensiveSpellAbility::Execute(FTacCoordinates TargetCe
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
 	SetCompletionTag();
-	ConsumeCharge();
+	ConsumeUse();
 
 	return FAbilityExecutionResult::MakeOk(DecideTurnRelease());
 }
 
 bool UOffensiveSpellAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
+	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
@@ -104,7 +104,7 @@ bool UOffensiveSpellAbility::CanExecute(FTacCoordinates TargetCell) const
 
 bool UOffensiveSpellAbility::CanExecute() const
 {
-	if (!Owner || RemainingCharges <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
+	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);

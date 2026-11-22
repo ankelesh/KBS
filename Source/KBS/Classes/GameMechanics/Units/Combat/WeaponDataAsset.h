@@ -48,6 +48,14 @@ struct FWeaponData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	EDescriptorOverridePolicy OverridePolicy = EDescriptorOverridePolicy::AssetOnly;
 
+	// Optional resource spent per attack; the unit can't use this weapon while it can't afford it.
+	// Requires UUnitChargeComponent on the owner with this tag registered.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Charges")
+	FGameplayTag ChargeTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Charges", meta = (ClampMin = "1"))
+	int32 ChargeCost = 1;
+
 	// Sentinel: -1 (ignored). When set, overrides BaseMagnitude from any source after merge.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Descriptor")
 	int32 DamageOverride = -1;
