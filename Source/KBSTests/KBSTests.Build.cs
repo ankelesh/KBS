@@ -15,7 +15,8 @@ public class KBSTests : ModuleRules
 
         PrivateDependencyModuleNames.AddRange(new string[] 
         {
-            "KBS"
+            "KBS",
+            "GameplayTags"
         });
         if (Target.Configuration != UnrealTargetConfiguration.Shipping)
         {

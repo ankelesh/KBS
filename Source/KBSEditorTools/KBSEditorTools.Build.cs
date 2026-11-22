@@ -8,6 +8,6 @@ public class KBSEditorTools : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "Json" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "Json", "StructUtils" });
 	}
 }

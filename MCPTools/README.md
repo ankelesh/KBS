@@ -50,7 +50,8 @@ Every function returns a result with `.success`, `.message` (`WOULD ...` / `APPL
 r = unreal.KBSAssetToolsLibrary.set_property_text("/Game/_KBS/_MCPToolsTest/DA_New", "data.base_stats.accuracy_multiplier", "1.5", False, False)
 print(r.success, r.message)   # (asset_path, property_path, value_text, apply, save_asset); apply=False is a dry run
 ```
-Functions: `is_writable_path`, `get_property_text`, `set_property_text`, `get_container_num`, `array_append/insert/remove_at/clear`, `set_add/set_remove`, `map_set/map_remove`, `dump_asset_json`, `dump_asset_text`, `validate_asset`. All mutating ones take `(..., apply, save_asset)`, change nothing unless `apply` is true, save only the touched package, and refuse anything outside `/Game/_KBS/` (also in dry run).
+`set_instanced_struct(asset, property_path, struct_path, fields_text, apply, save)` sets an `FInstancedStruct` property (text import of those is silently dropped by `set_property_text`), e.g. `component_entries[0].config`, `/Script/KBS.UnitChargeComponentConfig`, `(Entries=((Tag=(TagName="X"),CounterMax=1)))`.
+Functions: `is_writable_path`, `get_property_text`, `set_property_text`, `set_instanced_struct`, `get_container_num`, `array_append/insert/remove_at/clear`, `set_add/set_remove`, `map_set/map_remove`, `dump_asset_json`, `dump_asset_text`, `validate_asset`. All mutating ones take `(..., apply, save_asset)`, change nothing unless `apply` is true, save only the touched package, and refuse anything outside `/Game/_KBS/` (also in dry run).
 
 ## Property path syntax
 `data.base_stats.accuracy_multiplier` (struct members), `effects[2].magnitude` (array element), `Map["key"]` (map value; key as UE text, quotes optional). Names are matched case-insensitively with underscores ignored, so snake_case (`guaranteed_hit`), `bGuaranteedHit` and `GuaranteedHit` are equivalent. Descending through a hard/instanced object reference works (`weapon.damage`).

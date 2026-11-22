@@ -48,6 +48,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "KBS|EditorTools")
 	static FKBSToolResult SetPropertyText(const FString& AssetPath, const FString& PropertyPath, const FString& ValueText, bool bApply, bool bSaveAsset);
 
+	/** Sets an FInstancedStruct property to a new instance of StructPath (e.g. "/Script/KBS.UnitChargeComponentConfig"),
+	 *  with FieldsText as plain struct text "(Entries=(...))" (empty = defaults). */
+	UFUNCTION(BlueprintCallable, Category = "KBS|EditorTools")
+	static FKBSToolResult SetInstancedStruct(const FString& AssetPath, const FString& PropertyPath, const FString& StructPath, const FString& FieldsText, bool bApply, bool bSaveAsset);
+
 	UFUNCTION(BlueprintCallable, Category = "KBS|EditorTools")
 	static FKBSToolResult GetContainerNum(const FString& AssetPath, const FString& PropertyPath);
 

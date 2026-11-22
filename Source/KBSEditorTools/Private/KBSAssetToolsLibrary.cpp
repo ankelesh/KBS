@@ -7,6 +7,9 @@
 #include "Logging/TokenizedMessage.h"
 #include "Misc/DataValidation.h"
 #include "Misc/PackageName.h"
+#include "Misc/OutputDeviceNull.h"
+#include "Misc/StringOutputDevice.h"
+#include "StructUtils/InstancedStruct.h"
 
 namespace
 {
@@ -236,6 +239,48 @@ FKBSToolResult UKBSAssetToolsLibrary::SetPropertyText(const FString& AssetPath, 
 			if (bCommit)
 			{
 				Resolved.ValueProperty->CopyCompleteValue(Resolved.ValuePtr, Scratch.Get());
+			}
+			return true;
+		});
+}
+
+FKBSToolResult UKBSAssetToolsLibrary::SetInstancedStruct(const FString& AssetPath, const FString& PropertyPath, const FString& StructPath, const FString& FieldsText, bool bApply, bool bSaveAsset)
+{
+	return RunMutation(AssetPath, PropertyPath, bApply, bSaveAsset, EPropertyChangeType::ValueSet,
+		[&](const FKBSResolvedProperty& Resolved, bool bCommit, FString& OutSummary, FString& OutError)
+		{
+			const FStructProperty* StructProp = CastField<FStructProperty>(Resolved.ValueProperty);
+			if (!StructProp || StructProp->Struct != TBaseStructure<FInstancedStruct>::Get())
+			{
+				OutError = FString::Printf(TEXT("'%s' is not an FInstancedStruct"), *PropertyPath);
+				return false;
+			}
+			UScriptStruct* Struct = FindObject<UScriptStruct>(nullptr, *StructPath);
+			if (!Struct)
+			{
+				OutError = FString::Printf(TEXT("struct '%s' not found"), *StructPath);
+				return false;
+			}
+
+			FInstancedStruct NewValue;
+			NewValue.InitializeAs(Struct);
+			if (!FieldsText.IsEmpty())
+			{
+				FStringOutputDevice Errors;
+				const TCHAR* End = Struct->ImportText(*FieldsText, NewValue.GetMutableMemory(), Resolved.Owner, PPF_None, &Errors, Struct->GetName());
+				if (!End)
+				{
+					OutError = FString::Printf(TEXT("cannot import '%s' as %s (%s)"), *FieldsText, *Struct->GetName(), *Errors.TrimStartAndEnd());
+					return false;
+				}
+			}
+
+			FString NewText;
+			Struct->ExportText(NewText, NewValue.GetMemory(), nullptr, Resolved.Owner, PPF_None, nullptr);
+			OutSummary = FString::Printf(TEXT("set %s: -> %s%s"), *PropertyPath, *Struct->GetName(), *NewText);
+			if (bCommit)
+			{
+				*static_cast<FInstancedStruct*>(Resolved.ValuePtr) = NewValue;
 			}
 			return true;
 		});
