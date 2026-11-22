@@ -119,13 +119,14 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 		return;
 	}
 
+	TurnProcessing = ETurnProcessingSubstate::EAwaitingPresentationState;
 	if (ParentTurnSubsystem->PresentPendingSlice())
 	{
 		UE_LOG(LogKBSTurn, Log, TEXT("Awaiting presentation"));
-		TurnProcessing = ETurnProcessingSubstate::EAwaitingPresentationState;
 	}
 	else
 	{
+		TurnProcessing = ETurnProcessingSubstate::EProcessingEndState;
 		CheckAbilitiesAndSetupTurn();
 	}
 }

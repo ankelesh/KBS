@@ -27,6 +27,7 @@ public:
 	bool IsReadyForStart() const { return bTurnReadyForStart && bGridReadyForStart; }
 
 	void StartBattle();
+	bool HasBattleStarted() const { return bBattleStarted; }
 private:
 	bool bGridReadyForStart;
 	bool bTurnReadyForStart;

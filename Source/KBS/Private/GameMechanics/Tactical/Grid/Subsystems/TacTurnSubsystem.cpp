@@ -162,7 +162,6 @@ void UTacTurnSubsystem::AttemptTransition(int32 Depth)
 	{
 		if (PresentPendingSlice())
 		{
-			bAwaitingPresentation = true;
 			return;
 		}
 		TransitionToState(ETurnState::EBattleEndState);
@@ -180,7 +179,6 @@ void UTacTurnSubsystem::AttemptTransition(int32 Depth)
 	// Free to transition - present whatever the state's Enter() appended, then do ONE transition
 	if (PresentPendingSlice())
 	{
-		bAwaitingPresentation = true;
 		return;
 	}
 
@@ -244,6 +242,8 @@ bool UTacTurnSubsystem::PresentPendingSlice()
 
 	if (Seq && Seq->Actions.Num() > 0)
 	{
+		// Set before Play: a sequence of synchronous actions completes (and clears the flag) inside Play.
+		bAwaitingPresentation = true;
 		UPresentationSequencePlayer* Player = UPresentationSequencePlayer::Get(this);
 		Player->EnqueueSequence(Seq);
 		Player->Play();
