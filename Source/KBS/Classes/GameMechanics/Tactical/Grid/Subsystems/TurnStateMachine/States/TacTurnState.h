@@ -56,6 +56,7 @@ protected:
 	void BroadcastRoundEnd();
 	void BroadcastTurnEnd();
 	void BroadcastTurnStart();
+	void BroadcastBattleStart();
 	void BroadcastBattleEnd();
 	UTacAICombatService* GetAIService();
 	bool CheckWinCondition() const;

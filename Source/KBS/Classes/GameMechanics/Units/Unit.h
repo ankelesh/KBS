@@ -20,6 +20,8 @@ class UAbilityInventoryComponent;
 class UUnitVisualsComponent;
 class UWeapon;
 class UUnitChargeComponent;
+class UUnitActionHistoryComponent;
+struct FUnitInstantChange;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitClicked, AUnit*, ClickedUnit, FKey, ButtonPressed);
 
@@ -164,6 +166,8 @@ public:
 	void HandleHit(const FDamageResult& Result, AUnit* Attacker, bool Emits = true);
 	void ChangeUnitHP(int32 Delta, bool Emits = true);
 	void ConsumeWard(EDamageSource Source, bool Emits = true);
+	// Returns the health actually gained (after the max-health clamp).
+	int32 ApplyInstantChange(const FUnitInstantChange& Change, bool Emits = true);
 	EEffectApplicationOutcome ApplyEffect(UBattleEffect* Effect, bool Emits = true);
 	void NotifyEffectTriggered(UBattleEffect* Effect);
 	void HandleDeath(bool Emits = true);
@@ -216,6 +220,8 @@ public:
 
 	// Contract: callers only exist for units whose definition includes a charge component.
 	UUnitChargeComponent& GetCharges() const;
+	// Contract: callers only exist for units whose definition includes an action history component.
+	UUnitActionHistoryComponent& GetActionHistory() const;
 
 	// A weapon is usable unless it has a charge cost this unit can't currently pay.
 	bool CanUseWeapon(const UWeapon& Weapon) const;

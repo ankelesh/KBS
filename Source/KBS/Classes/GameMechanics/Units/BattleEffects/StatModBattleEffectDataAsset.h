@@ -19,4 +19,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
 	FUnitStatDelta Delta;
+
+	// Delta's Combat fields apply only to the owner's weapons whose damage sources include any of these; empty = all weapons.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
+	TSet<EDamageSource> WeaponSourceFilter;
 };

@@ -52,8 +52,7 @@ void UCurrentUnitPanel::NativeConstruct()
 	{
 		if (PassiveAbilitySlotClass && PassiveAbilitySlotContainer)
 		{
-			UPassiveAbilitySlot* PaSlot = CreateWidget<UPassiveAbilitySlot>(this, PassiveAbilitySlotClass);
-			if (PaSlot)
+			if (UPassiveAbilitySlot* PaSlot = CreateWidget<UPassiveAbilitySlot>(this, PassiveAbilitySlotClass))
 			{
 				PassiveAbilitySlotContainer->AddChild(PaSlot);
 				PaSlot->Clear(); // Start collapsed
@@ -138,6 +137,11 @@ void UCurrentUnitPanel::OnHealthChanged(AUnit* Unit, int32 NewHealth)
 	}
 }
 
+void UCurrentUnitPanel::OnEffectsChanged()
+{
+	RefreshEffects(CurrentUnit);
+}
+
 void UCurrentUnitPanel::OnPortraitClicked()
 {
 	// Right-click on portrait invokes unit details popup
@@ -160,6 +164,7 @@ void UCurrentUnitPanel::RefreshPanel(AUnit* Unit)
 
 	// Bind to unit events
 	CurrentUnit->OnHealthChanged.AddDynamic(this, &UCurrentUnitPanel::OnHealthChanged);
+	CurrentUnit->EffectManager->OnActiveEffectsChanged.AddDynamic(this, &UCurrentUnitPanel::OnEffectsChanged);
 
 	// Refresh all sections
 	RefreshPortrait(Unit);
@@ -178,8 +183,7 @@ void UCurrentUnitPanel::RefreshPortrait(AUnit* Unit)
 		return;
 	}
 
-	UUnitVisualDefinition* VisualDef = Unit->GetActiveVisualDefinition();
-	if (VisualDef && VisualDef->Portrait)
+	if (const UUnitVisualDefinition* VisualDef = Unit->GetActiveVisualDefinition(); VisualDef && VisualDef->Portrait)
 	{
 		UnitPortraitImage->SetBrushFromTexture(VisualDef->Portrait);
 	}
@@ -196,22 +200,22 @@ void UCurrentUnitPanel::RefreshStats(AUnit* Unit)
 		return;
 	}
 
-	FUnitCoreStats& Stats = Unit->GetStats();
+	const FUnitCoreStats& Stats = Unit->GetStats();
 
 	// Update unit name
 	if (UnitNameText)
 	{
-		UUnitDefinition* UnitDef = Unit->GetUnitDefinition();
-		FString Name = UnitDef ? UnitDef->UnitName : TEXT("Unknown");
+		const UUnitDefinition* UnitDef = Unit->GetUnitDefinition();
+		const FString Name = UnitDef ? UnitDef->UnitName : TEXT("Unknown");
 		UnitNameText->SetText(FText::FromString(Name));
 	}
 
 	// Update HP (current/max)
-	int32 CurrentHP = Stats.Health.GetCurrent();
-	int32 MaxHP = Stats.Health.GetMaximum();
+	const int32 CurrentHP = Stats.Health.GetCurrent();
+	const int32 MaxHP = Stats.Health.GetMaximum();
 	if (HealthText)
 	{
-		FString HPString = FString::Printf(TEXT("%d / %d"), CurrentHP, MaxHP);
+		const FString HPString = FString::Printf(TEXT("%d / %d"), CurrentHP, MaxHP);
 		HealthText->SetText(FText::FromString(HPString));
 	}
 
@@ -221,7 +225,7 @@ void UCurrentUnitPanel::RefreshStats(AUnit* Unit)
 	// Update Initiative
 	if (InitiativeText)
 	{
-		int32 Initiative = Stats.Initiative.GetValue();
+		const int32 Initiative = Stats.Initiative.GetValue();
 		InitiativeText->SetText(FText::AsNumber(Initiative));
 	}
 }
@@ -233,27 +237,20 @@ void UCurrentUnitPanel::RefreshEffects(AUnit* Unit)
 		return;
 	}
 
-	UBattleEffectComponent* EffectManager = Unit->EffectManager;
-	if (!EffectManager)
-	{
-		return;
-	}
-
-	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects = EffectManager->GetActiveEffects();
+	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects = Unit->EffectManager->GetActiveEffects();
 
 	// Ensure we have enough slots (up to MAX_EFFECT_SLOTS)
-	int32 NumNeeded = FMath::Min(ActiveEffects.Num(), MAX_EFFECT_SLOTS);
+	const int32 NumNeeded = FMath::Min(ActiveEffects.Num(), MAX_EFFECT_SLOTS);
 	while (EffectSlots.Num() < NumNeeded)
 	{
-		if (BattleEffectSlotClass)
+		UBattleEffectSlot* NewSlot = BattleEffectSlotClass ? CreateWidget<UBattleEffectSlot>(this, BattleEffectSlotClass) : nullptr;
+		if (!NewSlot)
 		{
-			UBattleEffectSlot* NewSlot = CreateWidget<UBattleEffectSlot>(this, BattleEffectSlotClass);
-			if (NewSlot)
-			{
-				EffectSlotContainer->AddChild(NewSlot);
-				EffectSlots.Add(NewSlot);
-			}
+			UE_LOG(LogTemp, Error, TEXT("CurrentUnitPanel: cannot create effect slot (BattleEffectSlotClass unset or creation failed)"));
+			break;
 		}
+		EffectSlotContainer->AddChild(NewSlot);
+		EffectSlots.Add(NewSlot);
 	}
 
 	// Setup slots with effects (slots auto-clear when effect is removed)
@@ -280,27 +277,20 @@ void UCurrentUnitPanel::RefreshPassiveAbilities(AUnit* Unit)
 		return;
 	}
 
-	UAbilityInventoryComponent* AbilityInventory = Unit->GetAbilityInventory();
-	if (!AbilityInventory)
-	{
-		return;
-	}
-
-	TArray<UUnitAbility*> PassiveAbilities = AbilityInventory->GetPassiveAbilities();
+	TArray<UUnitAbility*> PassiveAbilities = Unit->GetAbilityInventory()->GetPassiveAbilities();
 
 	// Ensure we have enough slots (up to MAX_PASSIVE_SLOTS)
-	int32 NumNeeded = FMath::Min(PassiveAbilities.Num(), MAX_PASSIVE_SLOTS);
+	const int32 NumNeeded = FMath::Min(PassiveAbilities.Num(), MAX_PASSIVE_SLOTS);
 	while (PassiveAbilitySlots.Num() < NumNeeded)
 	{
-		if (PassiveAbilitySlotClass)
+		UPassiveAbilitySlot* NewSlot = PassiveAbilitySlotClass ? CreateWidget<UPassiveAbilitySlot>(this, PassiveAbilitySlotClass) : nullptr;
+		if (!NewSlot)
 		{
-			UPassiveAbilitySlot* NewSlot = CreateWidget<UPassiveAbilitySlot>(this, PassiveAbilitySlotClass);
-			if (NewSlot)
-			{
-				PassiveAbilitySlotContainer->AddChild(NewSlot);
-				PassiveAbilitySlots.Add(NewSlot);
-			}
+			UE_LOG(LogTemp, Error, TEXT("CurrentUnitPanel: cannot create passive slot (PassiveAbilitySlotClass unset or creation failed)"));
+			break;
 		}
+		PassiveAbilitySlotContainer->AddChild(NewSlot);
+		PassiveAbilitySlots.Add(NewSlot);
 	}
 
 	// Setup slots with abilities
@@ -325,5 +315,6 @@ void UCurrentUnitPanel::UnbindFromCurrentUnit()
 	if (CurrentUnit)
 	{
 		CurrentUnit->OnHealthChanged.RemoveDynamic(this, &UCurrentUnitPanel::OnHealthChanged);
+		CurrentUnit->EffectManager->OnActiveEffectsChanged.RemoveDynamic(this, &UCurrentUnitPanel::OnEffectsChanged);
 	}
 }

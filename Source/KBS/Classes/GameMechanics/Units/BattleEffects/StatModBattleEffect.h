@@ -19,6 +19,8 @@ protected:
 	UStatModBattleEffectDataAsset* GetStatModConfig() const { return Cast<UStatModBattleEffectDataAsset>(Config); }
 	void ApplyStatModifications();
 	void RemoveStatModifications();
+	void ApplyWeaponModifications();
+	void RemoveWeaponModifications();
 
 	UPROPERTY()
 	FUnitStatDelta AppliedDelta;

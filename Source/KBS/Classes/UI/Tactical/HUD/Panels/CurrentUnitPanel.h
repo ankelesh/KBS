@@ -83,6 +83,9 @@ private:
 	void OnHealthChanged(AUnit* Unit, int32 NewHealth);
 
 	UFUNCTION()
+	void OnEffectsChanged();
+
+	UFUNCTION()
 	void OnPortraitClicked();
 
 	void RefreshPanel(AUnit* Unit);

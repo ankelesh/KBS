@@ -2,11 +2,6 @@
 #include "GameMechanics/Units/Components/Config/UnitActionHistoryCmpConfig.h"
 #include "GameMechanics/Units/Abilities/UnitAbility.h"
 #include "GameMechanics/Units/Unit.h"
-#include "GameMechanics/Units/Combat/CombatDescriptor.h"
-#include "GameMechanics/Units/Combat/CombatDescriptorDataAsset.h"
-#include "GameMechanics/Tactical/Grid/Subsystems/TacCombatSubsystem.h"
-#include "GameMechanics/Tactical/Grid/Subsystems/TacGridSubsystem.h"
-#include "GameMechanics/Tactical/Grid/Subsystems/Services/TacGridTargetingService.h"
 
 void UUnitActionHistoryComponent::BeginPlay()
 {
@@ -14,59 +9,34 @@ void UUnitActionHistoryComponent::BeginPlay()
 	AUnit* OwnerUnit = Cast<AUnit>(GetOwner());
 	checkf(OwnerUnit, TEXT("UUnitActionHistoryComponent must be attached to AUnit"));
 	OwnerUnit->OnUnitAbilityUsed.AddDynamic(this, &UUnitActionHistoryComponent::OnAbilityUsed);
-
-	CombatSubsystem = GetWorld()->GetSubsystem<UTacCombatSubsystem>();
-	checkf(CombatSubsystem, TEXT("UTacCombatSubsystem not found"));
-
-	UTacGridSubsystem* GridSubsystem = GetWorld()->GetSubsystem<UTacGridSubsystem>();
-	checkf(GridSubsystem, TEXT("UTacGridSubsystem not found"));
-	TargetingService = GridSubsystem->GetGridTargetingService();
 }
 
 void UUnitActionHistoryComponent::InitializeFromConfig(const FUnitActionHistoryCmpConfig& Config)
 {
-	ExampleSequence = Config.TargetSequence;
-
-	for (const auto& [Tag, Asset] : Config.TagToDescriptorMap)
+	for (const FGameplayTag& Step : Config.TargetSequence)
 	{
-		UCombatDescriptor* Descriptor = NewObject<UCombatDescriptor>(this);
-		Descriptor->Initialize(this, Asset->Data);
-		TagToDescriptorMap.Add(Tag, Descriptor);
+		checkf(Config.TrackedActions.Contains(Step), TEXT("Action history: sequence step '%s' is not a tracked action"),
+		       *Step.ToString());
 	}
-}
-
-bool UUnitActionHistoryComponent::LastActionHasTag(const FGameplayTag& Tag) const
-{
-	return LastActionTags.HasTag(Tag);
-}
-
-bool UUnitActionHistoryComponent::IsSequenceComplete() const
-{
-	return ExampleSequence.Num() > 0 && CurrentSequenceStep == ExampleSequence.Num();
-}
-
-void UUnitActionHistoryComponent::ResetSequence()
-{
-	CurrentSequenceStep = 0;
+	TrackedActions = Config.TrackedActions;
+	Tracker.Init(Config.TargetSequence);
 }
 
 void UUnitActionHistoryComponent::OnAbilityUsed(AUnit* Unit, UUnitAbility* Ability)
 {
-	LastActionTags = Ability->GetTags();
+	if (Unit->IsDead())
+		return;
 
-	for (auto It = LastActionTags.CreateConstIterator(); It; ++It)
+	const FGameplayTagContainer AbilityTags = Ability->GetTags();
+	const FGameplayTag* Action = TrackedActions.FindByPredicate([&AbilityTags](const FGameplayTag& Tracked)
 	{
-		if (auto const* Descriptor = TagToDescriptorMap.Find(*It))
-		{
-			TArray<AUnit*> Targets = TargetingService->GetValidTargetUnits(Unit, (*Descriptor)->GetTargeting());
-			CombatSubsystem->ResolveReactionAttack(Unit, Targets, *Descriptor);
-			break;
-		}
-	}
+		return AbilityTags.HasTag(Tracked);
+	});
+	if (!Action)
+		return;
 
-	if (IsSequenceComplete()) return;
-	if (CurrentSequenceStep >= ExampleSequence.Num()) return;
-
-	if (LastActionTags.HasTag(ExampleSequence[CurrentSequenceStep]))
-		CurrentSequenceStep++;
+	const FActionSequenceTracker::FResult Result = Tracker.Record(*Action);
+	OnActionRecorded.Broadcast(*Action, Result.bChangedFromPrevious);
+	if (Result.bCompleted)
+		OnSequenceCompleted.Broadcast();
 }

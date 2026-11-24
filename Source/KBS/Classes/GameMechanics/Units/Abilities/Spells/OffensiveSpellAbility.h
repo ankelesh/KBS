@@ -4,6 +4,7 @@
 #include "OffensiveSpellAbility.generated.h"
 
 class UCombatDescriptor;
+struct FResolvedTargets;
 
 UCLASS(Blueprintable)
 class KBS_API UOffensiveSpellAbility : public UUnitAbility
@@ -21,10 +22,15 @@ public:
 	virtual FTargetingDescriptor GetTargeting() const override;
 	virtual FGameplayTagContainer BuildTags() const override;
 
-private:
+protected:
+	// Runs after scaling, before preview and execution; lets a spell adjust EmbeddedDescriptor for the clicked targets.
+	virtual void AdjustDescriptorForTargets(const FResolvedTargets& Targets) const {}
+
 	// Instantiated from SpellAbilityDefinition; base damage is scaled before each use
 	UPROPERTY()
 	TObjectPtr<UCombatDescriptor> EmbeddedDescriptor;
+
+private:
 
 	void ScaleEmbeddedDescriptor() const;
 };

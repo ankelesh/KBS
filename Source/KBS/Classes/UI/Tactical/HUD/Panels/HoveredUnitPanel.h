@@ -13,7 +13,7 @@ class UHorizontalBox;
 class UButton;
 
 // Panel displaying hovered unit's portrait, stats snapshot, and effect snapshots
-// Passive/read-only: reinits when hovered unit changes, does not listen to unit events
+// Reinits when hovered unit changes; stats are a snapshot, effects follow the unit's effect list live
 UCLASS(Blueprintable)
 class KBS_API UHoveredUnitPanel : public UUserWidget
 {
@@ -64,6 +64,11 @@ protected:
 private:
 	UFUNCTION()
 	void OnPortraitRightClicked();
+
+	UFUNCTION()
+	void OnEffectsChanged();
+
+	void UnbindFromHoveredUnit();
 
 	void RefreshPanel(AUnit* Unit);
 	void RefreshPortrait(AUnit* Unit);

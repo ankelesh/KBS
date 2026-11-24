@@ -73,18 +73,7 @@ void UTargetDOTBattleEffect::OnRemoved()
 	UE_LOG(LogTemp, Log, TEXT("%s: DOT effect '%s' removed"),
 		*Owner->GetName(), *Config->Name.ToString());
 
-	if (!IsExpired()) return;
-
-	UTacLogSubsystem* LogSub = Owner->GetWorld()->GetSubsystem<UTacLogSubsystem>();
-	checkf(LogSub, TEXT("UTacLogSubsystem missing"));
-	FGuid EventId = LogSub->OpenEvent(ETacLogEventType::EffectEnd, ETacLogEventOrigin::Triggered,
-	                                  Owner->GetUnitID(), LogSub->FindLatestEvent());
-	FEffectEndPayload Payload;
-	Payload.EffectAssetId    = Config->GetPrimaryAssetId();
-	Payload.EffectInstanceId = EffectId;
-	Payload.OwnerUnitId      = Owner->GetUnitID();
-	Payload.RemovalReason    = EEffectRemovalReason::Expired;
-	LogSub->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FEffectEndPayload>(MoveTemp(Payload)));
+	LogRemoval();
 }
 
 EReapplyDecision UTargetDOTBattleEffect::HandleReapply(UBattleEffect* NewEffect)

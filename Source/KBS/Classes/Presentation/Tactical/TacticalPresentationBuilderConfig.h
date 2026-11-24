@@ -37,6 +37,9 @@ public:
 	FLinearColor WardedColor = FLinearColor(0.f, 0.8f, 0.8f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingText|Colors")
+	FLinearColor HealColor = FLinearColor::Green;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingText|Colors")
 	FLinearColor EffectSpawnPositiveColor = FLinearColor::Green;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingText|Colors")
@@ -53,6 +56,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingText|Colors")
 	FLinearColor StatusDeactivatedColor = FLinearColor::Gray;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingText|Colors")
+	FLinearColor AbilityUsedColor = FLinearColor::White;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingText|Colors")
 	FLinearColor UnitSpawnedColor = FLinearColor::White;

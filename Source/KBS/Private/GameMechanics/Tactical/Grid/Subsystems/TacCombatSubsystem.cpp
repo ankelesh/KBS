@@ -69,6 +69,7 @@ TArray<FCombatHitResult> UTacCombatSubsystem::ResolveReactionAttack(AUnit* Attac
 	{
 		return Results;
 	}
+	TGuardValue<bool> ReactionGuard(bResolvingReaction, true);
 	return ResolveAttackInternal(Context);
 }
 

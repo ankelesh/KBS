@@ -9,12 +9,18 @@
 class UBattleEffect;
 class AUnit;
 
+// Fired after ActiveEffects gained or lost an entry; the list is already updated when listeners run
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnActiveEffectsChanged);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class KBS_API UBattleEffectComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnActiveEffectsChanged OnActiveEffectsChanged;
+
 	UBattleEffectComponent();
 	virtual void BeginPlay() override;
 	EEffectApplicationOutcome AddEffect(UBattleEffect* Effect);

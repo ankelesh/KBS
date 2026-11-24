@@ -12,7 +12,8 @@ enum class EDefaultAbilitySlot : uint8
 	Move UMETA(DisplayName = "Move"),
 	Wait UMETA(DisplayName = "Wait"),
 	Defend UMETA(DisplayName = "Defend"),
-	Flee UMETA(DisplayName = "Flee")
+	Flee UMETA(DisplayName = "Flee"),
+	Count UMETA(Hidden)
 };
 
 USTRUCT(BlueprintType)
@@ -25,6 +26,16 @@ struct FAbilityResult
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bBattleEnded = false;
+};
+
+/** When an ability's uses are refilled automatically. */
+UENUM(BlueprintType)
+enum class EAbilityUsesRefresh : uint8
+{
+	// Refilled when the owner's turn ends (MaxUses = uses per turn)
+	PerTurn UMETA(DisplayName = "Per Turn"),
+	// Never refilled: MaxUses = uses per battle
+	PerBattle UMETA(DisplayName = "Per Battle")
 };
 
 UENUM()

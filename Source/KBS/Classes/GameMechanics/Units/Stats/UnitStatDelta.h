@@ -8,7 +8,7 @@ enum class EUnitStatDeltaApplyPolicy : uint8
 {
 	FlatAdd    UMETA(DisplayName = "Flat Add"),
 	Multiplier UMETA(DisplayName = "Multiplier"),
-	// Override is only meaningful for Armour; ignored by Health/Initiative/Accuracy
+	// Override is only meaningful for Armour and Initiative; ignored by Health/Accuracy
 	Override   UMETA(DisplayName = "Override"),
 };
 
@@ -39,6 +39,7 @@ struct FUnitStatDelta
 	TMap<EDamageSource, int32> ArmourDeltas;
 
 	// --- Combat descriptor stats ---
+	// Not affected by ApplyPolicy: magnitude flat and multiplier are always applied as named
 	// Applied via UCombatDescriptor::ModifyMagnitude(..., bIsFlat=true)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "-500", ClampMax = "500"))
 	int32 MagnitudeFlat = 0;
@@ -51,7 +52,7 @@ struct FUnitStatDelta
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TSet<EDamageSource> DamageSourcesToAdd;
 
-	// Overrides bGuaranteedHit on the descriptor when true
+	// Makes the descriptor skip the accuracy roll while the effect is active
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bGrantsGuaranteedHit = false;
 

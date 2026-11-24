@@ -35,6 +35,9 @@ struct FUnitStatPercent
 	void RemoveFlatModifier(const FGuid& EffectId, int32 Amount);
 	void AddMultiplier(const FGuid& EffectId, int32 Amount);
 	void RemoveMultiplier(const FGuid& EffectId, int32 Amount);
+	// Highest active override replaces the computed value; flat and multiplier modifiers are ignored while one is active.
+	void AddOverride(const FGuid& EffectId, int32 Amount);
+	void RemoveOverride(const FGuid& EffectId, int32 Amount);
 
 	int32 GetValue() const;
 	int32 GetBase() const { return Base; }
@@ -57,6 +60,9 @@ private:
 
 	UPROPERTY()
 	TArray<FInt32StatModifier> StatMultipliers;
+
+	UPROPERTY()
+	TArray<FInt32StatModifier> OverrideModifiers;
 
 	UPROPERTY()
 	mutable bool bIsDirty = false;

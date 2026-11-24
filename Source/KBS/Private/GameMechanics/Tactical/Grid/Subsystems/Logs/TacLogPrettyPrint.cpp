@@ -17,6 +17,26 @@ static FString FormatStep(const FTacLogChargeStep& S, FTacLogFormatCtx& Ctx)
 		*Ctx.Unit(S.UnitId), *S.ChargeTag.ToString(), S.Delta, S.NewValue);
 }
 
+static FString SourceName(EDamageSource Source)
+{
+	return StaticEnum<EDamageSource>()->GetNameStringByValue(static_cast<int64>(Source));
+}
+
+static FString FormatStep(const FTacLogInstantChangeStep& S, FTacLogFormatCtx& Ctx)
+{
+	FString Wards;
+	for (const EDamageSource Source : S.WardsGranted)
+		Wards += FString::Printf(TEXT(" +Ward:%s"), *SourceName(Source));
+	return FString::Printf(TEXT("- Instant %s heal %+d → HP%d%s"),
+		*Ctx.Unit(S.UnitId), S.HealApplied, S.NewHealth, *Wards);
+}
+
+static FString FormatStep(const FTacLogAbilityGrantStep& S, FTacLogFormatCtx& Ctx)
+{
+	return FString::Printf(TEXT("- Ability %s %s%s"),
+		*Ctx.Unit(S.UnitId), S.bGranted ? TEXT("+") : TEXT("-"), *Ctx.Abil(S.AbilityInstanceId, S.AbilityAssetId));
+}
+
 static FString FormatStep(const FTacLogFleeStep& S, FTacLogFormatCtx& Ctx)
 {
 	return FString::Printf(TEXT("- Flee    %s@(%d,%d) [%s]"),
@@ -41,6 +61,13 @@ static FString FormatStep(const FTacLogStatAltStep& S, FTacLogFormatCtx& Ctx)
 	if (D.Accuracy != 0)            Deltas += FString::Printf(TEXT(" Acc%+d"), D.Accuracy);
 	if (D.MagnitudeFlat != 0)       Deltas += FString::Printf(TEXT(" MagFlat%+d"), D.MagnitudeFlat);
 	if (D.MagnitudeMultiplier != 0) Deltas += FString::Printf(TEXT(" MagMul%+d"), D.MagnitudeMultiplier);
+	for (const TPair<EDamageSource, int32>& Armour : D.ArmourDeltas)
+		Deltas += FString::Printf(TEXT(" Armour:%s%+d"), *SourceName(Armour.Key), Armour.Value);
+	for (const EDamageSource Source : D.ImmunitiesToGrant)
+		Deltas += FString::Printf(TEXT(" +Immune:%s"), *SourceName(Source));
+	for (const EDamageSource Source : D.DamageSourcesToAdd)
+		Deltas += FString::Printf(TEXT(" +DmgSrc:%s"), *SourceName(Source));
+	if (D.bGrantsGuaranteedHit)     Deltas += TEXT(" +GuaranteedHit");
 	if (Deltas.IsEmpty()) Deltas = TEXT(" (no deltas)");
 
 	return FString::Printf(TEXT("- StatAlt %s→%s |%s | %s"),
@@ -122,6 +149,8 @@ static FString DispatchFormatStep(const TInstancedStruct<FTacLogStepBase>& Step,
 	if (const FTacLogWaitStep*         S = Step.GetPtr<FTacLogWaitStep>())         return FormatStep(*S, Ctx);
 	if (const FTacLogFleeStep*         S = Step.GetPtr<FTacLogFleeStep>())         return FormatStep(*S, Ctx);
 	if (const FTacLogChargeStep*       S = Step.GetPtr<FTacLogChargeStep>())       return FormatStep(*S, Ctx);
+	if (const FTacLogInstantChangeStep* S = Step.GetPtr<FTacLogInstantChangeStep>()) return FormatStep(*S, Ctx);
+	if (const FTacLogAbilityGrantStep* S = Step.GetPtr<FTacLogAbilityGrantStep>()) return FormatStep(*S, Ctx);
 	if (const FTacLogMoveStep*         S = Step.GetPtr<FTacLogMoveStep>())         return FormatStep(*S, Ctx);
 	if (const FTacLogStatAltStep*      S = Step.GetPtr<FTacLogStatAltStep>())      return FormatStep(*S, Ctx);
 	if (const FTacLogStatusChangeStep* S = Step.GetPtr<FTacLogStatusChangeStep>()) return FormatStep(*S, Ctx);
@@ -238,6 +267,7 @@ FString BuildTacLogLegend()
 		TEXT("  Removal  Expired  Dispelled  Replaced  OwnerDied\n")
 		TEXT("  |#N      event sequence position in spine\n")
 		TEXT("  Steps    Move  Combat  EffSpawn(+effect)  StatAlt(stat delta)  Status(+set/-clear)  Wait  Flee\n")
+		TEXT("           Charge(unit resource +/-)  Instant(heal / ward grant)  Ability(+granted/-removed passive)\n")
 		TEXT("  Units    TypeName-name  e.g. Warrior-alpha, Archer-beta (same type shares prefix)\n")
 		TEXT("  !! Unit death is marked [DEAD] in ALL CAPS on the hit line — search for [DEAD] to find kills !!\n")
 		TEXT("==============\n\n");

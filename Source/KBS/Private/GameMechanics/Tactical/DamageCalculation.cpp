@@ -90,6 +90,11 @@ float FDamageCalculation::CalculateEffectApplication(AUnit* Attacker, UBattleEff
 	{
 		return 0.0f;
 	}
+	const int32 ChanceOverride = Effect->GetApplicationChanceOverride();
+	if (ChanceOverride >= 0)
+	{
+		return FMath::Clamp(static_cast<float>(ChanceOverride), 0.0f, 100.0f);
+	}
 	float ApplicationChance = AttackerStats.Accuracy.GetValue();
 	return FMath::Clamp(ApplicationChance, 0.0f, 100.0f);
 }
@@ -129,7 +134,7 @@ FDamageResult FDamageCalculation::CalculateHeal(AUnit* Attacker, UCombatDescript
 	return Result;
 }
 
-UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, bool bAutoAttackOnly)
+UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, bool bAutoAttackOnly, const UWeapon* Excluded)
 {
 	if (!Unit)
 	{
@@ -142,7 +147,11 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 	}
 	if (Weapons.Num() == 1)
 	{
-		return Unit->CanUseWeapon(*Weapons[0]) ? Weapons[0]->GetDescriptor() : nullptr;
+		UWeapon* Only = Weapons[0];
+		const bool bUsable = Only != Excluded
+			&& (!bAutoAttackOnly || Only->IsUsableForAutoAttack())
+			&& Unit->CanUseWeapon(*Only);
+		return bUsable ? Only->GetDescriptor() : nullptr;
 	}
 	auto GetReachScore = [](ETargetReach Reach) -> int32
 		{
@@ -165,6 +174,7 @@ UCombatDescriptor* FDamageCalculation::SelectMaxReachDescriptor(AUnit* Unit, boo
 	int32 BestScore = -1;
 	for (UWeapon* W : Weapons)
 	{
+		if (W == Excluded) continue;
 		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
 		if (!Unit->CanUseWeapon(*W)) continue;
 		UCombatDescriptor* Descriptor = W->GetDescriptor();
@@ -239,7 +249,7 @@ bool FDamageCalculation::IsFriendlyReach(ETargetReach Reach)
 		Reach == ETargetReach::FriendlyNonBlockedCorpse;
 }
 
-UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly)
+UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly, const UWeapon* Excluded)
 {
 	check(Attacker && Target);
 
@@ -284,6 +294,7 @@ UWeapon* FDamageCalculation::SelectWeaponForTarget(AUnit* Attacker, AUnit* Targe
 	int32 BestDamage = -1;
 	for (UWeapon* W : Weapons)
 	{
+		if (W == Excluded) continue;
 		if (bAutoAttackOnly && !W->IsUsableForAutoAttack()) continue;
 		if (!Attacker->CanUseWeapon(*W)) continue;
 		UCombatDescriptor* Descriptor = W->GetDescriptor();

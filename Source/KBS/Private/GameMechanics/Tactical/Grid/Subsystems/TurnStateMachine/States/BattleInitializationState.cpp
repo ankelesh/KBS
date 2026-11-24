@@ -7,6 +7,7 @@ void FBattleInitializationState::Enter()
 
 void FBattleInitializationState::Exit()
 {
+	BroadcastBattleStart();
 }
 
 void FBattleInitializationState::PrepareUnitStats()

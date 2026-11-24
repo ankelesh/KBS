@@ -41,6 +41,7 @@ FAbilityResult UTacAbilityExecutorService::Execute(UUnitAbility* Ability, FTacCo
 	else
 	{
 		Owner->GetAbilityInventory()->ProcessTurnPolicy(ExecutionResult.Policy);
+		Owner->OnUnitAbilityUsed.Broadcast(Owner, Ability);
 	}
 
 	// Check win condition

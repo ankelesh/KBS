@@ -117,7 +117,10 @@ void UBattleEffectComponent::RemoveEffect(UBattleEffect* Effect)
 	if (Effect)
 	{
 		Effect->OnRemoved();
-		ActiveEffects.Remove(Effect);
+		if (ActiveEffects.Remove(Effect) > 0)
+		{
+			OnActiveEffectsChanged.Broadcast();
+		}
 	}
 }
 
@@ -135,6 +138,7 @@ void UBattleEffectComponent::RemoveEffect(const FGuid EffectId)
 	{
 		(*Effect)->OnRemoved();
 		ActiveEffects.RemoveSingle(*Effect);
+		OnActiveEffectsChanged.Broadcast();
 	}
 }
 
@@ -147,7 +151,9 @@ void UBattleEffectComponent::ClearAllEffects()
 			Effect->OnRemoved();
 		}
 	}
+	if (ActiveEffects.IsEmpty()) return;
 	ActiveEffects.Empty();
+	OnActiveEffectsChanged.Broadcast();
 }
 
 bool UBattleEffectComponent::HasEffectWithTag(const FGameplayTag& Tag) const
@@ -222,6 +228,7 @@ void UBattleEffectComponent::ApplyEffect(UBattleEffect* Effect)
 	ActiveEffects.Add(Effect);
 	Effect->SetOwner(GetOwnerUnit());
 	Effect->OnApplied();
+	OnActiveEffectsChanged.Broadcast();
 }
 
 void UBattleEffectComponent::ExecuteReapplyDecision(EReapplyDecision Decision, UBattleEffect* OldEffect,

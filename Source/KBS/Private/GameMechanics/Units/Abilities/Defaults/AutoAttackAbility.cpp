@@ -29,7 +29,7 @@ TMap<FTacCoordinates, FPreviewHitResult> UAutoAttackAbility::DamagePreview(FTacC
 	{
 		if (!Target) continue;
 
-		UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, Target, true);
+		UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, Target, true, GetExcludedWeapon());
 		if (!Weapon) continue;
 
 		FPreviewHitResult Preview = FDamageCalculation::PreviewDamage(Owner, ResolveAttackDescriptor(Weapon->GetDescriptor()), Target);
@@ -59,7 +59,7 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 	if (!ResolvedTargets.ClickedTarget) return FAbilityExecutionResult::MakeFail();
 
 	// Select weapon for primary target
-	UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, ResolvedTargets.ClickedTarget, true);
+	UWeapon* Weapon = FDamageCalculation::SelectWeaponForTarget(Owner, ResolvedTargets.ClickedTarget, true, GetExcludedWeapon());
 	check(Weapon);
 
 	// Execute attack through combat subsystem
@@ -79,6 +79,7 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 
 	const FUnitChargeCost PaidCost = Owner->PayWeaponCost(*Weapon);
 	AppendChargeStep(Payload.Steps, PaidCost.Tag, -PaidCost.Amount);
+	OnWeaponUsed(*Weapon);
 	OnAttackResolved(AttackDescriptor, Payload.Steps);
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FAbilityUsePayload>(MoveTemp(Payload)));
 
@@ -90,7 +91,7 @@ FAbilityExecutionResult UAutoAttackAbility::Execute(FTacCoordinates TargetCell)
 
 bool UAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 {
-	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
+	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext() || !HasUsableWeapon()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	check(TargetingService);
@@ -99,7 +100,7 @@ bool UAutoAttackAbility::CanExecute(FTacCoordinates TargetCell) const
 
 bool UAutoAttackAbility::CanExecute() const
 {
-	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext()) return false;
+	if (!Owner || RemainingUses <= 0 || !OwnerCanAct() || !CanActByContext() || !HasUsableWeapon()) return false;
 
 	UTacGridTargetingService* TargetingService = GetTargetingService();
 	if (!TargetingService) return false;
@@ -109,18 +110,25 @@ bool UAutoAttackAbility::CanExecute() const
 
 EAbilityTurnReleasePolicy UAutoAttackAbility::DecideTurnRelease() const
 {
-	if (RemainingUses > 0)
+	// Lock only when a follow-up attack is actually possible, otherwise the turn would be held by an unusable ability
+	if (RemainingUses > 0 && HasUsableWeapon())
 		return EAbilityTurnReleasePolicy::Locked;
 	return Super::DecideTurnRelease();
+}
+
+bool UAutoAttackAbility::HasUsableWeapon() const
+{
+	return FDamageCalculation::SelectMaxReachDescriptor(Owner, true, GetExcludedWeapon()) != nullptr;
 }
 
 FTargetingDescriptor UAutoAttackAbility::GetTargeting() const
 {
 	if (Config->Targeting != ETargetReach::None)
 	{
-		return FTargetingDescriptor::FromReach(Config->Targeting);
+		UE_LOG(LogTemp, Warning, TEXT("AutoAttack '%s': Config Targeting is ignored, targeting comes from weapons"),
+		       *Config->AbilityName);
 	}
-	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true))
+	if (UCombatDescriptor* Weapon = FDamageCalculation::SelectMaxReachDescriptor(Owner, true, GetExcludedWeapon()))
 	{
 		return ResolveAttackDescriptor(Weapon)->GetTargeting();
 	}

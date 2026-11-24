@@ -431,6 +431,12 @@ void UTacTurnSubsystem::BroadcastTurnEnd()
 		[this, Unit]{ OnTurnEnd.Broadcast(Unit); });
 }
 
+void UTacTurnSubsystem::BroadcastBattleStart()
+{
+	bBattleStarted = true;
+	OnBattleStart.Broadcast();
+}
+
 void UTacTurnSubsystem::BroadcastBattleEnd()
 {
 	OnBattleEnd.Broadcast(GridSubsystem->GetWinnerTeam());

@@ -39,6 +39,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	int32 MaxUses = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
+	EAbilityUsesRefresh UsesRefresh = EAbilityUsesRefresh::PerTurn;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	ETargetReach Targeting = ETargetReach::AnyEnemy;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability")
 	TArray<TSubclassOf<UBattleEffect>> BattleEffects;

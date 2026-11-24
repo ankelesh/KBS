@@ -5,8 +5,10 @@
 #include "GameplayTypes/EffectTypes.h"
 #include "GameplayTypes/TargetingDescriptor.h"
 #include "BattleEffectDataAsset.h"
+#include "StructUtils/InstancedStruct.h"
 #include "BattleEffect.generated.h"
 class AUnit;
+struct FTacLogStepBase;
 
 typedef TArray<TObjectPtr<UBattleEffect>> BattleEffectArray;
 
@@ -20,6 +22,9 @@ class KBS_API UBattleEffect : public UObject
 public:
 	virtual void Initialize(UBattleEffectDataAsset* InConfig);
 	void SetOwner(AUnit* InOwner) { Owner = InOwner; }
+	void SetApplicationChanceOverride(int32 Percent) { ApplicationChanceOverride = Percent; }
+	// -1 = no override (attacker accuracy decides)
+	int32 GetApplicationChanceOverride() const { return ApplicationChanceOverride; }
 	// Lifetime
 	virtual void PrepareForApply(AUnit* Source, AUnit* Target) {}
 	virtual EReapplyDecision HandleReapply(UBattleEffect* NewEffect);
@@ -63,6 +68,10 @@ protected:
 	void DecrementDuration() { if (Duration > 0) Duration--; BroadcastDurationChange(); }
 	void BroadcastDurationChange() const { OnDurationChange.Broadcast(Duration);}
 	virtual void NotifyOnTriggered();
+	// Logs an EffectEnd event; reason is derived: expired by duration, owner died, otherwise dispelled.
+	void LogRemoval(TArray<TInstancedStruct<FTacLogStepBase>>&& Steps = {}) const;
+	// Logs an EffectActivation event for effects that have no state change of their own to report.
+	void LogActivation(TArray<TInstancedStruct<FTacLogStepBase>>&& Steps = {}) const;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
 	TObjectPtr<UBattleEffectDataAsset> Config;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
@@ -71,4 +80,6 @@ protected:
 	TObjectPtr<AUnit> Owner;
 	UPROPERTY(SaveGame)
 	FGuid EffectId;
+	UPROPERTY()
+	int32 ApplicationChanceOverride = -1;
 };

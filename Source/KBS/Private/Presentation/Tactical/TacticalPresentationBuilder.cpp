@@ -9,7 +9,9 @@
 #include "Presentation/Tactical/Converters/FleeStepConverter.h"
 #include "Presentation/Tactical/Converters/EffectSpawnStepConverter.h"
 #include "Presentation/Tactical/Converters/StatusChangeStepConverter.h"
+#include "Presentation/Tactical/Converters/InstantChangeStepConverter.h"
 #include "Presentation/Tactical/Converters/CombatStepConverter.h"
+#include "Presentation/Tactical/Converters/AbilityUsePayloadConverter.h"
 #include "Presentation/Tactical/Converters/UnitSpawnPayloadConverter.h"
 #include "Presentation/Tactical/Converters/UnitMoveOffFieldPayloadConverter.h"
 #include "Presentation/Tactical/Converters/EffectEndPayloadConverter.h"
@@ -119,6 +121,10 @@ UPresentationSequence* UTacticalPresentationBuilder::Build_Implementation(FGuid 
 		{
 			Context.AbilityPayload = AbilityPayload;
 			Context.Manifest       = ResolveManifest(*AbilityPayload);
+			if (UFloatingTextPresentationAction* Label = TacticalLogConverters::ConvertAbilityUsePayload(*AbilityPayload, Event->InstigatorId, Context))
+			{
+				Sequence->Actions.Add(Label);
+			}
 		}
 
 		// Payload-level conversion: independent of Steps, since a payload (e.g. FEffectEndPayload) can
@@ -182,6 +188,12 @@ UPresentationSequence* UTacticalPresentationBuilder::Build_Implementation(FGuid 
 			if (const FTacLogStatusChangeStep* StatusChangeStep = Step.GetPtr<FTacLogStatusChangeStep>())
 			{
 				Sequence->Actions.Add(TacticalLogConverters::ConvertStatusChangeStep(*StatusChangeStep, Context));
+				continue;
+			}
+
+			if (const FTacLogInstantChangeStep* InstantChangeStep = Step.GetPtr<FTacLogInstantChangeStep>())
+			{
+				TacticalLogConverters::ConvertInstantChangeStep(*InstantChangeStep, Context, Sequence->Actions);
 				continue;
 			}
 

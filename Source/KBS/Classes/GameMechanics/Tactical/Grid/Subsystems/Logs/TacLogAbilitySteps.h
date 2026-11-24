@@ -123,6 +123,67 @@ struct KBS_API FTacLogChargeStep : public FTacLogStepBase
 	}
 };
 
+// A one-shot irreversible change (heal, ward grant) applied to a unit via AUnit::ApplyInstantChange.
+USTRUCT()
+struct KBS_API FTacLogInstantChangeStep : public FTacLogStepBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGuid UnitId;
+
+	// HP actually restored (after clamping to maximum).
+	UPROPERTY()
+	int32 HealApplied = 0;
+
+	UPROPERTY()
+	int32 NewHealth = 0;
+
+	UPROPERTY()
+	TSet<EDamageSource> WardsGranted;
+
+	static FTacLogInstantChangeStep Make(FGuid InUnitId, int32 InHealApplied, int32 InNewHealth,
+	                                     const TSet<EDamageSource>& InWardsGranted)
+	{
+		FTacLogInstantChangeStep Step;
+		Step.UnitId = InUnitId;
+		Step.HealApplied = InHealApplied;
+		Step.NewHealth = InNewHealth;
+		Step.WardsGranted = InWardsGranted;
+		return Step;
+	}
+};
+
+// A passive ability was added to / removed from a unit's inventory by a battle effect.
+USTRUCT()
+struct KBS_API FTacLogAbilityGrantStep : public FTacLogStepBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGuid UnitId;
+
+	UPROPERTY()
+	FPrimaryAssetId AbilityAssetId;
+
+	UPROPERTY()
+	FGuid AbilityInstanceId;
+
+	UPROPERTY()
+	bool bGranted = true;
+
+	static FTacLogAbilityGrantStep Make(FGuid InUnitId, const FPrimaryAssetId& InAbilityAssetId,
+	                                    FGuid InAbilityInstanceId, bool bInGranted)
+	{
+		FTacLogAbilityGrantStep Step;
+		Step.UnitId = InUnitId;
+		Step.AbilityAssetId = InAbilityAssetId;
+		Step.AbilityInstanceId = InAbilityInstanceId;
+		Step.bGranted = bInGranted;
+		return Step;
+	}
+};
+
 USTRUCT()
 struct KBS_API FTacLogMoveStep : public FTacLogStepBase
 {

@@ -27,11 +27,10 @@ public:
 	
 	
 	// Add-remove
-	void AddActiveAbility(UUnitAbility* Ability);
+	void AddOptionalAbility(UUnitAbility* Ability);
 	void AddPassiveAbility(UUnitAbility* Ability);
 	void RemovePassiveAbility(UUnitAbility* Ability);
-	UFUNCTION(BlueprintCallable, Category = "Abilities|DefaultSlots")
-	void SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbility* Ability);
+	void AssignDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbility* Ability);
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Spellbook")
 	void AddSpellbookAbility(UUnitAbility* Ability);
 	
@@ -73,16 +72,9 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
 	TObjectPtr<UUnitAbility> CurrentActiveAbility;
+	// Indexed by EDefaultAbilitySlot; every slot is filled during InitializeFromDefinition
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbility> DefaultAttackAbility;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbility> DefaultMoveAbility;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbility> DefaultWaitAbility;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbility> DefaultDefendAbility;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities|DefaultSlots")
-	TObjectPtr<UUnitAbility> DefaultFleeAbility;
+	TArray<TObjectPtr<UUnitAbility>> DefaultAbilities;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
 	TArray<TObjectPtr<UUnitAbility>> AvailableActiveAbilities;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")

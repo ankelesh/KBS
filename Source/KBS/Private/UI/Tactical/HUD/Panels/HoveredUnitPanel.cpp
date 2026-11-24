@@ -18,10 +18,10 @@ void UHoveredUnitPanel::NativeConstruct()
 
 	// Get owning HUD
 	ATacticalGameController* TacticalController = Cast<ATacticalGameController>(GetOwningPlayer());
-	checkf(TacticalController, TEXT("USpellbookSlot::OnSpellbookButtonClicked - TacticalGameController is null"));
+	checkf(TacticalController, TEXT("UHoveredUnitPanel::NativeConstruct - TacticalGameController is null"));
 
 	OwningHUD = TacticalController->GetTacticalHUD();
-	checkf(OwningHUD, TEXT("USpellbookSlot::OnSpellbookButtonClicked - TacticalHUD is null"));
+	checkf(OwningHUD, TEXT("UHoveredUnitPanel::NativeConstruct - TacticalHUD is null"));
 
 	// Bind portrait button for right-click
 	if (PortraitButton)
@@ -82,7 +82,21 @@ void UHoveredUnitPanel::Clear()
 		}
 	}
 
+	UnbindFromHoveredUnit();
 	HoveredUnit = nullptr;
+}
+
+void UHoveredUnitPanel::UnbindFromHoveredUnit()
+{
+	if (HoveredUnit)
+	{
+		HoveredUnit->EffectManager->OnActiveEffectsChanged.RemoveDynamic(this, &UHoveredUnitPanel::OnEffectsChanged);
+	}
+}
+
+void UHoveredUnitPanel::OnEffectsChanged()
+{
+	RefreshEffectSnapshots(HoveredUnit);
 }
 
 void UHoveredUnitPanel::OnPortraitRightClicked()
@@ -102,9 +116,11 @@ void UHoveredUnitPanel::RefreshPanel(AUnit* Unit)
 		return;
 	}
 
+	UnbindFromHoveredUnit();
 	HoveredUnit = Unit;
+	HoveredUnit->EffectManager->OnActiveEffectsChanged.AddDynamic(this, &UHoveredUnitPanel::OnEffectsChanged);
 
-	// Refresh all sections (snapshot only, no event binding)
+	// Stats are a snapshot; effects stay live through OnActiveEffectsChanged
 	RefreshPortrait(Unit);
 	RefreshStats(Unit);
 	RefreshEffectSnapshots(Unit);
@@ -173,13 +189,7 @@ void UHoveredUnitPanel::RefreshEffectSnapshots(AUnit* Unit)
 		return;
 	}
 
-	UBattleEffectComponent* EffectManager = Unit->EffectManager;
-	if (!EffectManager)
-	{
-		return;
-	}
-
-	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects = EffectManager->GetActiveEffects();
+	const TArray<TObjectPtr<UBattleEffect>>& ActiveEffects = Unit->EffectManager->GetActiveEffects();
 
 	// Ensure we have enough snapshot slots (up to MAX_EFFECT_SNAPSHOTS)
 	int32 NumNeeded = FMath::Min(ActiveEffects.Num(), MAX_EFFECT_SNAPSHOTS);
@@ -196,7 +206,7 @@ void UHoveredUnitPanel::RefreshEffectSnapshots(AUnit* Unit)
 		}
 	}
 
-	// Setup snapshot slots with effect data (read-only, no event binding)
+	// Setup snapshot slots with effect data (read-only; live updates come from OnEffectsChanged)
 	for (int32 i = 0; i < EffectSnapshots.Num(); ++i)
 	{
 		if (i < ActiveEffects.Num())

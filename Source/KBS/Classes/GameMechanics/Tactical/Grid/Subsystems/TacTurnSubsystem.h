@@ -20,6 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnd, int32, Turn);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTurnStart, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTurnEnd, AUnit*, Unit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattleEnd, UBattleTeam*, WinnerTeam);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBattleStart);
 class FTacTurnState;
 class AUnit;
 class UUnitAbility;
@@ -46,6 +47,8 @@ public:
 	FOnRoundEnd OnRoundEnd;
 	FOnTurnStart OnTurnStart;
 	FOnTurnEnd OnTurnEnd;
+	// Fires once when battle initialization finishes, before round 1 starts.
+	FOnBattleStart OnBattleStart;
 	FOnBattleEnd OnBattleEnd;
 
 	// Battle control
@@ -61,6 +64,7 @@ public:
 	void AbilityClicked(UUnitAbility* Ability);
 
 	int32 GetCurrentRound() const { return CurrentRound; }
+	bool HasBattleStarted() const { return bBattleStarted; }
 	UTacAICombatService* GetAICombatService() const { return AICombatService; }
 
 	// Turn order queries
@@ -105,6 +109,7 @@ private:
 	void BroadcastRoundEnd();
 	void BroadcastTurnStart();
 	void BroadcastTurnEnd();
+	void BroadcastBattleStart();
 	void BroadcastBattleEnd();
 
 	static constexpr int32 KPhaseHistorySize     = 20;
@@ -118,6 +123,7 @@ private:
 	FTacTurnState* CurrentState = nullptr;
 	ETurnState CurrentStateEnum = ETurnState::EBattleInitializationState;
 	int32 CurrentRound = 0;
+	bool bBattleStarted = false;
 	UTacGridSubsystem* GridSubsystem = nullptr;
 	UPROPERTY()
 	TObjectPtr<UTacAICombatService> AICombatService;

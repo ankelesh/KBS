@@ -4,15 +4,11 @@
 #include "GameMechanics/Units/Abilities/AbilityFactory.h"
 #include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacAbilityEventSubsystem.h"
-#include "GameMechanics/Units/Abilities/Defaults/AutoAttackAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/MovementAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/WaitAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/DefendAbility.h"
-#include "GameMechanics/Units/Abilities/Defaults/FleeAbility.h"
 #include "GameMechanics/Units/Unit.h"
 UAbilityInventoryComponent::UAbilityInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	DefaultAbilities.SetNumZeroed(static_cast<int32>(EDefaultAbilitySlot::Count));
 }
 
 void UAbilityInventoryComponent::BeginPlay()
@@ -25,19 +21,19 @@ void UAbilityInventoryComponent::BeginPlay()
 }
 void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition* Definition, AUnit* OwnerUnit)
 {
-	auto CreateAndRegister = [&](UUnitAbilityDefinition* AbilityDef, EDefaultAbilitySlot Slot)
+	auto AssignDefault = [&](UUnitAbilityDefinition* AbilityDef, EDefaultAbilitySlot Slot)
 	{
-		if (!AbilityDef) return;
+		checkf(AbilityDef, TEXT("AbilityInventory: unit definition has no ability for default slot %s"),
+		       *StaticEnum<EDefaultAbilitySlot>()->GetNameStringByValue(static_cast<int64>(Slot)));
 		UUnitAbility* Ability = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
-		if (!Ability) return;
-		SetDefaultAbility(Slot, Ability);
-		AddActiveAbility(Ability);
+		checkf(Ability, TEXT("AbilityInventory: factory failed to create default ability %s"), *AbilityDef->GetName());
+		AssignDefaultAbility(Slot, Ability);
 	};
-	CreateAndRegister(Definition->DefaultAttackAbility, EDefaultAbilitySlot::Attack);
-	CreateAndRegister(Definition->DefaultMoveAbility,   EDefaultAbilitySlot::Move);
-	CreateAndRegister(Definition->DefaultWaitAbility,   EDefaultAbilitySlot::Wait);
-	CreateAndRegister(Definition->DefaultDefendAbility, EDefaultAbilitySlot::Defend);
-	CreateAndRegister(Definition->DefaultFleeAbility,   EDefaultAbilitySlot::Flee);
+	AssignDefault(Definition->DefaultAttackAbility, EDefaultAbilitySlot::Attack);
+	AssignDefault(Definition->DefaultMoveAbility,   EDefaultAbilitySlot::Move);
+	AssignDefault(Definition->DefaultWaitAbility,   EDefaultAbilitySlot::Wait);
+	AssignDefault(Definition->DefaultDefendAbility, EDefaultAbilitySlot::Defend);
+	AssignDefault(Definition->DefaultFleeAbility,   EDefaultAbilitySlot::Flee);
 
 	for (UUnitAbilityDefinition* AbilityDef : Definition->AdditionalAbilities)
 	{
@@ -45,7 +41,7 @@ void UAbilityInventoryComponent::InitializeFromDefinition(const UUnitDefinition*
 		UUnitAbility* NewAbility = UAbilityFactory::CreateAbilityFromDefinition(AbilityDef, OwnerUnit);
 		if (!NewAbility) continue;
 		if (NewAbility->IsPassive()) AddPassiveAbility(NewAbility);
-		else AddActiveAbility(NewAbility);
+		else AddOptionalAbility(NewAbility);
 	}
 	for (UUnitAbilityDefinition* AbilityDef : Definition->SpellbookAbilities)
 	{
@@ -90,55 +86,21 @@ void UAbilityInventoryComponent::EquipAbility(UUnitAbility* Ability)
 	CurrentActiveAbility = Ability;
 	CurrentActiveAbility->ChangeSelection(true);
 }
-void UAbilityInventoryComponent::AddActiveAbility(UUnitAbility* Ability)
+void UAbilityInventoryComponent::AddOptionalAbility(UUnitAbility* Ability)
 {
 	check(Ability);
-	checkf(!Ability->IsPassive(), TEXT("AbilityInventory: passive ability passed to AddActiveAbility"));
-
-	// Only claim a default slot if it is vacant or already points to this instance.
-	// If a different ability already occupies the slot (e.g. a second MovementAbility
-	// subclass added via AdditionalAbilities), treat it as a regular active ability so
-	// the original default is not overwritten.
-	if (Ability->IsA<UAutoAttackAbility>())
-	{
-		if (!DefaultAttackAbility || DefaultAttackAbility == Ability)
-			DefaultAttackAbility = Ability;
-		else
-			AvailableActiveAbilities.Add(Ability);
-	}
-	else if (Ability->IsA<UMovementAbility>())
-	{
-		if (!DefaultMoveAbility || DefaultMoveAbility == Ability)
-			DefaultMoveAbility = Ability;
-		else
-			AvailableActiveAbilities.Add(Ability);
-	}
-	else if (Ability->IsA<UWaitAbility>())
-	{
-		if (!DefaultWaitAbility || DefaultWaitAbility == Ability)
-			DefaultWaitAbility = Ability;
-		else
-			AvailableActiveAbilities.Add(Ability);
-	}
-	else if (Ability->IsA<UDefendAbility>())
-	{
-		if (!DefaultDefendAbility || DefaultDefendAbility == Ability)
-			DefaultDefendAbility = Ability;
-		else
-			AvailableActiveAbilities.Add(Ability);
-	}
-	else if (Ability->IsA<UFleeAbility>())
-	{
-		if (!DefaultFleeAbility || DefaultFleeAbility == Ability)
-			DefaultFleeAbility = Ability;
-		else
-			AvailableActiveAbilities.Add(Ability);
-	}
-	else
-	{
-		AvailableActiveAbilities.Add(Ability);
-	}
-
+	checkf(!Ability->IsPassive(), TEXT("AbilityInventory: passive ability passed to AddOptionalAbility"));
+	AvailableActiveAbilities.Add(Ability);
+	Ability->Subscribe();
+}
+void UAbilityInventoryComponent::AssignDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbility* Ability)
+{
+	check(Ability);
+	checkf(!Ability->IsPassive(), TEXT("AbilityInventory: passive ability passed to AssignDefaultAbility"));
+	checkf(Slot != EDefaultAbilitySlot::Count, TEXT("AbilityInventory: invalid default slot"));
+	TObjectPtr<UUnitAbility>& SlotAbility = DefaultAbilities[static_cast<int32>(Slot)];
+	checkf(!SlotAbility, TEXT("AbilityInventory: default slot already assigned"));
+	SlotAbility = Ability;
 	Ability->Subscribe();
 }
 void UAbilityInventoryComponent::AddPassiveAbility(UUnitAbility* Ability)
@@ -189,12 +151,8 @@ void UAbilityInventoryComponent::OnOwnerTurnEnd(AUnit* Unit)
 {
 	auto Notify = [](UUnitAbility* Ability) { if (Ability) Ability->HandleTurnEnd(); };
 
-	Notify(DefaultAttackAbility);
-	Notify(DefaultMoveAbility);
-	Notify(DefaultWaitAbility);
-	Notify(DefaultDefendAbility);
-	Notify(DefaultFleeAbility);
-
+	for (UUnitAbility* Ability : DefaultAbilities)
+		Notify(Ability);
 	for (UUnitAbility* Ability : AvailableActiveAbilities)
 		Notify(Ability);
 	for (UUnitAbility* Ability : SpellbookAbilities)
@@ -222,25 +180,12 @@ void UAbilityInventoryComponent::UnregisterPassives()
 TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetActiveAbilitiesDisplayData() const
 {
 	TArray<FAbilityDisplayData> DisplayDataArray;
-	if (DefaultAttackAbility && IsAbilityAvailable(DefaultAttackAbility))
+	for (const TObjectPtr<UUnitAbility>& Ability : DefaultAbilities)
 	{
-		DisplayDataArray.Add(DefaultAttackAbility->GetAbilityDisplayData());
-	}
-	if (DefaultMoveAbility && IsAbilityAvailable(DefaultMoveAbility))
-	{
-		DisplayDataArray.Add(DefaultMoveAbility->GetAbilityDisplayData());
-	}
-	if (DefaultWaitAbility && IsAbilityAvailable(DefaultWaitAbility))
-	{
-		DisplayDataArray.Add(DefaultWaitAbility->GetAbilityDisplayData());
-	}
-	if (DefaultDefendAbility && IsAbilityAvailable(DefaultDefendAbility))
-	{
-		DisplayDataArray.Add(DefaultDefendAbility->GetAbilityDisplayData());
-	}
-	if (DefaultFleeAbility && IsAbilityAvailable(DefaultFleeAbility))
-	{
-		DisplayDataArray.Add(DefaultFleeAbility->GetAbilityDisplayData());
+		if (IsAbilityAvailable(Ability))
+		{
+			DisplayDataArray.Add(Ability->GetAbilityDisplayData());
+		}
 	}
 	for (const TObjectPtr<UUnitAbility>& Ability : AvailableActiveAbilities)
 	{
@@ -263,44 +208,10 @@ TArray<FAbilityDisplayData> UAbilityInventoryComponent::GetPassiveAbilitiesDispl
 	}
 	return DisplayDataArray;
 }
-void UAbilityInventoryComponent::SetDefaultAbility(EDefaultAbilitySlot Slot, UUnitAbility* Ability)
-{
-	switch (Slot)
-	{
-	case EDefaultAbilitySlot::Attack:
-		DefaultAttackAbility = Ability;
-		break;
-	case EDefaultAbilitySlot::Move:
-		DefaultMoveAbility = Ability;
-		break;
-	case EDefaultAbilitySlot::Wait:
-		DefaultWaitAbility = Ability;
-		break;
-	case EDefaultAbilitySlot::Defend:
-		DefaultDefendAbility = Ability;
-		break;
-	case EDefaultAbilitySlot::Flee:
-		DefaultFleeAbility = Ability;
-		break;
-	}
-}
 UUnitAbility* UAbilityInventoryComponent::GetDefaultAbility(EDefaultAbilitySlot Slot) const
 {
-	switch (Slot)
-	{
-	case EDefaultAbilitySlot::Attack:
-		return DefaultAttackAbility;
-	case EDefaultAbilitySlot::Move:
-		return DefaultMoveAbility;
-	case EDefaultAbilitySlot::Wait:
-		return DefaultWaitAbility;
-	case EDefaultAbilitySlot::Defend:
-		return DefaultDefendAbility;
-	case EDefaultAbilitySlot::Flee:
-		return DefaultFleeAbility;
-	default:
-		return nullptr;
-	}
+	checkf(Slot != EDefaultAbilitySlot::Count, TEXT("AbilityInventory: invalid default slot"));
+	return DefaultAbilities[static_cast<int32>(Slot)];
 }
 
 void UAbilityInventoryComponent::EnsureValidAbility()
@@ -310,29 +221,7 @@ void UAbilityInventoryComponent::EnsureValidAbility()
 		return;
 	}
 
-	// Prefer default attack slot, then remaining defaults, then extras; spellbook excluded
-	for (UUnitAbility* Candidate : {
-		DefaultAttackAbility.Get(),
-		DefaultMoveAbility.Get(),
-		DefaultWaitAbility.Get(),
-		DefaultDefendAbility.Get(),
-		DefaultFleeAbility.Get() })
-	{
-		if (Candidate)
-		{
-			EquipAbility(Candidate);
-			return;
-		}
-	}
-
-	for (const TObjectPtr<UUnitAbility>& Ability : AvailableActiveAbilities)
-	{
-		if (Ability)
-		{
-			EquipAbility(Ability);
-			return;
-		}
-	}
+	EquipAbility(GetDefaultAbility(EDefaultAbilitySlot::Attack));
 }
 
 bool UAbilityInventoryComponent::HasAnyAbilityAvailable() const
@@ -346,25 +235,12 @@ bool UAbilityInventoryComponent::HasAnyAbilityAvailable() const
 	}
 
 	// Check default abilities
-	if (IsAbilityAvailable(DefaultAttackAbility))
+	for (const TObjectPtr<UUnitAbility>& Ability : DefaultAbilities)
 	{
-		return true;
-	}
-	if (IsAbilityAvailable(DefaultMoveAbility))
-	{
-		return true;
-	}
-	if (IsAbilityAvailable(DefaultWaitAbility))
-	{
-		return true;
-	}
-	if (IsAbilityAvailable(DefaultDefendAbility))
-	{
-		return true;
-	}
-	if (IsAbilityAvailable(DefaultFleeAbility))
-	{
-		return true;
+		if (IsAbilityAvailable(Ability))
+		{
+			return true;
+		}
 	}
 
 	// Check other active abilities
@@ -438,11 +314,8 @@ void UAbilityInventoryComponent::RecheckContents()
 		Ability->RefreshAvailability();
 	for (auto Ability : AvailableActiveAbilities)
 		Ability->RefreshAvailability();
-	DefaultAttackAbility->RefreshAvailability();
-	DefaultMoveAbility->RefreshAvailability();
-	DefaultWaitAbility->RefreshAvailability();
-	DefaultDefendAbility->RefreshAvailability();
-	DefaultFleeAbility->RefreshAvailability();
+	for (auto Ability : DefaultAbilities)
+		Ability->RefreshAvailability();
 }
 
 FAbilityContext* UAbilityInventoryComponent::GetContext()
@@ -481,11 +354,7 @@ bool UAbilityInventoryComponent::IsDefaultAbility(UUnitAbility* Ability) const
 	{
 		return false;
 	}
-	return Ability == DefaultAttackAbility ||
-		   Ability == DefaultMoveAbility ||
-		   Ability == DefaultWaitAbility ||
-		   Ability == DefaultDefendAbility ||
-		   Ability == DefaultFleeAbility;
+	return DefaultAbilities.Contains(Ability);
 }
 
 bool UAbilityInventoryComponent::IsAbilityAvailable(UUnitAbility* Ability) const
@@ -531,11 +400,9 @@ FString UAbilityInventoryComponent::GetAbilitiesDebugString() const
 			Result += FString::Printf(TEXT("  [%s] %s\n"), Slot, *Ability->GetDebugString());
 	};
 
-	Append(DefaultAttackAbility, TEXT("Attack"));
-	Append(DefaultMoveAbility,   TEXT("Move"));
-	Append(DefaultWaitAbility,   TEXT("Wait"));
-	Append(DefaultDefendAbility, TEXT("Defend"));
-	Append(DefaultFleeAbility,   TEXT("Flee"));
+	const UEnum* SlotEnum = StaticEnum<EDefaultAbilitySlot>();
+	for (int32 Index = 0; Index < DefaultAbilities.Num(); ++Index)
+		Append(DefaultAbilities[Index], *SlotEnum->GetNameStringByIndex(Index));
 	for (const TObjectPtr<UUnitAbility>& A : AvailableActiveAbilities)
 		Append(A, TEXT("Active"));
 	for (const TObjectPtr<UUnitAbility>& A : PassiveAbilities)

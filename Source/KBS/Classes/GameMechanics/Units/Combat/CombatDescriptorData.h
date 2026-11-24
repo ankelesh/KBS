@@ -41,6 +41,9 @@ struct FDescriptorEffectConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect")
 	TObjectPtr<UBattleEffectDataAsset> EffectConfig;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effect", meta = (ClampMin = "-1", ClampMax = "100"))
+	int32 ApplicationChance = -1;
 };
 
 USTRUCT(BlueprintType)

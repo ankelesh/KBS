@@ -38,6 +38,11 @@ void FTacTurnState::BroadcastTurnStart()
 	ParentTurnSubsystem->BroadcastTurnStart();
 }
 
+void FTacTurnState::BroadcastBattleStart()
+{
+	ParentTurnSubsystem->BroadcastBattleStart();
+}
+
 void FTacTurnState::BroadcastBattleEnd()
 {
 	ParentTurnSubsystem->BroadcastBattleEnd();

@@ -43,6 +43,8 @@ public:
 	TArray<FCombatHitResult> ResolveAttack(AUnit* Attacker, TArray<AUnit*> Targets, UCombatDescriptor* Descriptor);
 
 	TArray<FCombatHitResult> ResolveReactionAttack(AUnit* Attacker, TArray<AUnit*> Targets, UCombatDescriptor* Descriptor);
+	// True while a reaction attack is resolving; reactions must not trigger further reactions.
+	bool IsResolvingReaction() const { return bResolvingReaction; }
 
 	// Attacker-less resolution for effect ticks (DOT, etc.). HitChance pre-computed at effect creation.
 	FCombatHitResult ResolveEffectTick(AUnit* Target, UCombatDescriptor* Descriptor, float HitChance);
@@ -74,4 +76,5 @@ private:
 	UPROPERTY()
 	UTacCombatStatisticsService* CombatStatisticsService;
 	TUniquePtr<FTacCategoryLogger> CombatLogger;
+	bool bResolvingReaction = false;
 };

@@ -1,5 +1,7 @@
 #include "GameMechanics/Units/BattleEffects/StatModBattleEffect.h"
 #include "GameMechanics/Units/Unit.h"
+#include "GameMechanics/Units/Combat/Weapon.h"
+#include "GameMechanics/Units/Combat/CombatDescriptor.h"
 #include "GameMechanics/Units/BattleEffects/StatModBattleEffectDataAsset.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
@@ -62,18 +64,7 @@ void UStatModBattleEffect::OnRemoved()
 		*Owner->GetName(),
 		*Config->Name.ToString());
 
-	if (!IsExpired()) return;
-
-	UTacLogSubsystem* LogSub = Owner->GetWorld()->GetSubsystem<UTacLogSubsystem>();
-	checkf(LogSub, TEXT("UTacLogSubsystem missing"));
-	FGuid EventId = LogSub->OpenEvent(ETacLogEventType::EffectEnd, ETacLogEventOrigin::Triggered,
-	                                  Owner->GetUnitID(), LogSub->FindLatestEvent());
-	FEffectEndPayload Payload;
-	Payload.EffectAssetId    = Config->GetPrimaryAssetId();
-	Payload.EffectInstanceId = EffectId;
-	Payload.OwnerUnitId      = Owner->GetUnitID();
-	Payload.RemovalReason    = EEffectRemovalReason::Expired;
-	LogSub->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FEffectEndPayload>(MoveTemp(Payload)));
+	LogRemoval();
 }
 
 EReapplyDecision UStatModBattleEffect::HandleReapply(UBattleEffect* NewEffect)
@@ -95,6 +86,60 @@ void UStatModBattleEffect::ApplyStatModifications()
 
 	AppliedDelta = Cfg->Delta;
 	Owner->GetStats().ApplyDelta(AppliedDelta, GetEffectId());
+	ApplyWeaponModifications();
+}
+
+void UStatModBattleEffect::ApplyWeaponModifications()
+{
+	if (AppliedDelta.DamageSourcesToAdd.IsEmpty() && AppliedDelta.MagnitudeFlat == 0 && AppliedDelta.MagnitudeMultiplier == 0
+		&& !AppliedDelta.bGrantsGuaranteedHit)
+	{
+		return;
+	}
+
+	const TSet<EDamageSource>& Filter = GetStatModConfig()->WeaponSourceFilter;
+	for (UWeapon* Weapon : Owner->GetWeapons())
+	{
+		UCombatDescriptor* Descriptor = Weapon->GetDescriptor();
+		if (!Filter.IsEmpty() && Filter.Intersect(Descriptor->GetStats().DamageSources.GetValue()).IsEmpty())
+		{
+			continue;
+		}
+		if (!AppliedDelta.DamageSourcesToAdd.IsEmpty())
+		{
+			Descriptor->ModifySource(AppliedDelta.DamageSourcesToAdd, GetEffectId());
+		}
+		if (AppliedDelta.MagnitudeFlat != 0)
+		{
+			Descriptor->ModifyMagnitude(AppliedDelta.MagnitudeFlat, GetEffectId(), true);
+		}
+		if (AppliedDelta.MagnitudeMultiplier != 0)
+		{
+			Descriptor->ModifyMagnitude(AppliedDelta.MagnitudeMultiplier, GetEffectId(), false);
+		}
+		if (AppliedDelta.bGrantsGuaranteedHit)
+		{
+			Descriptor->GrantGuaranteedHit(GetEffectId());
+		}
+	}
+}
+
+void UStatModBattleEffect::RemoveWeaponModifications()
+{
+	for (UWeapon* Weapon : Owner->GetWeapons())
+	{
+		UCombatDescriptor* Descriptor = Weapon->GetDescriptor();
+		Descriptor->RemoveSourceModifier(GetEffectId());
+		Descriptor->RemoveGuaranteedHitGrant(GetEffectId());
+		if (AppliedDelta.MagnitudeFlat != 0)
+		{
+			Descriptor->RemoveMagnitudeModifier(AppliedDelta.MagnitudeFlat, GetEffectId(), true);
+		}
+		if (AppliedDelta.MagnitudeMultiplier != 0)
+		{
+			Descriptor->RemoveMagnitudeModifier(AppliedDelta.MagnitudeMultiplier, GetEffectId(), false);
+		}
+	}
 }
 
 void UStatModBattleEffect::RemoveStatModifications()
@@ -104,6 +149,7 @@ void UStatModBattleEffect::RemoveStatModifications()
 		return;
 	}
 
+	RemoveWeaponModifications();
 	Owner->GetStats().RemoveDelta(AppliedDelta, GetEffectId());
 	AppliedDelta.Reset();
 }

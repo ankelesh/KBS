@@ -4,6 +4,8 @@ Intermediate
 Saved
 .vscode
 .vs
+Plugins
+.claude
 *.VC.db
 *.opensdf
 *.opendb

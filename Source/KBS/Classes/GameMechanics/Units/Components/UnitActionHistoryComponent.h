@@ -2,15 +2,21 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
+#include "GameMechanics/Units/Components/ActionSequenceTracker.h"
 #include "UnitActionHistoryComponent.generated.h"
 
 struct FUnitActionHistoryCmpConfig;
 class AUnit;
 class UUnitAbility;
-class UCombatDescriptor;
-class UTacCombatSubsystem;
-class UTacGridTargetingService;
 
+// Fires for every tracked action. bChangedFromPrevious is false for the unit's first tracked action.
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnActionRecorded, const FGameplayTag&, ActionTag, bool, bChangedFromPrevious);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnActionSequenceCompleted);
+
+/**
+ * Records which tracked action (by tag) the owner used last and how far it got through a configured sequence.
+ * Holds no gameplay logic: abilities subscribe to the delegates and decide what an action is worth.
+ */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class KBS_API UUnitActionHistoryComponent : public UActorComponent
 {
@@ -20,29 +26,23 @@ public:
 	virtual void BeginPlay() override;
 	void InitializeFromConfig(const FUnitActionHistoryCmpConfig& Config);
 
-	// --- Last Action ---
-	bool LastActionHasTag(const FGameplayTag& Tag) const;
-	const FGameplayTagContainer& GetLastActionTags() const { return LastActionTags; }
+	bool IsTrackedAction(const FGameplayTag& Action) const { return TrackedActions.Contains(Action); }
+	const FGameplayTag& GetPreviousAction() const { return Tracker.GetPrevious(); }
+	bool IsSequenceComplete() const { return Tracker.IsComplete(); }
+	int32 GetSequenceStep() const { return Tracker.GetStep(); }
+	int32 GetSequenceLength() const { return Tracker.GetLength(); }
+	void ResetSequence() { Tracker.ResetSequence(); }
 
-	// --- Sequence ---
-	bool IsSequenceComplete() const;
-	void ResetSequence();
+	UPROPERTY(BlueprintAssignable, Category = "History")
+	FOnActionRecorded OnActionRecorded;
+	UPROPERTY(BlueprintAssignable, Category = "History")
+	FOnActionSequenceCompleted OnSequenceCompleted;
 
 private:
 	UFUNCTION()
 	void OnAbilityUsed(AUnit* Unit, UUnitAbility* Ability);
 
-	FGameplayTagContainer LastActionTags;
-
-	TArray<FGameplayTag> ExampleSequence;
-	TArray<FGameplayTag> CurrentSequence;
-
-	UPROPERTY()
-	TMap<FGameplayTag, TObjectPtr<UCombatDescriptor>> TagToDescriptorMap;
-
-	UPROPERTY()
-	TObjectPtr<UTacCombatSubsystem> CombatSubsystem;
-	UPROPERTY()
-	TObjectPtr<UTacGridTargetingService> TargetingService;
-	int32 CurrentSequenceStep = 0;
+	// Abilities carrying none of these tags (e.g. movement) are invisible to the history.
+	TArray<FGameplayTag> TrackedActions;
+	FActionSequenceTracker Tracker;
 };

@@ -22,9 +22,10 @@ public:
 	static FDamageResult CalculateHeal(AUnit* Attacker, UCombatDescriptor* Descriptor, AUnit* Target);
 
 	// Descriptor selection
-	static UCombatDescriptor* SelectMaxReachDescriptor(AUnit* Unit, bool bAutoAttackOnly = false);
+	// Excluded: a weapon the caller has already used and wants skipped (see Combined Warfare).
+	static UCombatDescriptor* SelectMaxReachDescriptor(AUnit* Unit, bool bAutoAttackOnly = false, const UWeapon* Excluded = nullptr);
 	static UCombatDescriptor* SelectSpellDescriptor(AUnit* Unit);
-	static UWeapon* SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly = false);
+	static UWeapon* SelectWeaponForTarget(AUnit* Attacker, AUnit* Target, bool bAutoAttackOnly = false, const UWeapon* Excluded = nullptr);
 
 	// Spell scaling: sets embedded descriptor's base damage from spell descriptor's modified damage
 	static void ApplySpellScaling(UCombatDescriptor* EmbeddedDescriptor, UCombatDescriptor* SpellDescriptor, float Multiplier, int32 FlatBonus);

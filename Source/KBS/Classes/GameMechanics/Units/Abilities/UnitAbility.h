@@ -11,8 +11,10 @@
 #include "UnitAbility.generated.h"
 
 class UUnitAbilityDefinition;
+class UCombatDescriptor;
 struct FPreviewHitResult;
 struct FTacLogStepBase;
+struct FDescriptorEffectConfig;
 
 class AUnit;
 class UTacGridSubsystem;
@@ -90,6 +92,16 @@ protected:
 	// Records a change of one of the owner's charge resources (Delta < 0 = spent) with its current value.
 	// No-op for an invalid tag so callers can pass "free" costs through.
 	void AppendChargeStep(TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps, const FGameplayTag& ChargeTag, int32 Delta) const;
+	// Creates, applies to Target (this ability's owner is the source) and logs each configured effect.
+	// Each entry must name both effect class and config.
+	void ApplyConfiguredEffects(AUnit* Target, const TArray<FDescriptorEffectConfig>& Effects,
+	                            TArray<TInstancedStruct<FTacLogStepBase>>& OutSteps) const;
+	// Answers Target with a reaction attack, logged as a Reaction event under the latest event.
+	// Weapon path (bUseWeapon): an auto-attack weapon that reaches Target, its cost is paid.
+	// Falls back to OwnDescriptor (may be null) when unused or no weapon reaches; that path is presented with OwnAnimTag.
+	// Returns false if nothing fired.
+	bool TryFireReactionAttack(AUnit* Target, bool bUseWeapon, UCombatDescriptor* OwnDescriptor,
+	                           FGameplayTag OwnAnimTag = FGameplayTag());
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability")

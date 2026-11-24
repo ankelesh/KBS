@@ -18,6 +18,7 @@ void UCombatDescriptor::Initialize(UObject* Outer, const FCombatDescriptorData& 
 			if (NewEffect)
 			{
 				NewEffect->Initialize(EffectConfig.EffectConfig);
+				NewEffect->SetApplicationChanceOverride(EffectConfig.ApplicationChance);
 				ActiveEffects.Add(NewEffect);
 			}
 		}
@@ -57,6 +58,19 @@ void UCombatDescriptor::ModifySource(const TSet<EDamageSource>& Sources, FGuid M
 	{
 		Stats.DamageSources.AddModifier(ModificatorGuid, Sources);
 	}
+}
+
+void UCombatDescriptor::GrantGuaranteedHit(FGuid ModificatorGuid)
+{
+	if (!bIsImmutable)
+	{
+		GuaranteedHitGrants.Add(ModificatorGuid);
+	}
+}
+
+void UCombatDescriptor::RemoveGuaranteedHitGrant(FGuid ModificatorGuid)
+{
+	GuaranteedHitGrants.Remove(ModificatorGuid);
 }
 
 bool UCombatDescriptor::IsMutable() const

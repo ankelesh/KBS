@@ -14,6 +14,14 @@ bool FUnitStatPercent::IsDirty() const
 void FUnitStatPercent::Recalc() const
 {
 	Modified = FMath::RoundToInt((Base + CalcFlatModifiers()) * CalcStatMultipliers());
+	if (!OverrideModifiers.IsEmpty())
+	{
+		Modified = OverrideModifiers[0].Amount;
+		for (const FInt32StatModifier& Mod : OverrideModifiers)
+		{
+			Modified = FMath::Max(Modified, Mod.Amount);
+		}
+	}
 	Modified = FMath::Clamp(Modified, 0, 100);
 	bIsDirty = false;
 }
@@ -62,6 +70,18 @@ void FUnitStatPercent::RemoveMultiplier(const FGuid& EffectId, int32 Amount)
 	bIsDirty = true;
 }
 
+void FUnitStatPercent::AddOverride(const FGuid& EffectId, int32 Amount)
+{
+	OverrideModifiers.Add(FInt32StatModifier(EffectId, Amount));
+	bIsDirty = true;
+}
+
+void FUnitStatPercent::RemoveOverride(const FGuid& EffectId, int32 Amount)
+{
+	OverrideModifiers.Remove(FInt32StatModifier(EffectId, Amount));
+	bIsDirty = true;
+}
+
 int32 FUnitStatPercent::GetValue() const
 {
 	if (bIsDirty)
@@ -81,6 +101,7 @@ void FUnitStatPercent::InitFromBase(int32 InBase)
 	Modified = Base;
 	FlatModifiers.Empty();
 	StatMultipliers.Empty();
+	OverrideModifiers.Empty();
 	bIsDirty = true;
 }
 

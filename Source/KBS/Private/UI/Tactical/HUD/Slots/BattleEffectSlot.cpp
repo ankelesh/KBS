@@ -47,11 +47,8 @@ void UBattleEffectSlot::SetupEffect(UBattleEffect* Effect)
 	UpdateDurationDisplay();
 	UpdateTooltip();
 
-	// Make widget visible
-	if (SlotRoot)
-	{
-		SlotRoot->SetVisibility(ESlateVisibility::Visible);
-	}
+	SlotRoot->SetVisibility(ESlateVisibility::Visible);
+	SetVisibility(ESlateVisibility::Visible);
 }
 
 void UBattleEffectSlot::Clear()
@@ -75,10 +72,8 @@ void UBattleEffectSlot::Clear()
 		DurationText->SetText(FText::GetEmpty());
 	}
 
-	if (SlotRoot)
-	{
-		SlotRoot->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	// Collapse the whole slot: the frame border outside SlotRoot would otherwise stay visible with the last polarity color
+	SetVisibility(ESlateVisibility::Collapsed);
 
 	SetToolTipText(FText::GetEmpty());
 }

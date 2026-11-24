@@ -19,8 +19,7 @@
 
 void FActionsProcessingState::Enter()
 {
-	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
-	if (UTacCombatSubsystem* CombatSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacCombatSubsystem>())
+	if (UTacCombatSubsystem* CombatSubsystem = ParentTurnSubsystem->GetWorld()->GetSubsystem<UTacCombatSubsystem>())
 	{
 		ExecutorService = CombatSubsystem->GetAbilityExecutorService();
 	}
@@ -52,7 +51,7 @@ void FActionsProcessingState::UnitClicked(AUnit* Unit)
 {
 	if (Unit && TurnProcessing == ETurnProcessingSubstate::EAwaitingInputState)
 	{
-		if (UTacGridSubsystem* GridSubsystem = Unit->GetWorld()->GetSubsystem<UTacGridSubsystem>(); GridSubsystem)
+		if (UTacGridSubsystem* GridSubsystem = ParentTurnSubsystem->GetWorld()->GetSubsystem<UTacGridSubsystem>(); GridSubsystem)
 		{
 			FTacCoordinates UnitCell;
 			if (GridSubsystem->GetUnitCoordinates(Unit, UnitCell))
@@ -112,7 +111,7 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 	{
 		bBattleEnded = true;
 		TurnProcessing = ETurnProcessingSubstate::EFreeState;
-		if (UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>())
+		if (UTacGridSubsystem* GridSubsystem = ParentTurnSubsystem->GetWorld()->GetSubsystem<UTacGridSubsystem>())
 		{
 			GridSubsystem->ClearAllHighlights();
 		}
@@ -133,7 +132,7 @@ void FActionsProcessingState::ExecuteAbilityOnTarget(FTacCoordinates TargetCell)
 
 bool FActionsProcessingState::IsAIUnit(AUnit* Unit) const
 {
-	UTacGridSubsystem* GridSubsystem = Unit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
+	UTacGridSubsystem* GridSubsystem = ParentTurnSubsystem->GetWorld()->GetSubsystem<UTacGridSubsystem>();
 	return !GridSubsystem->GetPlayerTeam()->ContainsUnit(Unit);
 }
 
@@ -160,8 +159,15 @@ void FActionsProcessingState::CheckAbilitiesAndSetupTurn()
 	if (TurnProcessing == ETurnProcessingSubstate::EAwaitingPresentationState)
 		return;
 	AUnit* CurrentUnit = GetTurnOrder()->GetCurrentUnit();
+	if (!CurrentUnit)
+	{
+		// The acting unit died during its own action (e.g. killed by a counter-attack); the turn order dropped it.
+		UE_LOG(LogKBSTurn, Log, TEXT("Acting unit died during its action - turn ending"));
+		TurnProcessing = ETurnProcessingSubstate::EFreeState;
+		return;
+	}
 	UAbilityInventoryComponent* Inventory = CurrentUnit->GetAbilityInventory();
-	UTacGridSubsystem* GridSubsystem = CurrentUnit->GetWorld()->GetSubsystem<UTacGridSubsystem>();
+	UTacGridSubsystem* GridSubsystem = ParentTurnSubsystem->GetWorld()->GetSubsystem<UTacGridSubsystem>();
 
 	GridSubsystem->ClearAllHighlights();
 	Inventory->RecheckContents();

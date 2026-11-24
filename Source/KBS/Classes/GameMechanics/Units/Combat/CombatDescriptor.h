@@ -18,10 +18,12 @@ public:
 	void RemoveMagnitudeModifier(int32 Magnitude, FGuid ModificatorGuid, bool bIsFlat);
 	void ModifySource(const TSet<EDamageSource>& Sources, FGuid ModificatorGuid);
 	void RemoveSourceModifier(FGuid ModificatorGuid);
+	void GrantGuaranteedHit(FGuid ModificatorGuid);
+	void RemoveGuaranteedHitGrant(FGuid ModificatorGuid);
 
 	bool IsMutable() const;
 	void SetMagnitudeBase(int32 Magnitude);
-	bool IsRequiringAccuracyRoll() const { return !bGuaranteedHit; };
+	bool IsRequiringAccuracyRoll() const { return !bGuaranteedHit && GuaranteedHitGrants.IsEmpty(); };
 	EMagnitudePolicy GetMagnitudePolicy() const { return MagnitudePolicy; }
 	const FCombatDescriptorStats& GetStats() const { return Stats; }
 	const TArray<UBattleEffect*>& GetEffects() const { return ActiveEffects; }
@@ -41,7 +43,11 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	bool bGuaranteedHit;
-		
+
+	// Effects currently granting a guaranteed hit on top of the base flag
+	UPROPERTY()
+	TSet<FGuid> GuaranteedHitGrants;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Side Effects")
 	FDescriptorSideEffects SideEffects;
 

@@ -45,6 +45,7 @@ TMap<FTacCoordinates, FPreviewHitResult> UOffensiveSpellAbility::DamagePreview(F
 	ScaleEmbeddedDescriptor();
 
 	FResolvedTargets ResolvedTargets = TargetingService->ResolveTargetsFromClick(Owner, TargetCell, GetTargeting(), &EmbeddedDescriptor->GetStats().AreaShape);
+	AdjustDescriptorForTargets(ResolvedTargets);
 	for (AUnit* Target : ResolvedTargets.GetAllTargets())
 	{
 		if (!Target) continue;
@@ -67,6 +68,7 @@ FAbilityExecutionResult UOffensiveSpellAbility::Execute(FTacCoordinates TargetCe
 	if (!ResolvedTargets.ClickedTarget) return FAbilityExecutionResult::MakeFail();
 
 	ScaleEmbeddedDescriptor();
+	AdjustDescriptorForTargets(ResolvedTargets);
 
 	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::Ability, ETacLogEventOrigin::Initiated,
 	                                        Owner->GetUnitID(), FGuid());

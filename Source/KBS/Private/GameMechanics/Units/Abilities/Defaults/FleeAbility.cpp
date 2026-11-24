@@ -1,5 +1,5 @@
 #include "GameMechanics/Units/Abilities/Defaults/FleeAbility.h"
-#include "GameMechanics/Units/Abilities/UnitAbilityDefinition.h"
+#include "GameMechanics/Units/Abilities/Defaults/FleeAbilityDefinition.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogAbilitySteps.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
@@ -16,8 +16,9 @@ FAbilityExecutionResult UFleeAbility::Execute(FTacCoordinates TargetCell)
 	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::Ability, ETacLogEventOrigin::Initiated,
 	                                        Owner->GetUnitID(), FGuid());
 
-	Owner->GetStats().Status.SetFleeing();
-	Owner->OnUnitTurnStart.AddDynamic(this, &UFleeAbility::HandleTurnStarted);
+	if (GetFleeConfig()->DepartureMode == EDepartureMode::Flee)
+		Owner->GetStats().Status.SetFleeing();
+	ScheduleDeparture();
 
 	FAbilityUsePayload Payload;
 	Payload.AbilityAssetId    = Config->GetPrimaryAssetId();
@@ -43,15 +44,46 @@ bool UFleeAbility::CanExecute() const
 	return OwnerCanAct() && CanActByContext() && RemainingUses > 0;
 }
 
+const UFleeAbilityDefinition* UFleeAbility::GetFleeConfig() const
+{
+	return CastChecked<UFleeAbilityDefinition>(Config);
+}
+
+void UFleeAbility::ScheduleDeparture()
+{
+	switch (GetFleeConfig()->Timing)
+	{
+	case EFleeTiming::NextTurnStart:
+		Owner->OnUnitTurnStart.AddUniqueDynamic(this, &UFleeAbility::HandleTurnStarted);
+		break;
+	case EFleeTiming::ThisTurnEnd:
+	case EFleeTiming::Instant:
+		Owner->OnUnitTurnEnd.AddUniqueDynamic(this, &UFleeAbility::HandleTurnEnded);
+		break;
+	}
+}
+
 void UFleeAbility::HandleTurnStarted(AUnit* Unit)
 {
-	const bool bWillFlee = Owner->GetStats().Status.IsFleeing()
-		&& Owner->GetStats().Status.CanAct()
-		&& Owner->GetStats().Status.CanMove();
+	Owner->OnUnitTurnStart.RemoveDynamic(this, &UFleeAbility::HandleTurnStarted);
+	Depart();
+}
+
+void UFleeAbility::HandleTurnEnded(AUnit* Unit)
+{
+	Owner->OnUnitTurnEnd.RemoveDynamic(this, &UFleeAbility::HandleTurnEnded);
+	Depart();
+}
+
+void UFleeAbility::Depart()
+{
+	const bool bFleeMode = GetFleeConfig()->DepartureMode == EDepartureMode::Flee;
+	const FUnitStatusContainer& Status = Owner->GetStats().Status;
+	const bool bWillLeave = Status.CanAct() && Status.CanMove() && (!bFleeMode || Status.IsFleeing());
 
 	const FTacCoordinates LastFieldCoords = Owner->GetGridMetadata().Coords;
 
-	if (bWillFlee)
+	if (bWillLeave)
 		GetGridSubsystem()->PlaceUnitOffField(Owner);
 
 	UTacLogSubsystem* LogSubsystem = GetLogSubsystem();
@@ -60,12 +92,10 @@ void UFleeAbility::HandleTurnStarted(AUnit* Unit)
 	Payload.UnitId          = Owner->GetUnitID();
 	Payload.LastFieldCoords = LastFieldCoords;
 	Payload.TeamSide        = Owner->GetTeamSide();
-	Payload.bFled           = bWillFlee;
+	Payload.bFled           = bWillLeave && bFleeMode;
 	FGuid EventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitExitField, ETacLogEventOrigin::Triggered,
 	                                        Owner->GetUnitID(), FGuid());
 	LogSubsystem->CloseEvent(EventId, TInstancedStruct<FTacLogPayload>::Make<FUnitMoveOffFieldPayload>(MoveTemp(Payload)));
-
-	Owner->OnUnitTurnStart.RemoveDynamic(this, &UFleeAbility::HandleTurnStarted);
 }
 
 FGameplayTagContainer UFleeAbility::BuildTags() const

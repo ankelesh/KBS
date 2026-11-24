@@ -39,6 +39,8 @@ void FUnitCoreStats::ApplyDelta(const FUnitStatDelta& Delta, const FGuid& Effect
 		break;
 
 	case EUnitStatDeltaApplyPolicy::Override:
+		if (Delta.Initiative != 0)
+			Initiative.AddOverride(EffectId, Delta.Initiative);
 		for (const auto& [Source, Amount] : Delta.ArmourDeltas)
 			if (Amount != 0)
 				Defense.Armour.AddOverride(EffectId, Amount, Source);
@@ -78,6 +80,8 @@ void FUnitCoreStats::RemoveDelta(const FUnitStatDelta& Delta, const FGuid& Effec
 		break;
 
 	case EUnitStatDeltaApplyPolicy::Override:
+		if (Delta.Initiative != 0)
+			Initiative.RemoveOverride(EffectId, Delta.Initiative);
 		for (const auto& [Source, Amount] : Delta.ArmourDeltas)
 			if (Amount != 0)
 				Defense.Armour.RemoveOverride(EffectId, Amount, Source);

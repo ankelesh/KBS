@@ -6,15 +6,14 @@
 void FTurnEndState::Enter()
 {
 	BroadcastTurnEnd();
-	if (!GetTurnOrder()->Empty())
+	if (AUnit* Unit = GetTurnOrder()->GetCurrentUnit())
 	{
-		AUnit* Unit = GetTurnOrder()->GetCurrentUnit();
 		UE_LOG(LogKBSTurn, Log, TEXT("Turn end:   %s"), *Unit->GetLogName());
 		Unit->HandleTurnEnd();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("On turn end current unit was null!"));
+		UE_LOG(LogKBSTurn, Log, TEXT("Turn end: acting unit is gone (died during its turn)"));
 	}
 }
 

@@ -10,6 +10,7 @@
 #include "GameMechanics/Units/Components/UnitActionHistoryComponent.h"
 #include "GameMechanics/Units/Components/Config/UnitChargeComponentConfig.h"
 #include "GameMechanics/Units/Components/Config/UnitActionHistoryCmpConfig.h"
+#include "GameMechanics/Units/Stats/UnitInstantChange.h"
 #include "GameplayTypes/CombatTypes.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
 #include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
@@ -112,6 +113,13 @@ UUnitChargeComponent& AUnit::GetCharges() const
 	return *Charges;
 }
 
+UUnitActionHistoryComponent& AUnit::GetActionHistory() const
+{
+	UUnitActionHistoryComponent* History = FindComponentByClass<UUnitActionHistoryComponent>();
+	checkf(History, TEXT("%s has no UUnitActionHistoryComponent"), *GetLogName());
+	return *History;
+}
+
 bool AUnit::CanUseWeapon(const UWeapon& Weapon) const
 {
 	const FUnitChargeCost Cost = Weapon.GetChargeCost();
@@ -197,7 +205,8 @@ float AUnit::GetMovementSpeed() const
 
 void AUnit::HandleHit(const FDamageResult& Result, AUnit* Attacker, bool Emits)
 {
-	ChangeUnitHP(-Result.Damage);
+	// Flat damage reduction can push a weak hit below zero; a hit must never heal.
+	ChangeUnitHP(-FMath::Max(0, Result.Damage));
 	if (Result.WardSpent != EDamageSource::None)
 		ConsumeWard(Result.WardSpent);
 	if (Emits && Result.Damage > 0 && Attacker)
@@ -253,6 +262,22 @@ void AUnit::ConsumeWard(EDamageSource Source, bool Emits)
 {
 	BaseStats.Defense.Wards.UseWard(Source);
 	if (Emits) OnUnitStatsModified.Broadcast(this, BaseStats);
+}
+
+int32 AUnit::ApplyInstantChange(const FUnitInstantChange& Change, bool Emits)
+{
+	const int32 HealthBefore = BaseStats.Health.GetCurrent();
+	const int32 Heal = Change.HealFlat + BaseStats.Health.GetMaximum() * Change.HealPercentOfMax / 100;
+	if (Heal > 0)
+		ChangeUnitHP(Heal, Emits);
+
+	if (!Change.WardsToGrant.IsEmpty())
+	{
+		for (const EDamageSource Source : Change.WardsToGrant)
+			BaseStats.Defense.Wards.Add(Source);
+		if (Emits) OnUnitStatsModified.Broadcast(this, BaseStats);
+	}
+	return BaseStats.Health.GetCurrent() - HealthBefore;
 }
 
 EEffectApplicationOutcome AUnit::ApplyEffect(UBattleEffect* Effect, bool Emits)
