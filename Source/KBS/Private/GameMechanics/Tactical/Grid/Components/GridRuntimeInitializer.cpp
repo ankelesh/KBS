@@ -1,6 +1,9 @@
 #include "GameMechanics/Tactical/Grid/Components/GridRuntimeInitializer.h"
 #include "GameMechanics/Tactical/Grid/TacBattleGrid.h"
 #include "GameMechanics/Tactical/Grid/Components/GridDataManager.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/TacLogSubsystem.h"
+#include "GameMechanics/Tactical/Grid/Subsystems/Logs/TacLogPayloads.h"
+#include "GameMechanics/Units/UnitDefinition.h"
 #include "GameMechanics/Units/Components/UnitVisualsComponent.h"
 #include "GameplayTypes/GridCoordinates.h"
 
@@ -18,6 +21,7 @@ void UGridRuntimeInitializer::SpawnFromBattleSetup(const FTacticalBattleSetup& S
 {
 	ATacBattleGrid* Grid = GetGrid();
 	checkf(Grid && Grid->GetConfig(), TEXT("GridRuntimeInitializer: Grid or Config is null"));
+	checkf(DefaultUnitClass, TEXT("GridRuntimeInitializer: DefaultUnitClass is not set on grid"));
 
 	const UGridConfig* Config = Grid->GetConfig();
 	SpawnTeamUnits(Setup.AttackerUnits, true,  DefaultUnitClass, Config->AttackerStartCol);
@@ -31,6 +35,9 @@ void UGridRuntimeInitializer::SpawnTeamUnits(const TArray<FBattleUnitPlacement>&
 	UGridDataManager* DM = Grid->GetDataManager();
 	checkf(DM, TEXT("GridRuntimeInitializer: DataManager is null"));
 
+	UTacLogSubsystem* LogSubsystem = GetWorld()->GetSubsystem<UTacLogSubsystem>();
+	checkf(LogSubsystem, TEXT("GridRuntimeInitializer: TacLogSubsystem missing"));
+
 	UBattleTeam* Team = bIsAttacker ? DM->GetAttackerTeam() : DM->GetDefenderTeam();
 
 	for (const FBattleUnitPlacement& Placement : Units)
@@ -41,10 +48,27 @@ void UGridRuntimeInitializer::SpawnTeamUnits(const TArray<FBattleUnitPlacement>&
 		const FTacCoordinates Coords(Placement.TeamRow, AbsCol, Placement.Layer);
 
 		AUnit* NewUnit = DM->SpawnUnit(UnitClass, Placement.Definition, Coords, Team);
-		if (NewUnit)
+		if (!NewUnit)
 		{
-			Grid->SpawnedUnits.Add(NewUnit);
+			UE_LOG(LogTemp, Error, TEXT("GridRuntimeInitializer: Failed to spawn %s at [%d,%d]"),
+				*Placement.Definition->UnitName, Coords.Row, Coords.Col);
+			continue;
 		}
+		Grid->SpawnedUnits.Add(NewUnit);
+
+		// Unit is spawned and placed atomically by SpawnUnit, so the event opens and closes here
+		LogSubsystem->RegisterUnit(NewUnit->GetUnitID(), Placement.Definition->UnitName);
+		const FGuid SpawnEventId = LogSubsystem->OpenEvent(ETacLogEventType::UnitSpawn,
+			ETacLogEventOrigin::Initiated, NewUnit->GetUnitID(), FGuid());
+
+		FUnitSpawnPayload Payload;
+		Payload.SpawnedUnitId    = NewUnit->GetUnitID();
+		Payload.SpawnCoords      = Coords;
+		Payload.TeamSide         = Team->GetTeamSide();
+		Payload.bIsSummon        = false;
+		Payload.UnitDefinitionId = Placement.Definition->GetPrimaryAssetId();
+		LogSubsystem->CloseEvent(SpawnEventId,
+			TInstancedStruct<FTacLogPayload>::Make<FUnitSpawnPayload>(MoveTemp(Payload)));
 	}
 }
 
